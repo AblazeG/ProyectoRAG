@@ -43,11 +43,22 @@ def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None)
     iteraciones = []
     for t in trazas:
         tipos[t.get("tipo")] += 1
+        capas_traza: dict[str, float] = defaultdict(float)
         for etapa, ms in (t.get("tiempos_ms") or {}).items():
             por_etapa[etapa].append(ms)
-            por_capa[capa_de(etapa)].append(ms)
+            capas_traza[capa_de(etapa)] += ms
             if etapa == "gateway" and t.get("ruta"):
                 gateway_por_ruta[t["ruta"]].append(ms)
+        # Las llamadas al modelo del agente (dentro de contexto_rag) y del clasificador de E2
+        # (dentro de guardrails_entrada) son tiempo de C6, no de C5 ni de C3.
+        for llamada in t.get("llamadas") or []:
+            origen = {"agente": "C5", "clasificador": "C3"}.get(llamada.get("ruta"))
+            if origen and capas_traza.get(origen):
+                ms = min(llamada.get("duracion_ms", 0.0), capas_traza[origen])
+                capas_traza[origen] -= ms
+                capas_traza["C6"] += ms
+        for capa, ms in capas_traza.items():   # una muestra por traza y capa
+            por_capa[capa].append(round(ms, 3))
         if t.get("tiempo_total_ms") is not None:
             totales[t.get("tipo")].append(t["tiempo_total_ms"])
         if t.get("tipo") in ("auditoria", "pregunta"):

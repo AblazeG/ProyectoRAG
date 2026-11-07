@@ -74,6 +74,10 @@ class CicloAgente:
                 consulta = gateway.generar("rapido", prompt_reformular(consulta),
                                            ruta="agente", traza=traza).texto.strip()
             except ErrorModelo:
+                # Sin modelo para reformular: lo recuperado no es un «sin norma» verificado,
+                # así que C2 no lo guarda en caché (se anota en la traza).
+                if traza is not None:
+                    traza.sumar("agente_errores")
                 break
             if not consulta:
                 break

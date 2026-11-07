@@ -9,7 +9,7 @@ from __future__ import annotations
 from servicio.cache.exacta import CacheExacta
 from servicio.contexto.recuperador import Indice
 from servicio.dominio import (ArchivoSubido, DocIndexado, EntradaInvalida, ErrorDominio,
-                              RechazoSolicitud)
+                              ErrorInterno, RechazoSolicitud)
 from servicio.guardrails.entrada import MENSAJE_CUARENTENA, GuardrailsEntrada
 from servicio.guardrails.salida import GuardrailsSalida
 from servicio.observabilidad.traza import RegistroTrazas, Traza
@@ -51,6 +51,11 @@ class ServicioIngesta:
         except ErrorDominio as error:
             error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
             raise
+        except Exception as exc:  # noqa: BLE001
+            error = ErrorInterno()
+            traza.anotar(detalle_error=f"{type(exc).__name__}: {exc}"[:300])
+            error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
+            raise error from exc
         finally:
             traza.cerrar()
 

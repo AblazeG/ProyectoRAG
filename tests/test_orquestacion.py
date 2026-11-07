@@ -48,13 +48,13 @@ def test_todos_los_caminos_aplican_s4(tmp_path):
     c = contenedor_de_prueba(tmp_path)
     espia = Espia(c.auditor.salida)
 
-    # 1. normal (con modelo): n-gons graves en animación -> ruta completa
-    normal = c.auditor.auditar(malla("prisma_ngon"), "animacion")
+    # 1. normal (con modelo): arista no manifold grave en impresión -> ruta completa
+    normal = c.auditor.auditar(malla("cubo_aleta"), "impresion_3d")
     assert normal["ruta"] == "completa" and normal["cache"] == "ninguna"
     assert normal["modelo"] == "falso-gpt-oss:20b"  # el que explicó, no el que reformuló
     con_s4(normal, con_modelo=True)
     # 2. caché exacta
-    repetida = c.auditor.auditar(malla("prisma_ngon"), "animacion")
+    repetida = c.auditor.auditar(malla("cubo_aleta"), "impresion_3d")
     assert repetida["cache"] == "exacta" and repetida["auditoria_id"] != normal["auditoria_id"]
     con_s4(repetida, con_modelo=True)
     # 3. sin modelo
@@ -79,7 +79,7 @@ def test_todos_los_caminos_aplican_s4(tmp_path):
 
     # 6. respaldo: la ruta rápida cae y responde el modelo completo
     r = contenedor_de_prueba(tmp_path / "r", chats={"rapido": ChatFalso("rapido-caido", falla="timeout")})
-    respaldo = r.auditor.auditar(malla("cubo_triangulado"), "animacion")
+    respaldo = r.auditor.auditar(malla("cubo_aleta"), "animacion")
     assert respaldo["ruta"] == "rapida" and respaldo["uso_respaldo"]
     con_s4(respaldo, con_modelo=True)
 

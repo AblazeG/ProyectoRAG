@@ -45,15 +45,30 @@ Lo que no aparece aquí se implementó tal como lo describe el informe.
 - El resumen añade los informativos y las verificaciones no medibles.
 - En la ruta sin modelo, el aviso dice «Informe automático; puede contener errores.». En las preguntas y los rechazos se usa «Respuesta generada por un modelo…» o «Respuesta automática…».
 
+### B5b. `modelo` y `uso_respaldo` según lo que realmente pasó
+- `modelo` es el modelo que explicó algún hallazgo en esta ejecución (no el que reformuló ni el clasificador de E2). Si todo vino de la caché de hallazgos, es el modelo de la ruta. Si ningún modelo intervino (por ejemplo, todos los hallazgos quedaron «sin norma»), es `plantilla` y el aviso es el de informe automático, aunque la ruta sea rápida o completa.
+- `uso_respaldo` solo cuenta el respaldo en las llamadas de explicación. Un acierto de caché siempre responde `uso_respaldo: false`.
+- Lo que explicó el modelo de respaldo, y los «sin norma» producidos porque el agente no pudo reformular por falta de modelo, no se guardan en caché.
+
 ### B6. Rechazos de C1 sin aviso
 - **Informe (3.3):** «toda respuesta incluye el aviso».
-- **Implementado:** todo lo que pasa por C2 lleva el aviso de S4, incluidos rechazos, 503 y respuestas de caché. Las validaciones de esquema, extensión, perfil y tamaño que hace C1 antes de crear la traza (paso 1) responden solo con `detalle`, porque C1 no puede depender de C3 y en ese punto no se ha generado contenido.
+- **Implementado:** todo lo que pasa por C2 lleva el aviso de S4, incluidos rechazos, 503, errores imprevistos (500 con `traza_id`) y respuestas de caché. Las validaciones de esquema, extensión, perfil y tamaño que hace C1 antes de crear la traza (paso 1) responden solo con `detalle`, porque C1 no puede depender de C3 y en ese punto no se ha generado contenido. Los 422 de esquema de FastAPI también usan `detalle`.
 
 ### B7. Analizador (sección 7.1.1)
 - **V7:** los GLB están en metros por especificación y se convierten a la unidad del perfil. OBJ, STL y PLY se interpretan en la unidad del perfil, como dice la sección 10.1.
 - **V10:** dos vértices en la misma posición pero con UV o normales distintas son una costura legítima, no un duplicado. En STL, V10 es «no medible», porque cada faceta guarda sus propios vértices.
 - **No medibles:** V1 y V2 fuera de OBJ, y V10 en STL, aparecen como hallazgos informativos `tipo: "no_medible"`. El resumen recomienda auditar en OBJ.
 - El orden de los hallazgos es graves, menores e informativos, y dentro de cada gravedad, por número de verificación.
+
+### B7b. Lectura de mallas, V9 y V10
+- `LectorTrimesh` carga sin `force="mesh"`: esa conversión pierde las normales declaradas y V10 confundía las aristas duras (`f v//vn`) con vértices duplicados. Las escenas (GLB con varias mallas) se combinan aplicando la transformación de cada nodo.
+- **V9:** el volumen con signo se exige positivo en cada componente cerrado, no solo en el total. Así un cuerpo pequeño invertido no queda compensado por otro grande.
+- **V10:** usa la distancia euclídea real (< 1e-6) con los mismos UV y normales, sin errores en los bordes de la rejilla.
+
+### B7c. Interpretación de S3 y E3
+- **S3** (tabla 13: «conteos, porcentajes y valores con unidad») solo evalúa cifras seguidas de una unidad o de un sustantivo de conteo (mm, %, caras, triángulos, MB…). Versiones («glTF 2.0», «Blender 4.2»), años, secciones y razones no cuentan, y cada campo (explicación y cada paso) se evalúa por separado.
+- **E3:** un teléfono se enmascara si lleva separadores entre grupos o una palabra clave («tel», «cel», «WhatsApp»). Una serie de 10 dígitos sin separadores ni palabra clave no se enmascara, para no confundirla con conteos o tamaños en bytes.
+- **E2:** los patrones exigen un objeto de instrucción («instrucciones anteriores», «tu prompt», «a partir de ahora» + orden). Así no bloquean notas técnicas como «ignora las caras ocultas» o «act as a mold».
 
 ### B8. Hallazgos sin fragmentos
 - Un hallazgo para el que el agente no encuentra norma no se envía al modelo: la plantilla escribe «Sin norma aplicable en el corpus». La regla 3 del prompt se mantiene para el caso en que el modelo lo decida.

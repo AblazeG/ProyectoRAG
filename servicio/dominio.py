@@ -282,6 +282,12 @@ class ModeloNoDisponible(ErrorModelo):
     """Fallaron la ruta principal y el respaldo: la API responde 503."""
 
 
+class ErrorInterno(ErrorDominio):
+    """Excepción imprevista: se responde con mensaje seguro, traza y S4."""
+    codigo_http = 500
+    mensaje_seguro = "Ocurrió un error interno; la traza registra el detalle."
+
+
 class ErrorDatos(ErrorDominio):
     codigo_http = 503
     mensaje_seguro = "Un recurso de datos no está disponible."

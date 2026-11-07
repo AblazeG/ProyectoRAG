@@ -29,6 +29,7 @@ from servicio.dominio import (
     AlmacenArchivosTemporales,
     ArchivoSubido,
     ErrorDominio,
+    ErrorInterno,
     Generacion,
     Hallazgo,
     Recuperado,
@@ -138,7 +139,9 @@ class OrquestadorAuditoria:
                  temporales: AlmacenArchivosTemporales, informes: RepositorioInformes,
                  trazas: RegistroTrazas, embeddings_nombre: str,
                  lote: int = prompts.LOTE_HALLAZGOS, num_ctx: int = prompts.NUM_CTX,
-                 max_reformulaciones_informe: int = 6):
+                 max_reformulaciones_informe: int = 6,
+                 reserva_tokens: int = prompts.RESERVA_SALIDA,
+                 parametros_lote: dict | None = None):
         self.entrada = entrada
         self.salida = salida
         self.cache = cache
@@ -154,6 +157,8 @@ class OrquestadorAuditoria:
         self.lote = lote
         self.num_ctx = num_ctx
         self.max_reformulaciones_informe = max_reformulaciones_informe
+        self.reserva_tokens = reserva_tokens
+        self.parametros_lote = parametros_lote or {}
 
     def versiones(self) -> dict:
         return versiones_actuales(self.analizador, self.indice, self.gateway,
@@ -177,6 +182,11 @@ class OrquestadorAuditoria:
         except ErrorDominio as error:
             error.cuerpo = cuerpo_de_error(self.salida, traza, error, "informe")
             raise
+        except Exception as exc:  # noqa: BLE001 - imprevisto: traza en error y respuesta con S4
+            error = ErrorInterno()
+            traza.anotar(detalle_error=f"{type(exc).__name__}: {exc}"[:300])
+            error.cuerpo = cuerpo_de_error(self.salida, traza, error, "informe")
+            raise error from exc
         finally:
             if ruta_archivo is not None:
                 self.temporales.borrar(ruta_archivo)   # la malla no se conserva
@@ -199,7 +209,7 @@ class OrquestadorAuditoria:
             clave = self.cache.clave_informe(archivo_sha, perfil, notas_ok.texto, versiones)
             guardado = self.cache.obtener_informe(clave)
         if guardado is not None:
-            return self._desde_cache(traza, guardado, archivo_sha, inicio)
+            return self._desde_cache(traza, guardado, archivo_sha, inicio, malla.nombre)
 
         # 5. Análisis determinista
         with traza.etapa("contexto_malla"):
@@ -221,25 +231,27 @@ class OrquestadorAuditoria:
         with traza.etapa("ensamblado"):
             informe = self._ensamblar(resultado, perfil, ruta, traza, malla, versiones, inicio,
                                       aciertos)
-        with traza.etapa("guardrails_salida"):
-            respuesta = self._responder(informe, con_modelo=ruta.ruta != SIN_MODELO)
+        with traza.etapa("guardrails_salida"):   # aviso de modelo solo si un modelo explicó algo
+            respuesta = self._responder(informe, con_modelo=informe["modelo"] != "plantilla")
         with traza.etapa("cache"):
             para_cache = {k: v for k, v in respuesta.items()
-                          if k not in ("auditoria_id", "traza_id", "tiempo_ms")}
+                          if k not in ("auditoria_id", "traza_id", "tiempo_ms", "archivo")}
             self.cache.guardar_informe(clave, para_cache, versiones["corpus"], validada=validado)
         with traza.etapa("persistencia"):
             self.informes.guardar(respuesta, archivo_sha)
         return respuesta
 
-    def _desde_cache(self, traza: Traza, guardado: dict, archivo_sha: str, inicio: float) -> dict:
+    def _desde_cache(self, traza: Traza, guardado: dict, archivo_sha: str, inicio: float,
+                     nombre_archivo: str) -> dict:
         informe = dict(guardado)
         informe.update(auditoria_id=uuid.uuid4().hex, traza_id=traza.traza_id, cache="exacta",
-                       iteraciones_agente=0, guardrails=traza.guardrails,
+                       iteraciones_agente=0, guardrails=traza.guardrails, uso_respaldo=False,
+                       archivo=nombre_archivo,
                        tiempo_ms=round((time.perf_counter() - inicio) * 1000, 2))
         traza.anotar(cache="exacta", ruta=informe.get("ruta"), modelo=informe.get("modelo"),
                      hallazgos=sum(h["gravedad"] != "informativo" for h in informe["hallazgos"]))
         with traza.etapa("guardrails_salida"):
-            respuesta = self._responder(informe, con_modelo=informe.get("ruta") != SIN_MODELO)
+            respuesta = self._responder(informe, con_modelo=informe.get("modelo") != "plantilla")
         with traza.etapa("persistencia"):
             self.informes.guardar(respuesta, archivo_sha)
         return respuesta
@@ -269,18 +281,24 @@ class OrquestadorAuditoria:
         presupuesto = Presupuesto(self.max_reformulaciones_informe)
         fragmentos: dict[str, list[Recuperado]] = {}
         with traza.etapa("contexto_rag"):                           # 7. recuperar normas
+            sin_modelo_agente: set[str] = set()
             for h in pendientes:
+                errores_antes = traza.datos.get("agente_errores", 0)
                 fragmentos[h.id], _ = self.agente.recuperar_con_agente(
                     h.consulta, perfil, presupuesto, traza)
+                if traza.datos.get("agente_errores", 0) > errores_antes:
+                    sin_modelo_agente.add(h.id)
         validos: dict[str, bool] = {}
         for h in pendientes:
             if not fragmentos[h.id]:
                 h.explicacion, h.correccion, h.fuente = SIN_NORMA, [], None
-                validos[h.id] = True
+                # Si el agente no pudo reformular por falta de modelo, no se guarda en caché.
+                validos[h.id] = h.id not in sin_modelo_agente
         con_norma = [h for h in pendientes if fragmentos[h.id]]
         nombre_perfil = self.analizador.catalogo.obtener(perfil).nombre
         tamano = prompts.tamano_lote(self.agente.k, self.indice.tam, self.num_ctx,
-                                     maximo=self.lote)
+                                     self.reserva_tokens, maximo=self.lote,
+                                     **self.parametros_lote)
         for lote in prompts.lotes(con_norma, tamano):                # 8 y 9: una llamada por lote
             validos.update(self._explicar_lote(traza, lote, fragmentos, ruta, nombre_perfil, notas))
         for h in con_norma:
@@ -299,7 +317,11 @@ class OrquestadorAuditoria:
         textos = {i: r.fragmento.texto for i, r in por_id.items()}
         veredicto, generacion = generar_verificado(self.gateway, self.salida, traza, ruta, mensajes,
                                                    RespuestaExplicaciones, permitidos, textos)
-        traza.datos["modelo_explicacion"] = generacion.modelo
+        modelos = traza.datos.setdefault("modelos_explicacion", [])
+        if generacion.modelo not in modelos:
+            modelos.append(generacion.modelo)
+        traza.datos["respaldo_explicacion"] = (traza.datos.get("respaldo_explicacion", False)
+                                               or generacion.uso_respaldo)
         validos = {}
         for h in lote:
             item = veredicto.detalles.get(h.id) if veredicto.motivo != "formato" else None
@@ -316,7 +338,10 @@ class OrquestadorAuditoria:
             else:
                 h.explicacion, h.correccion = item["texto"], item["correccion"]
                 h.fuente = fuente_de(por_id.get(item["citas"][0]))
-                validos[h.id] = veredicto.aprobado and not item["removidas"]
+                # La clave de la caché de hallazgos lleva el modelo de la ruta: lo que
+                # respondió el respaldo no se guarda bajo ella.
+                validos[h.id] = (veredicto.aprobado and not item["removidas"]
+                                 and not generacion.uso_respaldo)
         return validos
 
     # -- paso 10: plantilla ---------------------------------------------------
@@ -357,9 +382,16 @@ class OrquestadorAuditoria:
                 "fuente": None if informativo else h.fuente,
                 "descripcion": h.descripcion, "valor": h.valor, "norma_esperada": h.norma,
             })
-        modelo = "plantilla"
-        if ruta.ruta != SIN_MODELO:   # el modelo que explicó, no el que reformuló
-            modelo = traza.datos.get("modelo_explicacion") or self.gateway.nombre_modelo(ruta.alias)
+        # El modelo que explicó en esta ejecución (no el que reformuló ni el clasificador).
+        # Si todo vino de la caché de hallazgos, el modelo de la ruta (su clave lo incluye);
+        # si ningún modelo intervino, «plantilla» y aviso de informe automático.
+        explicadores = traza.datos.get("modelos_explicacion", [])
+        if explicadores:
+            modelo = ", ".join(explicadores)
+        elif aciertos and ruta.alias is not None:
+            modelo = self.gateway.nombre_modelo(ruta.alias)
+        else:
+            modelo = "plantilla"
         traza.anotar(modelo=modelo)
         return {
             "auditoria_id": uuid.uuid4().hex,
@@ -374,7 +406,7 @@ class OrquestadorAuditoria:
             "iteraciones_agente": traza.datos["iteraciones_agente"],
             "tiempo_ms": round((time.perf_counter() - inicio) * 1000, 2),
             "traza_id": traza.traza_id,
-            "uso_respaldo": bool(traza.datos.get("uso_respaldo")),
+            "uso_respaldo": bool(traza.datos.get("respaldo_explicacion")),
             "archivo": malla.nombre,
             "perfil": perfil,
             "perfil_nombre": datos_perfil.nombre,

@@ -21,6 +21,7 @@ from servicio.cache.exacta import CacheExacta
 from servicio.cache.semantica import CacheSemantica
 from servicio.contexto.herramientas import Analizador
 from servicio.contexto.perfiles import CatalogoPerfiles, cargar_perfiles
+from servicio.contexto.prompts import tamano_lote
 from servicio.contexto.recuperador import Indice, Recuperador
 from servicio.datos.documentos import LectorDocumentos
 from servicio.datos.falsos import ChatFalso, EmbeddingsFalsos, SondaFalsa
@@ -98,10 +99,10 @@ class Contenedor:
                         "completo": self.gateway.nombre_modelo("completo"),
                         "embeddings": self.extras["embeddings"].nombre,
                         "juez": c["modelos"].get("juez")},
-            "rag": {**c["rag"], "lote_efectivo": __import__(
-                "servicio.contexto.prompts", fromlist=["tamano_lote"]).tamano_lote(
+            "rag": {**c["rag"], "lote_efectivo": tamano_lote(
                 c["rag"]["k"], c["rag"]["tam_fragmento"], c["rag"]["num_ctx"],
-                c["rag"]["reserva_prompt_tokens"], c["rag"]["lote_hallazgos"])},
+                c["rag"]["reserva_prompt_tokens"], c["rag"]["lote_hallazgos"],
+                **_parametros_lote(c["rag"]))},
             "agente": c["agente"],
             "umbrales": {"recuperacion": c["rag"]["umbral"],
                          "fuera_de_dominio": c["guardrails"]["umbral_fuera_dominio"],
@@ -115,6 +116,11 @@ class Contenedor:
             "ollama": {"opciones": c["ollama"]["opciones"], "keep_alive": c["ollama"]["keep_alive"]},
             "versiones": self.auditor.versiones(),
         }
+
+
+def _parametros_lote(rag: dict) -> dict:
+    return {"tokens_salida": rag.get("tokens_salida_por_hallazgo", 250),
+            "caracteres_por_token": rag.get("caracteres_por_token", 3.5)}
 
 
 def _modelos(config: dict, proveedor: str):
@@ -203,7 +209,9 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                    informes=informes, trazas=trazas, embeddings_nombre=embeddings.nombre,
                    num_ctx=rag["num_ctx"])
     auditor = OrquestadorAuditoria(temporales=temporales, lote=rag["lote_hallazgos"],
-                      max_reformulaciones_informe=config["agente"]["max_por_informe"], **comunes)
+                                   max_reformulaciones_informe=config["agente"]["max_por_informe"],
+                                   reserva_tokens=rag["reserva_prompt_tokens"],
+                                   parametros_lote=_parametros_lote(rag), **comunes)
     preguntas = ServicioPreguntas(cache_semantica=cache_semantica,
                                   max_reformulaciones=config["agente"]["max_por_informe"],
                                   **comunes)

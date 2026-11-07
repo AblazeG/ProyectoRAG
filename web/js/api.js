@@ -1,10 +1,20 @@
 // Cliente mínimo de la API de MeshAudit. La web solo habla con la API:
 // nunca llama a Ollama ni a ChromaDB.
 const API = (() => {
+  // Solo se aceptan APIs locales: un enlace con ?api= no puede desviar las mallas a otro host.
+  const esLocal = (url) => {
+    try { return ["127.0.0.1", "localhost", "[::1]"].includes(new URL(url).hostname); }
+    catch (e) { return false; }
+  };
   const parametros = new URLSearchParams(location.search);
-  const base = (parametros.get("api") || localStorage.getItem("meshaudit_api") ||
-                "http://127.0.0.1:8000").replace(/\/$/, "");
-  if (parametros.get("api")) localStorage.setItem("meshaudit_api", base);
+  const pedida = parametros.get("api");
+  let guardada = null;
+  try { guardada = localStorage.getItem("meshaudit_api"); } catch (e) { /* sin almacenamiento */ }
+  const candidata = [pedida, guardada].find(u => u && esLocal(u));
+  const base = (candidata || "http://127.0.0.1:8000").replace(/\/$/, "");
+  if (pedida && esLocal(pedida)) {
+    try { localStorage.setItem("meshaudit_api", base); } catch (e) { /* sin almacenamiento */ }
+  }
 
   async function pedir(ruta, opciones = {}) {
     let respuesta;

@@ -6,6 +6,7 @@ gateway (ruta rápida) → S1–S3 → S4 → caché.
 """
 from __future__ import annotations
 
+import json
 import time
 
 from servicio.cache.exacta import CacheExacta
@@ -16,7 +17,9 @@ from servicio.contexto.recuperador import Indice
 from servicio.dominio import (
     SIN_NORMA,
     SIN_NORMA_VERIFICADA,
+    EntradaInvalida,
     ErrorDominio,
+    ErrorInterno,
     Fragmento,
     NoEncontrado,
     Recuperado,
@@ -31,6 +34,11 @@ from servicio.observabilidad.traza import RegistroTrazas, Traza
 from servicio.orquestacion.agente import CicloAgente, Presupuesto
 from servicio.orquestacion.auditor import (cuerpo_de_error, fuente_de, generar_verificado,
                                            versiones_actuales)
+
+
+def _version_semantica(versiones: dict) -> str:
+    """Todo lo que cambia una respuesta salvo el corpus (que va aparte para la purga)."""
+    return json.dumps({k: v for k, v in versiones.items() if k != "corpus"}, sort_keys=True)
 
 
 def texto_del_informe(informe: dict) -> str:
@@ -79,10 +87,17 @@ class ServicioPreguntas:
         traza.anotar(auditoria_id=id, archivo_sha=informe.get("_archivo_sha"))
         inicio = time.perf_counter()
         try:
+            if not (texto or "").strip():
+                raise EntradaInvalida("La pregunta está vacía.")
             return self._preguntar(traza, informe, texto, inicio)
         except ErrorDominio as error:
             error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
             raise
+        except Exception as exc:  # noqa: BLE001
+            error = ErrorInterno()
+            traza.anotar(detalle_error=f"{type(exc).__name__}: {exc}"[:300])
+            error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
+            raise error from exc
         finally:
             traza.cerrar()
 
@@ -119,13 +134,19 @@ class ServicioPreguntas:
             clave = self.cache.clave_pregunta(archivo_sha, perfil, texto, versiones)
             exacta = self.cache.obtener_pregunta(clave)
             semantica = None if exacta else self.cache_semantica.buscar_similar(
-                texto, archivo_sha, perfil, versiones["corpus"])
+                texto, archivo_sha, perfil, versiones["corpus"], _version_semantica(versiones))
         if exacta or semantica:
             tipo = "exacta" if exacta else "semantica"
             guardado = dict(exacta or semantica[0])
             traza.anotar(cache=tipo, ruta=guardado.get("ruta"), modelo=guardado.get("modelo"))
             if semantica:
                 traza.anotar(similitud_cache=round(semantica[1], 4))
+            # La cita del informe apunta a la auditoría actual, no a la que llenó la caché.
+            propio = f"informe:{informe['auditoria_id']}#1"
+            for fuente in guardado.get("fuentes", []):
+                if str(fuente.get("id", "")).startswith("informe:"):
+                    guardado["respuesta"] = guardado["respuesta"].replace(fuente["id"], propio)
+                    fuente["id"] = propio
             respuesta = self._base(informe, traza, inicio, **{
                 k: v for k, v in guardado.items() if k in ("respuesta", "fuentes", "modelo", "ruta")})
             respuesta["cache"] = tipo
@@ -175,5 +196,6 @@ class ServicioPreguntas:
         with traza.etapa("cache"):  # solo lo que pasó S1–S3; nunca rechazos
             self.cache.guardar_pregunta(clave, guardable, versiones["corpus"], validada)
             self.cache_semantica.guardar(texto, archivo_sha, perfil, guardable,
-                                         versiones["corpus"], validada)
+                                         versiones["corpus"], validada,
+                                         _version_semantica(versiones))
         return respuesta

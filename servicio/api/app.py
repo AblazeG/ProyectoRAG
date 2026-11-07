@@ -6,6 +6,7 @@ from dataclasses import asdict
 from typing import Any
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -62,6 +63,17 @@ def crear_app(servicios: Any) -> FastAPI:
     def _error_dominio(_: Request, error: ErrorDominio):
         cuerpo = getattr(error, "cuerpo", None) or {"detalle": error.mensaje}
         return JSONResponse(status_code=error.codigo_http, content=cuerpo)
+
+    @app.exception_handler(RequestValidationError)
+    def _error_validacion(_: Request, error: RequestValidationError):
+        """422 de esquema con el mismo campo ``detalle`` que el resto de los errores."""
+        detalle = "; ".join(f"{'.'.join(str(x) for x in e.get('loc', [])[1:])}: {e.get('msg')}"
+                            for e in error.errors())
+        return JSONResponse(status_code=422, content={"detalle": detalle or "Solicitud inválida."})
+
+    @app.exception_handler(Exception)
+    def _error_inesperado(_: Request, error: Exception):
+        return JSONResponse(status_code=500, content={"detalle": "Ocurrió un error interno."})
 
     # -- salud y configuración ---------------------------------------------
     @app.get("/health")

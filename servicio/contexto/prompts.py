@@ -38,11 +38,13 @@ ESQUEMA_PREGUNTA = RespuestaPreguntaModelo.model_json_schema()
 
 
 def tamano_lote(k: int = 5, tam_fragmento: int = 800, num_ctx: int = NUM_CTX,
-                reserva: int = RESERVA_SALIDA, maximo: int = LOTE_HALLAZGOS) -> int:
+                reserva: int = RESERVA_SALIDA, maximo: int = LOTE_HALLAZGOS,
+                tokens_salida: int = TOKENS_SALIDA_POR_HALLAZGO,
+                caracteres_por_token: float = CARACTERES_POR_TOKEN) -> int:
     """Hallazgos por llamada (sección 7.1.2): con k = 5 y 800 caracteres cada
     hallazgo ocupa ~1 150 tokens de contexto y ~250 de salida; en 8 192 tokens
     caben lotes de hasta cuatro. Se recalcula si cambian k o el tamaño."""
-    por_hallazgo = k * tam_fragmento / CARACTERES_POR_TOKEN + TOKENS_SALIDA_POR_HALLAZGO
+    por_hallazgo = k * tam_fragmento / caracteres_por_token + tokens_salida
     return max(1, min(maximo, int((num_ctx - reserva) // por_hallazgo)))
 
 

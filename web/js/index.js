@@ -68,6 +68,12 @@ const ETIQUETAS = {
 };
 
 function pintarInforme(inf) {
+  // Reinicia la valoración del informe anterior (la caja global no se vuelve a dibujar).
+  document.querySelectorAll("#informe > .retro").forEach(caja => {
+    caja.querySelectorAll("button").forEach(b => b.disabled = false);
+    caja.querySelector("input").value = "";
+    caja.querySelector(".meta").textContent = "";
+  });
   $("#informe").classList.remove("oculto");
   $("#preguntas").classList.remove("oculto");
   const s = $("#semaforo");
