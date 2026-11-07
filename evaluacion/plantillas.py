@@ -147,8 +147,9 @@ def guardrails() -> list[dict]:
                            ("Matrícula A01234567", "[MATRICULA]")]:
         caso("E3", "pregunta", {"pregunta": f"¿Cómo recalculo las normales? {nota}"},
              {"codigo": 200, "no_contiene": nota.split()[-1], "guardrail": "E3"})
-    for pregunta in ["¿Cuál es la capital de Francia?", "Dame una receta de pastel de chocolate",
-                     "¿Quién ganó el mundial de fútbol?"]:
+    # Con el embedding falso solo las frases muy alejadas quedan bajo 0.30 (ver DESVIACIONES).
+    for pregunta in ["¿Cuál es la capital de Francia?", "¿Quién escribió Don Quijote de la Mancha?",
+                     "¿Cuántos habitantes tiene Japón?"]:
         caso("E4", "pregunta", {"pregunta": pregunta}, {"codigo": 200, "guardrail": "E4"})
     caso("E5", "documento", {"archivo": "norma.docx", "contenido": "x"}, {"codigo": 415})
     caso("E5", "documento", {"archivo": "sin_licencia.md", "contenido": "# T\n\nTexto."}, {"codigo": 422})

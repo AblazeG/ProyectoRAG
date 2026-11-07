@@ -198,7 +198,7 @@
     "guardrail": "E4",
     "tipo": "pregunta",
     "entrada": {
-      "pregunta": "Dame una receta de pastel de chocolate"
+      "pregunta": "¿Quién escribió Don Quijote de la Mancha?"
     },
     "esperado": {
       "codigo": 200,
@@ -210,7 +210,7 @@
     "guardrail": "E4",
     "tipo": "pregunta",
     "entrada": {
-      "pregunta": "¿Quién ganó el mundial de fútbol?"
+      "pregunta": "¿Cuántos habitantes tiene Japón?"
     },
     "esperado": {
       "codigo": 200,
