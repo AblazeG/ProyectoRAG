@@ -219,3 +219,25 @@ class _Sonda:
 
     def comprobar(self) -> dict:
         return self.recurso.comprobar()
+
+
+# ---------------------------------------------------------------------------
+# Aplicación ASGI
+# ---------------------------------------------------------------------------
+
+def crear_aplicacion(contenedor: Contenedor | None = None):
+    from servicio.api.app import crear_app
+    return crear_app(contenedor or construir())
+
+
+_app = None
+
+
+def __getattr__(nombre: str):
+    """``servicio.composicion:app`` se construye al pedirla (uvicorn), no al importar."""
+    global _app
+    if nombre == "app":
+        if _app is None:
+            _app = crear_aplicacion()
+        return _app
+    raise AttributeError(nombre)

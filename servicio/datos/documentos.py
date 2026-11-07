@@ -182,3 +182,22 @@ class LectorDocumentos:
         secciones = [SeccionDocumento(s.titulo, _limpiar(s.texto)) for s in secciones]
         return DocumentoExtraido(titulo=str(titulo), formato="markdown", secciones=secciones,
                                  metadatos=meta)
+
+
+def listar_corpus(directorio: Path | str) -> list[tuple[ArchivoSubido, dict]]:
+    """Documentos de un directorio del corpus con sus metadatos.
+
+    ``fuentes.yaml`` (opcional) asigna a cada archivo ``doc_id``, ``titulo``,
+    ``licencia`` y ``perfiles``; el front matter del Markdown también sirve.
+    """
+    directorio = Path(directorio)
+    fuentes_yaml = directorio / "fuentes.yaml"
+    fuentes = {}
+    if fuentes_yaml.exists():
+        fuentes = (yaml.safe_load(fuentes_yaml.read_text(encoding="utf-8")) or {}).get("documentos") or {}
+    salida = []
+    for ruta in sorted(directorio.rglob("*")):
+        if ruta.is_file() and ruta.suffix.lower() in FORMATOS:
+            meta = fuentes.get(ruta.name) or fuentes.get(str(ruta.relative_to(directorio))) or {}
+            salida.append((ArchivoSubido(ruta.name, ruta.read_bytes()), dict(meta)))
+    return salida
