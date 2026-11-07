@@ -78,6 +78,9 @@ def entorno(**variables):
                 os.environ[k] = v
 
 
+_INDICES: dict[tuple, Path] = {}
+
+
 class Sesion:
     """Cliente HTTP de la API: externo (``--url``) o en proceso (TestClient)."""
 
@@ -93,23 +96,46 @@ class Sesion:
             return
         from fastapi.testclient import TestClient
         from servicio.composicion import construir, crear_aplicacion
-        self.dir_datos = Path(dir_datos or tempfile.mkdtemp(prefix="meshaudit_eval_"))
+        # Las sesiones con el mismo corpus comparten el índice (Chroma persistente) para
+        # no volver a generar los embeddings de todo el corpus en cada sesión.
+        clave = None
+        if corpus and dir_datos is None:
+            clave = (proveedor, str(Path(corpus).resolve()),
+                     (variables or {}).get("MESHAUDIT_MODELO_EMBEDDINGS",
+                                           os.environ.get("MESHAUDIT_MODELO_EMBEDDINGS", "")))
+            vectorial = "chroma"
+        reutiliza = clave in _INDICES
+        self.dir_datos = Path(dir_datos or _INDICES.get(clave)
+                              or tempfile.mkdtemp(prefix="meshaudit_eval_"))
         with entorno(MESHAUDIT_FALLA=falla, **(variables or {})):
             self.contenedor = construir(proveedor=proveedor, dir_datos=self.dir_datos,
                                         cache_activa=cache, vectorial=vectorial, chats=chats,
                                         dormir=(lambda s: None) if proveedor == "falso" else None)
         self.http = TestClient(crear_aplicacion(self.contenedor))
         self.ruta_trazas = self.dir_datos / "trazas.jsonl"
-        if corpus:
+        if corpus and not reutiliza:
             self.ingestar(corpus)
+            if clave:
+                _INDICES[clave] = self.dir_datos
 
     def ingestar(self, directorio: Path):
         from servicio.datos.documentos import listar_corpus
-        for archivo, meta in listar_corpus(directorio):
+        documentos = listar_corpus(directorio)
+        if not documentos:
+            print(f"aviso: no hay documentos en {directorio}", file=sys.stderr)
+        for archivo, meta in documentos:
             datos = {k: (",".join(v) if isinstance(v, list) else v) for k, v in meta.items()
                      if k in ("licencia", "doc_id", "perfiles", "titulo")}
-            self.http.post("/documentos", files={"archivo": (archivo.nombre, archivo.contenido)},
-                           data=datos)
+            r = self.http.post("/documentos", files={"archivo": (archivo.nombre, archivo.contenido)},
+                               data=datos)
+            if r.status_code != 201:
+                print(f"aviso: {archivo.nombre} no se ingirió ({r.status_code}): "
+                      f"{r.json().get('detalle', r.text)}", file=sys.stderr)
+
+    def vaciar_cache(self) -> None:
+        """Borra la caché exacta y semántica (las sesiones comparten la base de datos)."""
+        if self.contenedor is not None:
+            self.contenedor.cache.purgar(10 ** 9)
 
     def auditar(self, ruta: Path, perfil: str, notas: str = ""):
         return self.http.post("/auditorias", files={"archivo": (ruta.name, ruta.read_bytes())},

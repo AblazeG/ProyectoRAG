@@ -75,7 +75,8 @@ def _sin_rag(sesion: Sesion, informe: dict, hallazgo: dict, juez):
                           [hallazgo["fuente"]["fragmento"]] if hallazgo.get("fuente") else [])
 
 
-def tabla16(sesion: Sesion, dir_mallas: Path, juez) -> tuple[list[dict], list[dict]]:
+def tabla16(sesion: Sesion, dir_mallas: Path, juez, salida: Path = RESULTADOS
+            ) -> tuple[list[dict], list[dict]]:
     casos_det, vp_t, det_t, esp_t = [], 0, 0, 0
     aciertos5, total5, con, sin = 0, 0, [], []
     citas_gen, citas_s2, frases_s3, desde_cache = 0, 0, 0, 0
@@ -130,7 +131,7 @@ def tabla16(sesion: Sesion, dir_mallas: Path, juez) -> tuple[list[dict], list[di
 
     def media(notas, campo):
         return round(statistics.mean(n[campo] for n in notas), 2) if notas else None
-    juez_autor = _juez_autor()
+    juez_autor = _juez_autor(salida)
     resumen = [
         {"metrica": "Recall de hallazgos", "con_rag": round(vp_t / esp_t, 3) if esp_t else None, "sin_rag": ""},
         {"metrica": "Precisión de hallazgos", "con_rag": round(vp_t / det_t, 3) if det_t else None, "sin_rag": ""},
@@ -146,9 +147,11 @@ def tabla16(sesion: Sesion, dir_mallas: Path, juez) -> tuple[list[dict], list[di
     return resumen, casos_det
 
 
-def _juez_autor() -> dict:
-    """Validación del juez: diferencia media y % de casos con diferencia ≤ 1 (15 casos)."""
-    ruta = RESULTADOS / "muestra_revision_manual.csv"
+def _juez_autor(salida: Path = RESULTADOS) -> dict:
+    """Validación del juez: diferencia media y % de casos con diferencia ≤ 1 (15 casos).
+
+    Lee ``muestra_revision_manual.csv`` (de experimento_llm) en el directorio de salida."""
+    ruta = Path(salida) / "muestra_revision_manual.csv"
     if not ruta.exists():
         return {}
     diferencias = []
@@ -416,7 +419,8 @@ def main(argv=None) -> int:
         print(f"{nombre}: {escribir_csv(salida / nombre, filas)}")
 
     if "16" in tablas:
-        resumen, detalle = tabla16(con_cache, dir_mallas, juez)
+        con_cache.vaciar_cache()
+        resumen, detalle = tabla16(con_cache, dir_mallas, juez, salida)
         guardar("tabla16_producto.csv", resumen)
         guardar("tabla16_casos.csv", detalle)
     if tablas & {"17", "18"} and not args.url:
@@ -450,7 +454,7 @@ def main(argv=None) -> int:
         guardar("fallas.csv", fallas(args, dir_mallas))
     if "retro" in tablas:
         guardar("retroalimentacion.csv", retroalimentacion(args.datos))
-    juez_autor = _juez_autor()
+    juez_autor = _juez_autor(salida)
     if juez_autor:
         guardar("juez_autor.csv", [juez_autor])
     (salida / "ultima_corrida.json").write_text(json.dumps(

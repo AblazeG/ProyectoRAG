@@ -34,6 +34,7 @@ def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -
     filas = []
     for umbral in umbrales:
         sesion = Sesion(proveedor=proveedor, cache=True, corpus=corpus)
+        sesion.vaciar_cache()   # sin aciertos heredados de otras tablas o umbrales
         sesion.contenedor.extras["cache_semantica"].umbral = umbral
         auditoria = sesion.auditar(dir_mallas / referencia["malla"], referencia["perfil"]).json()
         fallos_ms = [sesion.preguntar(auditoria["auditoria_id"], c["original"]).json()["tiempo_ms"]
@@ -49,6 +50,7 @@ def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -
                       "ahorro_ms": round(_media(fallos_ms) - _media(aciertos_ms), 1) if aciertos_ms else None})
     # Exacta: 10 auditorías repetidas sin notas + 10 preguntas repetidas
     sesion = Sesion(proveedor=proveedor, cache=True, corpus=corpus)
+    sesion.vaciar_cache()
     primeras, segundas = [], []
     for c in casos["auditorias_repetidas"]:
         p = producto[c["caso_producto"]]
