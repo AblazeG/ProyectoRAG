@@ -46,6 +46,28 @@ class MallaCruda:
 
 
 @dataclass
+class Hallazgo:
+    """Resultado de una verificación que no se cumple (C5 lo produce)."""
+
+    id: str                      # "h-V4"
+    verificacion: str            # "V4"
+    tipo: str                    # "aristas_no_manifold"
+    gravedad: str                # "grave" | "menor" | "informativo"
+    medido: Any
+    limite: str
+    descripcion: str
+    consulta: str                # consulta canónica para el RAG
+    norma: dict | None = None    # {"documento", "seccion"} esperado (perfiles.yaml)
+    explicacion: str | None = None
+    correccion: list[str] = field(default_factory=list)
+    fuente: dict | None = None
+
+    @property
+    def explicable(self) -> bool:
+        return self.gravedad in ("grave", "menor")
+
+
+@dataclass
 class Fragmento:
     id: str                 # p. ej. "blender_manual:mesh-cleanup#3"
     doc_id: str
