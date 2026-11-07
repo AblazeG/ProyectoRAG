@@ -1,0 +1,115 @@
+"""Gateway de modelos (C6): tiempo límite por ruta, reintentos y respaldo.
+
+- 45 s en la ruta rápida y 90 s en la completa.
+- Hasta 2 reintentos con espera de 1 y 2 s, solo ante error de conexión o 5xx.
+- Ni un timeout ni un 404 (modelo inexistente) se reintentan: van al respaldo.
+- Si el respaldo también falla: ``ModeloNoDisponible`` (la API responde 503).
+Los embeddings no pasan por aquí: C3, C4 y C5 usan el puerto directamente.
+"""
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+from typing import Callable
+
+from servicio.dominio import (
+    ErrorConexion,
+    ErrorModelo,
+    ErrorServidorModelo,
+    Generacion,
+    ModeloChat,
+    ModeloNoDisponible,
+)
+from servicio.modelos.enrutador import RESPALDO
+
+REINTENTABLES = (ErrorConexion, ErrorServidorModelo)
+
+
+@dataclass
+class ResultadoGateway:
+    generacion: Generacion
+    alias: str                 # alias que respondió
+    alias_pedido: str
+    modelo: str
+    uso_respaldo: bool
+    intentos: int
+    errores: list[str] = field(default_factory=list)
+
+
+@dataclass
+class RegistroLlamada:
+    alias: str
+    modelo: str
+    ruta: str | None
+    tokens_entrada: int
+    tokens_salida: int
+    duracion_ms: float
+    uso_respaldo: bool
+    ok: bool
+    error: str | None = None
+
+
+class Gateway:
+    def __init__(self, modelos: dict[str, ModeloChat], tiempos_limite_s: dict[str, float],
+                 reintentos: int = 2, esperas_s: list[float] | None = None,
+                 dormir: Callable[[float], None] = time.sleep):
+        self.modelos = modelos
+        self.tiempos_limite_s = tiempos_limite_s
+        self.reintentos = reintentos
+        self.esperas_s = esperas_s or [1.0, 2.0]
+        self.dormir = dormir
+        self.registro: list[RegistroLlamada] = []
+
+    def nombre_modelo(self, alias: str) -> str:
+        return self.modelos[alias].nombre
+
+    def _con_reintentos(self, alias: str, mensajes: list[dict], esquema: dict | None,
+                        errores: list[str]) -> tuple[Generacion, int]:
+        modelo = self.modelos[alias]
+        intento = 0
+        while True:
+            intento += 1
+            try:
+                return modelo.generar(mensajes, esquema, self.tiempos_limite_s[alias]), intento
+            except REINTENTABLES as exc:
+                errores.append(f"{alias}:{type(exc).__name__}")
+                if intento > self.reintentos:
+                    raise
+                self.dormir(self.esperas_s[min(intento - 1, len(self.esperas_s) - 1)])
+            except ErrorModelo as exc:  # timeout, 404 u otro: directo al respaldo
+                errores.append(f"{alias}:{type(exc).__name__}")
+                raise
+
+    def generar(self, alias: str, mensajes: list[dict], esquema: dict | None,
+                ruta: str | None = None, traza=None,
+                permitir_respaldo: bool = True) -> ResultadoGateway:
+        errores: list[str] = []
+        candidatos = [alias] + ([RESPALDO[alias]] if permitir_respaldo else [])
+        intentos_totales = 0
+        for posicion, actual in enumerate(candidatos):
+            inicio = time.perf_counter()
+            try:
+                generacion, intentos = self._con_reintentos(actual, mensajes, esquema, errores)
+            except ErrorModelo as exc:
+                intentos_totales += 1
+                self._registrar(actual, ruta, None, inicio, posicion > 0, traza, str(type(exc).__name__))
+                continue
+            intentos_totales += intentos
+            self._registrar(actual, ruta, generacion, inicio, posicion > 0, traza)
+            return ResultadoGateway(generacion, actual, alias, generacion.modelo,
+                                    uso_respaldo=posicion > 0, intentos=intentos_totales,
+                                    errores=errores)
+        raise ModeloNoDisponible("Ni la ruta principal ni el respaldo respondieron.")
+
+    def _registrar(self, alias, ruta, generacion, inicio, respaldo, traza, error=None):
+        registro = RegistroLlamada(
+            alias=alias, modelo=self.modelos[alias].nombre, ruta=ruta,
+            tokens_entrada=generacion.tokens_entrada if generacion else 0,
+            tokens_salida=generacion.tokens_salida if generacion else 0,
+            duracion_ms=round((time.perf_counter() - inicio) * 1000, 2),
+            uso_respaldo=respaldo, ok=generacion is not None, error=error)
+        self.registro.append(registro)
+        if len(self.registro) > 1000:
+            del self.registro[:500]
+        if traza is not None:
+            traza.registrar_llamada(registro.__dict__)
