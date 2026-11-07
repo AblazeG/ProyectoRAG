@@ -7,6 +7,7 @@ revela el patrón detectado; C2 aplica S4 al cuerpo antes de responder.
 from __future__ import annotations
 
 import json
+import re
 from html import escape
 from pathlib import Path
 
@@ -120,7 +121,9 @@ class GuardrailsEntrada:
             activaciones.append("E3")
         veredicto = Veredicto(True, texto=enmascarado, activaciones=activaciones)
         if campo == "pregunta" and texto_informe is not None:
-            corpus, informe = self.similitudes(enmascarado, texto_informe, perfil)
+            # Sin las etiquetas de E3: «[CORREO]» no debe sacar la pregunta del dominio.
+            limpio = patrones.ETIQUETAS.sub(" ", enmascarado).strip() or enmascarado
+            corpus, informe = self.similitudes(limpio, texto_informe, perfil)
             veredicto.detalles = {"similitud_corpus": corpus, "similitud_informe": informe}
             if corpus < self.umbral_fuera_dominio and informe < self.umbral_fuera_dominio:
                 veredicto.aprobado = False
@@ -155,6 +158,13 @@ class GuardrailsEntrada:
         return round(corpus, 4), round(informe, 4)
 
     # -- E5 ----------------------------------------------------------------
+    def _licencia_canonica(self, licencia) -> str | None:
+        """«cc0-1.0», « CC0-1.0 » o «Propio» se aceptan con su forma canónica."""
+        if not licencia:
+            return None
+        clave = re.sub(r"[\s_]+", "-", str(licencia).strip()).lower()
+        return {l.lower(): l for l in self.licencias}.get(clave)
+
     def verificar_documento(self, archivo: ArchivoSubido | None = None,
                             texto: str | None = None, licencia: str | None = None) -> Veredicto:
         """Dos llamadas (figura 6): ``verificar_documento(archivo)`` antes de
@@ -168,8 +178,8 @@ class GuardrailsEntrada:
             datos = self.lector_documentos.inspeccionar(archivo)
             if not datos["firma_ok"]:
                 raise RechazoSolicitud(415, MENSAJE_DOC_FORMATO, "E5")
-            licencia_final = licencia or datos.get("licencia_detectada")
-            if licencia_final not in self.licencias:
+            licencia_final = self._licencia_canonica(licencia or datos.get("licencia_detectada"))
+            if licencia_final is None:
                 raise RechazoSolicitud(422, MENSAJE_LICENCIA, "E5")
             return Veredicto(True, detalles={"formato": datos["formato"],
                                              "licencia": licencia_final})

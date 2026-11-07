@@ -21,8 +21,9 @@ FORMATOS = {".pdf": "pdf", ".html": "html", ".htm": "html", ".md": "markdown",
             ".markdown": "markdown"}
 
 PATRONES_LICENCIA = [
-    (re.compile(r"CC[\s-]?BY[\s-]?SA[\s-]?4\.0|Attribution-ShareAlike 4\.0", re.I), "CC-BY-SA-4.0"),
-    (re.compile(r"CC[\s-]?BY[\s-]?4\.0|Creative Commons Attribution 4\.0", re.I), "CC-BY-4.0"),
+    (re.compile(r"CC[\s-]?BY[\s-]?SA[\s-]?4\.0|Attribution-ShareAlike 4\.0|licenses/by-sa/4\.0", re.I), "CC-BY-SA-4.0"),
+    (re.compile(r"CC[\s-]?BY[\s-]?4\.0|Creative Commons Attribution 4\.0|licenses/by/4\.0", re.I), "CC-BY-4.0"),
+    (re.compile(r"CC[\s-]?BY[\s-]?3\.0|Creative Commons Attribution 3\.0|licenses/by/3\.0", re.I), "CC-BY-3.0"),
     (re.compile(r"\bCC0\b|CC0[\s-]1\.0|Public Domain Dedication", re.I), "CC0-1.0"),
     (re.compile(r"Apache License,? Version 2\.0|Apache-2\.0", re.I), "Apache-2.0"),
     (re.compile(r"\bMIT License\b", re.I), "MIT"),
@@ -49,23 +50,59 @@ def detectar_licencia(texto: str) -> str | None:
     return None
 
 
+def decodificar(contenido: bytes) -> str:
+    """UTF-8 (con o sin BOM); si no lo es, Windows-1252 (textos latinos antiguos)."""
+    try:
+        return contenido.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return contenido.decode("cp1252", "replace")
+
+
 def _front_matter(texto: str) -> tuple[dict, str]:
-    if texto.startswith("---"):
-        partes = texto.split("\n---", 1)
-        if len(partes) == 2:
-            try:
-                meta = yaml.safe_load(partes[0][3:]) or {}
-                if isinstance(meta, dict):
-                    return meta, partes[1].lstrip("-\n")
-            except yaml.YAMLError:
-                pass
-    return {}, texto
+    """Front matter YAML entre «---». Si el YAML es inválido (p. ej. «titulo: A: B» sin
+    comillas) se lee como líneas «clave: valor». Sin «---» de cierre: error 422."""
+    if not texto.startswith("---"):
+        return {}, texto
+    partes = texto[3:].split("\n---", 1)
+    if len(partes) != 2:
+        raise EntradaInvalida("El front matter del Markdown no tiene «---» de cierre.")
+    bloque, cuerpo = partes
+    try:
+        meta = yaml.safe_load(bloque) or {}
+    except yaml.YAMLError:
+        meta = {}
+        for linea in bloque.splitlines():
+            if ":" in linea and not linea.startswith((" ", "-")):
+                clave, valor = linea.split(":", 1)
+                valor = valor.strip()
+                if valor.startswith("[") and valor.endswith("]"):
+                    valor = [v.strip(" '\"") for v in valor[1:-1].split(",") if v.strip()]
+                meta[clave.strip()] = valor
+    if not isinstance(meta, dict):
+        meta = {}
+    return meta, cuerpo.lstrip("-").lstrip("\n")
+
+
+# Texto que el navegador no muestra: no se indexa (podría esconder instrucciones).
+OCULTO = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0|opacity\s*:\s*0(?:\.0+)?\s*(?:;|$)", re.I)
 
 
 def _limpiar(texto: str) -> str:
     texto = re.sub(r"[ \t]+", " ", texto)
     texto = re.sub(r"\n{3,}", "\n\n", texto)
     return texto.strip()
+
+
+def _licencia_html(contenido: bytes) -> str | None:
+    sopa = BeautifulSoup(contenido, "html.parser")
+    for etiqueta in sopa.find_all("meta"):
+        if (etiqueta.get("name") or "").lower() in ("license", "licencia", "dcterms.license"):
+            return detectar_licencia(etiqueta.get("content") or "") or (etiqueta.get("content") or None)
+    for enlace in sopa.find_all("a", rel=True) + sopa.find_all("link", rel=True):
+        if "license" in [r.lower() for r in enlace.get("rel", [])]:
+            return detectar_licencia((enlace.get("href") or "") + " " + enlace.get_text(" "))
+    pie = sopa.find("footer") or sopa.find(attrs={"role": "contentinfo"})
+    return detectar_licencia(pie.get_text(" ")) if pie else None
 
 
 class LectorDocumentos:
@@ -85,10 +122,12 @@ class LectorDocumentos:
             firma_ok = False
         licencia = None
         if formato == "markdown" and firma_ok:
-            meta, _ = _front_matter(archivo.contenido.decode("utf-8", "replace"))
+            # En Markdown la licencia se declara en el front matter (no en el cuerpo).
+            meta, _ = _front_matter(decodificar(archivo.contenido))
             licencia = meta.get("licencia") or meta.get("license")
-        if licencia is None and firma_ok and formato in ("markdown", "html"):
-            licencia = detectar_licencia(archivo.contenido[:200_000].decode("utf-8", "replace"))
+        elif formato == "html" and firma_ok:
+            # En HTML: <meta name="license">, <link rel="license"> o el aviso del pie de página.
+            licencia = _licencia_html(archivo.contenido[:400_000])
         return {"formato": formato, "firma_ok": firma_ok, "tamano": archivo.tamano,
                 "licencia_detectada": licencia}
 
@@ -147,6 +186,12 @@ class LectorDocumentos:
         titulo = sopa.title.get_text(strip=True) if sopa.title else Path(archivo.nombre).stem
         for etiqueta in sopa(list(SELECTORES_RUIDO)):
             etiqueta.decompose()
+        for elemento in sopa.find_all(True):   # texto oculto: no se extrae ni se indexa
+            if elemento.decomposed or elemento.attrs is None:
+                continue
+            if (elemento.has_attr("hidden") or elemento.get("aria-hidden") == "true"
+                    or OCULTO.search(elemento.get("style") or "")):
+                elemento.decompose()
         for elemento in sopa.find_all(attrs={"role": re.compile("navigation|banner|contentinfo")}):
             elemento.decompose()
         raiz = (sopa.find("main") or sopa.find(attrs={"role": "main"}) or sopa.find("article")
@@ -178,7 +223,7 @@ class LectorDocumentos:
 
     # -- Markdown ----------------------------------------------------------
     def _markdown(self, archivo: ArchivoSubido) -> DocumentoExtraido:
-        texto = archivo.contenido.decode("utf-8", "replace")
+        texto = decodificar(archivo.contenido)
         meta, cuerpo = _front_matter(texto)
         titulo = str(meta.get("titulo") or meta.get("title") or Path(archivo.nombre).stem)
         secciones: list[SeccionDocumento] = []

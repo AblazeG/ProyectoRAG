@@ -226,6 +226,11 @@ class FormatoNoSoportado(ErrorDominio):
     mensaje_seguro = "El formato del archivo no es compatible."
 
 
+class Conflicto(ErrorDominio):
+    codigo_http = 409
+    mensaje_seguro = "Ya existe un recurso con ese identificador."
+
+
 class EntradaInvalida(ErrorDominio):
     codigo_http = 422
     mensaje_seguro = "La solicitud no se puede procesar."

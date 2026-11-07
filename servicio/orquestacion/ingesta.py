@@ -9,12 +9,20 @@ from __future__ import annotations
 from servicio.cache.exacta import CacheExacta
 from servicio.cache.semantica import CacheSemantica
 from servicio.contexto.recuperador import Indice
-from servicio.dominio import (ArchivoSubido, DocIndexado, EntradaInvalida, ErrorDominio,
-                              ErrorInterno, RechazoSolicitud)
+from servicio.dominio import (ArchivoSubido, Conflicto, DocIndexado, EntradaInvalida,
+                              ErrorDominio, ErrorInterno, RechazoSolicitud)
 from servicio.guardrails.entrada import MENSAJE_CUARENTENA, GuardrailsEntrada
 from servicio.guardrails.salida import GuardrailsSalida
 from servicio.observabilidad.traza import RegistroTrazas, Traza
 from servicio.orquestacion.auditor import cuerpo_de_error
+
+
+def _doc_indexado(registro: dict) -> DocIndexado:
+    return DocIndexado(documento_id=registro["doc_id"], nombre=registro.get("nombre", ""),
+                       formato=registro.get("formato", ""), licencia=registro.get("licencia", ""),
+                       perfiles=registro.get("perfiles", []), fragmentos=registro.get("fragmentos", 0),
+                       version_corpus=registro.get("version_corpus", 0), fecha=registro.get("fecha", 0.0),
+                       titulo=registro.get("titulo", ""))
 
 
 class ServicioIngesta:
@@ -30,7 +38,7 @@ class ServicioIngesta:
 
     def ingerir(self, doc: ArchivoSubido, licencia: str | None = None,
                 doc_id: str | None = None, perfiles: list[str] | None = None,
-                titulo: str | None = None) -> DocIndexado:
+                titulo: str | None = None, reemplazar: bool = False) -> DocIndexado:
         traza = Traza("ingesta", None, self.trazas, version_corpus=self.indice.version_corpus)
         try:
             with traza.etapa("guardrails_entrada"):                   # E5 (archivo)
@@ -45,6 +53,15 @@ class ServicioIngesta:
             if not contenido.aprobado:
                 self.indice.registrar_cuarentena(doc, "contenido con instrucciones")
                 raise RechazoSolicitud(422, MENSAJE_CUARENTENA, "E5")
+            existente = self.indice.obtener(registro["doc_id"])
+            if existente and existente.get("estado") == "indexado":
+                if existente.get("sha256") == registro["sha256"]:
+                    # Mismo contenido: no se reindexa ni se invalida la caché.
+                    traza.anotar(doc_id=registro["doc_id"], sin_cambios=True)
+                    return _doc_indexado(existente)
+                if existente.get("nombre") != registro["nombre"] and not reemplazar:
+                    raise Conflicto(f"Ya existe el documento «{registro['doc_id']}» con otro "
+                                    "archivo; envía reemplazar=true para sustituirlo.")
             with traza.etapa("contexto_indexado"):                    # embeddings + versión++
                 indexado = self.indice.indexar(fragmentos, registro)
             with traza.etapa("cache"):                                # purgar versión anterior

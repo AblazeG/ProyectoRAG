@@ -124,8 +124,13 @@ class LectorTrimesh:
             v = np.asarray(malla.vertices, dtype=float)
             if transformacion is not None:
                 v = trimesh.transformations.transform_points(v, transformacion)
+            f = np.asarray(malla.faces, dtype=np.int64)
+            if f.size and (f.min() < 0 or f.max() >= len(v)):
+                raise EntradaInvalida("La malla tiene caras con índices de vértice inexistentes.")
+            if transformacion is not None and np.linalg.det(np.asarray(transformacion)[:3, :3]) < 0:
+                f = f[:, ::-1]   # un espejo en el nodo invierte el enrollado (glTF 2.0)
             vertices.append(v)
-            caras.append(np.asarray(malla.faces, dtype=np.int64) + desplazamiento)
+            caras.append(f + desplazamiento)
             desplazamiento += len(v)
             uvs.append(_uv(malla))
             n = _normales(malla)
@@ -134,8 +139,11 @@ class LectorTrimesh:
                 n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
             normales.append(n)
 
+        todos = np.vstack(vertices)
+        if not np.isfinite(todos).all():
+            raise EntradaInvalida("La malla tiene coordenadas no finitas (NaN o infinito).")
         return MallaCruda(
-            vertices=np.vstack(vertices),
+            vertices=todos,
             caras=np.vstack(caras),
             uv=None if any(u is None for u in uvs) else np.vstack(uvs),
             normales=None if any(n is None for n in normales) else np.vstack(normales),

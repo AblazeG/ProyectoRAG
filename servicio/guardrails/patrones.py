@@ -11,9 +11,14 @@ _I = re.IGNORECASE
 _ANCHO_CERO = re.compile("[\u00ad\u200b-\u200f\u2060-\u2064\ufeff]")
 
 
+_DELETREADO = re.compile(r"\b(?:\w[\s\-_.·*]){3,}\w\b")
+
+
 def normalizar_texto(texto: str) -> str:
-    """NFKC, sin caracteres de ancho cero y con espacios simples (evita evasiones triviales)."""
+    """NFKC, sin caracteres de ancho cero, palabras deletreadas unidas («I-g-n-o-r-a» →
+    «Ignora») y espacios simples (evita evasiones triviales)."""
     texto = _ANCHO_CERO.sub("", unicodedata.normalize("NFKC", texto or ""))
+    texto = _DELETREADO.sub(lambda m: re.sub(r"[\s\-_.·*]", "", m.group()), texto)
     return re.sub(r"\s+", " ", texto)
 
 
@@ -24,7 +29,7 @@ def normalizar_texto(texto: str) -> str:
 _ORDEN = (r"(?:responde\w*|contesta\w*|aprueba\w*|acepta\w*|di|dime|escribe\w*|eres|act[uú]a\w*|"
           r"revela\w*|mu[eé]stra\w*|imprime\w*|ignora\w*|olvida\w*|haz|marca\w*|answer|respond|"
           r"approve|say|write|reveal|print|act|ignore|forget|you)")
-_INSTRUCCIONES_ES = (r"(?:instrucciones|indicaciones|[oó]rdenes|directrices|"
+_INSTRUCCIONES_ES = (r"(?:instrucciones|indicaciones|[oó]rdenes|directrices|el\s+contexto|"
                      r"reglas\s+(?:anteriores|previas|del\s+sistema|de\s+seguridad)|"
                      r"(?:tus|sus)\s+reglas(?!\s+de\b))")
 INYECCION = [re.compile(p, _I) for p in (
@@ -46,7 +51,12 @@ INYECCION = [re.compile(p, _I) for p in (
     r"\b(?:reveal|show|print|repeat|leak|tell|output|display)\s+(?:me\s+)?"
     r"(?:your\s+(?:system\s+|initial\s+|hidden\s+|original\s+)?|the\s+(?:system|hidden|initial|original)\s+)"
     r"(?:prompt|instructions)",
-    r"\bsystem\s+prompt\b|\bprompt\s+(?:del|de)\s+sistema\b",
+    r"\bsystem\s+(?:prompt|message)\b|\b(?:prompt|mensaje|instrucciones)\s+(?:del|de)\s+sistema\b",
+    # texto que se dirige al asistente (inyección indirecta en documentos, figura 6)
+    r"(?:^|[.!?\n]\s*)(?:asistente|assistant)\s*:\s*\w",
+    # («el modelo» queda fuera: en este dominio es el modelo 3D, «el modelo debe desenvolverse»)
+    r"\b(?:el\s+asistente|la\s+ia|el\s+modelo\s+de\s+lenguaje|the\s+assistant|the\s+ai|"
+    r"the\s+language\s+model)\s+(?:debe|deber[aá]|tiene\s+que|must|should|has\s+to)\b",
     # cambio de rol
     r"\b(?:act[uú]a\w*|comp[oó]rtate|finge|simula)\s+(?:como|ser|que\s+eres)\s+(?:si\s+fueras\s+)?"
     r"(?:un|una|el|la)?\s*(?:asistente|ia|modelo|chatbot|bot|sistema|administrador|admin|hacker|"
@@ -91,6 +101,10 @@ DATOS_PERSONALES = [
         rf"(?:{ESTADOS_CURP})[B-DF-HJ-NP-TV-Z]{{3}}[A-Z\d]\d\b", _I)),
     ("[MATRICULA]", re.compile(r"\bmatr[ií]cula\s*(?:n[uú]m(?:ero)?\.?|no\.?)?\s*[:#]?\s*[A-Z0-9-]{5,12}\b", _I)),
     ("[MATRICULA]", re.compile(r"\b[Aa]0\d{7}\b")),
+    ("[CORREO]", re.compile(r"[\w.+-]+\s*[(\[]\s*(?:at|arroba)\s*[)\]]\s*[\w-]+(?:\s*(?:\.|[(\[]\s*(?:dot|punto)\s*[)\]])\s*[\w-]+)+", _I)),
+    ("[CURP]", re.compile(
+        r"\b[A-Z][AEIOUX][A-Z]{2}\s?\d{6}\s?[HM]\s?(?:" + ESTADOS_CURP + r")\s?[B-DF-HJ-NP-TV-Z]{3}\s?[A-Z\d]\d\b", _I)),
+    ("[RFC]", re.compile(r"\b[A-ZÑ&]{3,4}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])[A-Z\d]{3}\b")),
     # Teléfono con prefijo explícito («tel», «cel», «WhatsApp»…), aunque no lleve separadores.
     ("[TELEFONO]", re.compile(
         r"(?i:\b(?:tel(?:[eé]fono)?|cel(?:ular)?|m[oó]vil|whats(?:app)?|phone|mobile)\.?\s*[:#]?\s*)"
@@ -99,16 +113,38 @@ DATOS_PERSONALES = [
     ("[TELEFONO]", re.compile(
         r"(?<![\w.\-])(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,3}\)\s?|\d{2,3}[\s.-])\d{3,4}[\s.-]\d{4}"
         rf"(?![\w.\-]){_UNIDAD_SIGUE}")),
+    # Teléfono de 10 dígitos seguidos (formato mexicano), con o sin +52, si no es una medición.
+    ("[TELEFONO]", re.compile(rf"(?<![\w.\-#/])(?:\+?52[\s.-]?)?\d{{10}}(?![\w.\-]){_UNIDAD_SIGUE}")),
 ]
+_TARJETA = re.compile(r"(?<![\d-])(?:\d{4}[ -]?){3}\d{1,7}(?![\d-])")
+
+
+def _luhn(numero: str) -> bool:
+    digitos = [int(d) for d in re.sub(r"\D", "", numero)][::-1]
+    if not 13 <= len(digitos) <= 19:
+        return False
+    suma = sum(d if i % 2 == 0 else (d * 2 - 9 if d * 2 > 9 else d * 2) for i, d in enumerate(digitos))
+    return suma % 10 == 0
 
 
 def enmascarar(texto: str) -> tuple[str, int]:
     """Sustituye datos personales por etiquetas. Devuelve (texto, n)."""
     total = 0
+    contador = [0]
+
+    def tarjeta(m: re.Match) -> str:   # solo números que pasan la verificación de Luhn
+        if _luhn(m.group()):
+            contador[0] += 1
+            return "[TARJETA]"
+        return m.group()
+    texto = _TARJETA.sub(tarjeta, texto)
     for etiqueta, patron in DATOS_PERSONALES:
         texto, n = patron.subn(etiqueta, texto)
         total += n
-    return texto, total
+    return texto, total + contador[0]
+
+
+ETIQUETAS = re.compile(r"\[(?:CORREO|TELEFONO|CURP|MATRICULA|RFC|TARJETA)\]")
 
 
 # -- S2: citas -------------------------------------------------------------

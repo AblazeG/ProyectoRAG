@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import threading
 import time
 from dataclasses import dataclass, field
@@ -127,8 +128,11 @@ class Indice:
         """Lee PDF/HTML/MD con C7 y corta en fragmentos de 800 caracteres (solape 120)."""
         documento = self.lector.extraer(archivo)
         meta = documento.metadatos or {}
-        doc_id = slug(doc_id or meta.get("doc_id") or archivo.nombre.rsplit(".", 1)[0],
-                      maximo=None).replace("-", "_")
+        base = doc_id or meta.get("doc_id") or archivo.nombre.rsplit(".", 1)[0]
+        doc_id = slug(str(base), maximo=None).replace("-", "_")
+        if doc_id == "seccion" and str(base).lower() != "seccion":
+            # Nombres sin caracteres ASCII («模型.md»): id estable y único por nombre.
+            doc_id = "doc_" + hashlib.sha1(str(base).encode("utf-8")).hexdigest()[:10]
         perfiles = perfiles or meta.get("perfiles") or list(PERFILES)
         if isinstance(perfiles, str):
             perfiles = [p.strip() for p in perfiles.split(",") if p.strip()]
@@ -138,7 +142,8 @@ class Indice:
         fragmentos = fragmentar(documento, doc_id, licencia, perfiles, self.tam, self.solape)
         registro = {"doc_id": doc_id, "nombre": archivo.nombre, "titulo": documento.titulo,
                     "formato": documento.formato, "licencia": licencia, "perfiles": perfiles,
-                    "secciones": len(documento.secciones), "fuente": meta.get("fuente")}
+                    "secciones": len(documento.secciones), "fuente": meta.get("fuente"),
+                    "sha256": hashlib.sha256(archivo.contenido).hexdigest()}
         return documento, fragmentos, registro
 
     def indexar(self, fragmentos: list[Fragmento], registro: dict) -> DocIndexado:
@@ -170,6 +175,9 @@ class Indice:
                     "estado": "cuarentena", "motivo": motivo, "fragmentos": 0}
         self.repo_documentos.guardar(registro)
         return registro
+
+    def obtener(self, doc_id: str) -> dict | None:
+        return self.repo_documentos.obtener(doc_id)
 
     def eliminar(self, doc_id: str) -> dict:
         if not self.repo_documentos.obtener(doc_id):

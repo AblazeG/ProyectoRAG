@@ -74,7 +74,7 @@ class BaseSQLite:
     def comprobar(self) -> dict:
         try:
             self.consultar("SELECT 1")
-            return {"ok": True, "ruta": self.ruta}
+            return {"ok": True}   # sin rutas internas del servidor
         except ErrorDatos as exc:
             return {"ok": False, "detalle": exc.mensaje}
 
@@ -199,6 +199,9 @@ class RepositorioRetroalimentacionSQLite:
         self.base = base
 
     def guardar(self, registro: dict) -> None:
+        # Un voto por traza y hallazgo (o por informe): el último reemplaza al anterior.
+        self.base.ejecutar("DELETE FROM retroalimentacion WHERE traza_id=? AND hallazgo_id IS ?",
+                           (registro["traza_id"], registro.get("hallazgo_id")))
         self.base.ejecutar(
             "INSERT INTO retroalimentacion (traza_id, hallazgo_id, util, comentario,"
             " creado) VALUES (?,?,?,?,?)",

@@ -2,11 +2,13 @@
 llama al orquestador que corresponde y traduce errores del dominio a HTTP."""
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 from typing import Any
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 
@@ -40,6 +42,25 @@ def _leer(archivo: UploadFile, limite: int) -> bytes:
     return contenido
 
 
+def _nombre_base(nombre: str | None, defecto: str) -> str:
+    """Solo el nombre del archivo, sin rutas («../../x.obj» → «x.obj», «C:\\a\\b.obj» → «b.obj»)."""
+    base = (nombre or "").replace("\\", "/").split("/")[-1].strip()
+    return base or defecto
+
+
+def _lista(perfiles: str | None) -> list[str] | None:
+    """Perfiles como «a,b» o como lista JSON «["a", "b"]»."""
+    if not perfiles:
+        return None
+    texto = perfiles.strip()
+    if texto.startswith("["):
+        try:
+            return [str(p).strip() for p in json.loads(texto) if str(p).strip()]
+        except ValueError:
+            pass
+    return [p.strip(" '\"") for p in texto.strip("[]").split(",") if p.strip(" '\"")]
+
+
 def crear_app(servicios: Any) -> FastAPI:
     """``servicios`` es el contenedor que arma ``composicion.py``."""
     config = servicios.config
@@ -52,6 +73,18 @@ def crear_app(servicios: Any) -> FastAPI:
                        allow_origins=config.get("servidor", {}).get("cors_origenes", CORS_POR_DEFECTO),
                        allow_methods=["GET", "POST", "DELETE"], allow_headers=["*"])
     app.state.servicios = servicios
+    origenes = set(config.get("servidor", {}).get("cors_origenes", CORS_POR_DEFECTO))
+
+    @app.middleware("http")
+    async def _sin_csrf(request: Request, siguiente):
+        """CORS solo impide leer la respuesta: un formulario de otro sitio podría subir o
+        borrar documentos. Las peticiones que modifican datos con un Origin ajeno se
+        rechazan (los clientes sin navegador no envían Origin)."""
+        origen = request.headers.get("origin")
+        if (request.method in ("POST", "PUT", "PATCH", "DELETE") and origen
+                and origen not in origenes):
+            return JSONResponse(status_code=403, content={"detalle": "Origen no permitido."})
+        return await siguiente(request)
 
     @app.exception_handler(ErrorDominio)
     def _error_dominio(_: Request, error: ErrorDominio):
@@ -64,6 +97,11 @@ def crear_app(servicios: Any) -> FastAPI:
         detalle = "; ".join(f"{'.'.join(str(x) for x in e.get('loc', [])[1:])}: {e.get('msg')}"
                             for e in error.errors())
         return JSONResponse(status_code=422, content={"detalle": detalle or "Solicitud inválida."})
+
+    @app.exception_handler(StarletteHTTPException)
+    def _error_http(_: Request, error: StarletteHTTPException):
+        return JSONResponse(status_code=error.status_code, content={"detalle": str(error.detail)},
+                            headers=getattr(error, "headers", None))
 
     @app.exception_handler(Exception)
     def _error_inesperado(_: Request, error: Exception):
@@ -91,12 +129,12 @@ def crear_app(servicios: Any) -> FastAPI:
     @app.post("/documentos", status_code=201, response_model=RespuestaDocumento)
     def subir_documento(archivo: UploadFile = File(...), licencia: str | None = Form(None),
                         doc_id: str | None = Form(None), perfiles: str | None = Form(None),
-                        titulo: str | None = Form(None)):
+                        titulo: str | None = Form(None), reemplazar: bool = Form(False)):
         contenido = _leer(archivo, limite_documento)
-        lista = [p.strip() for p in perfiles.split(",") if p.strip()] if perfiles else None
-        indexado = servicios.ingesta.ingerir(ArchivoSubido(archivo.filename or "documento", contenido),
-                                             licencia=licencia or None, doc_id=doc_id or None,
-                                             perfiles=lista, titulo=titulo or None)
+        indexado = servicios.ingesta.ingerir(
+            ArchivoSubido(_nombre_base(archivo.filename, "documento"), contenido),
+            licencia=licencia or None, doc_id=doc_id or None, perfiles=_lista(perfiles),
+            titulo=titulo or None, reemplazar=reemplazar)
         return asdict(indexado)
 
     @app.get("/documentos")
@@ -114,7 +152,7 @@ def crear_app(servicios: Any) -> FastAPI:
                 notas: str = Form("", max_length=4000)):
         """Función principal: devuelve el informe con fuentes, modelo, ruta, caché,
         guardrails, iteraciones del agente, tiempo y ``traza_id``."""
-        nombre = archivo.filename or "malla"
+        nombre = _nombre_base(archivo.filename, "malla")
         if perfil not in PERFILES:
             raise EntradaInvalida(f"Perfil desconocido. Usa uno de: {', '.join(PERFILES)}.")
         if not nombre.lower().endswith(FORMATOS_MALLA):
