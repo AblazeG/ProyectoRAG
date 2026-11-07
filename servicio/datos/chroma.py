@@ -9,6 +9,20 @@ from servicio.dominio import ErrorDatos, Fragmento, Recuperado
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 
+def _traducido(operacion):
+    """Convierte cualquier excepción de ChromaDB en ``ErrorDatos`` (sección 7.6)."""
+    def envoltura(self, *args, **kwargs):
+        try:
+            return operacion(self, *args, **kwargs)
+        except ErrorDatos:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise ErrorDatos(f"Error de ChromaDB en {operacion.__name__}: {type(exc).__name__}") from exc
+    envoltura.__name__ = operacion.__name__
+    envoltura.__doc__ = operacion.__doc__
+    return envoltura
+
+
 def _metadatos(f: Fragmento) -> dict:
     meta = {
         "doc_id": f.doc_id,
@@ -65,6 +79,7 @@ class AlmacenChroma:
         except Exception as exc:  # noqa: BLE001
             raise ErrorDatos(f"No se pudo abrir ChromaDB: {exc}") from exc
 
+    @_traducido
     def agregar(self, fragmentos: list[Fragmento], vectores: list[list[float]]) -> None:
         if not fragmentos:
             return
@@ -74,6 +89,7 @@ class AlmacenChroma:
             documents=[f.texto for f in fragmentos],
             metadatas=[_metadatos(f) for f in fragmentos])
 
+    @_traducido
     def buscar(self, vector: list[float], k: int,
                filtro: dict | None = None) -> list[Recuperado]:
         if self._coleccion.count() == 0:
@@ -90,6 +106,7 @@ class AlmacenChroma:
                                           puntaje=1.0 - float(distancia)))
         return recuperados
 
+    @_traducido
     def eliminar_documento(self, doc_id: str) -> int:
         existentes = self._coleccion.get(where={"doc_id": doc_id}, include=[])
         ids = existentes["ids"]
@@ -97,9 +114,11 @@ class AlmacenChroma:
             self._coleccion.delete(ids=ids)
         return len(ids)
 
+    @_traducido
     def contar(self) -> int:
         return self._coleccion.count()
 
+    @_traducido
     def vaciar(self) -> None:
         todos = self._coleccion.get(include=[])["ids"]
         if todos:

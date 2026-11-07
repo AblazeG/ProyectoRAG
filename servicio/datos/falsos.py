@@ -203,7 +203,7 @@ class ChatFalso:
     # -- respuestas por esquema -------------------------------------------
     def _responder(self, prompt: str, esquema: dict) -> dict:
         titulo = esquema.get("title", "")
-        fragmentos = dict(RE_FRAGMENTO.findall(prompt))
+        fragmentos = {i: t.replace("&lt;", "<") for i, t in RE_FRAGMENTO.findall(prompt)}
         if titulo == "RespuestaExplicaciones":
             return {"hallazgos": [self._explicar(h, ids, fragmentos)
                                   for h, ids in RE_HALLAZGO.findall(prompt)]}

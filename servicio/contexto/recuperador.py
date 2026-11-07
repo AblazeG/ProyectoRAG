@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -80,6 +81,7 @@ class Indice:
         self.repo_manifiesto = manifiesto
         self.repo_documentos = documentos
         self.lector = lector
+        self._candado = threading.RLock()
         self.tam = tam
         self.solape = solape
 
@@ -102,6 +104,11 @@ class Indice:
                 f"{self.embeddings.nombre}; ejecuta «python -m servicio.ingestar corpus/ --reindexar».")
 
     def _subir_version(self) -> int:
+        """Lee y escribe el manifiesto bajo el candado del índice (sin incrementos perdidos)."""
+        with self._candado:
+            return self._subir_version_sin_candado()
+
+    def _subir_version_sin_candado(self) -> int:
         actual = self.manifiesto()
         nuevo = {"modelo_embeddings": self.embeddings.nombre,
                  "version_corpus": actual["version_corpus"] + 1,
@@ -120,7 +127,8 @@ class Indice:
         """Lee PDF/HTML/MD con C7 y corta en fragmentos de 800 caracteres (solape 120)."""
         documento = self.lector.extraer(archivo)
         meta = documento.metadatos or {}
-        doc_id = slug(doc_id or meta.get("doc_id") or archivo.nombre.rsplit(".", 1)[0]).replace("-", "_")
+        doc_id = slug(doc_id or meta.get("doc_id") or archivo.nombre.rsplit(".", 1)[0],
+                      maximo=None).replace("-", "_")
         perfiles = perfiles or meta.get("perfiles") or list(PERFILES)
         if isinstance(perfiles, str):
             perfiles = [p.strip() for p in perfiles.split(",") if p.strip()]
@@ -137,17 +145,19 @@ class Indice:
         """Embeddings de los fragmentos, alta en el almacén y versión++ en el manifiesto."""
         self.verificar_compatibilidad()
         doc_id = registro["doc_id"]
-        if self.repo_documentos.obtener(doc_id):
-            self.almacen.eliminar_documento(doc_id)  # reemplazo del mismo documento
-        if fragmentos:
-            vectores = self.embeddings.vectorizar(
-                [texto_para_embedding(f) for f in fragmentos], "documento")
-            self.almacen.agregar(fragmentos, vectores)
-        version = self._subir_version()
-        fecha = time.time()
-        self.repo_documentos.guardar({**registro, "fragmentos": len(fragmentos),
-                                      "version_corpus": version, "fecha": fecha,
-                                      "estado": "indexado"})
+        # Primero los vectores: si los embeddings fallan, el documento anterior sigue intacto.
+        vectores = (self.embeddings.vectorizar([texto_para_embedding(f) for f in fragmentos],
+                                               "documento") if fragmentos else [])
+        with self._candado:   # reemplazo, alta y versión++ como una sola operación
+            if self.repo_documentos.obtener(doc_id):
+                self.almacen.eliminar_documento(doc_id)
+            if fragmentos:
+                self.almacen.agregar(fragmentos, vectores)
+            version = self._subir_version_sin_candado()
+            fecha = time.time()
+            self.repo_documentos.guardar({**registro, "fragmentos": len(fragmentos),
+                                          "version_corpus": version, "fecha": fecha,
+                                          "estado": "indexado"})
         return DocIndexado(documento_id=doc_id, nombre=registro["nombre"],
                            formato=registro["formato"], licencia=registro["licencia"],
                            perfiles=registro["perfiles"], fragmentos=len(fragmentos),

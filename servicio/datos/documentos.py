@@ -28,10 +28,18 @@ PATRONES_LICENCIA = [
     (re.compile(r"\bMIT License\b", re.I), "MIT"),
 ]
 
-ENCABEZADO_NUMERADO = re.compile(r"^(\d+(?:\.\d+){0,3})\.?\s+([A-ZÁÉÍÓÚÑ][^\n]{2,80})$")
+# «1 Título», «2.3 Título»: 1–2 dígitos por nivel y sin punto final (no «2024 Universidad…»
+# ni «20000 Triángulos como máximo.»).
+ENCABEZADO_NUMERADO = re.compile(r"^(\d{1,2}(?:\.\d{1,2}){0,3})\.?\s+([A-ZÁÉÍÓÚÑ][^\n]{2,80}[^.:;,\n])$")
 SELECTORES_RUIDO = ("nav", "header", "footer", "aside", "script", "style", "noscript",
                     "form", "button", "svg", "iframe")
-CLASES_RUIDO = re.compile(r"menu|nav|sidebar|footer|header|breadcrumb|toc|cookie", re.I)
+# Clases o ids de ruido, comparados como tokens completos: «wy-nav-content» (contenido
+# de Sphinx/Godot) o «toc2» en el <body> de Asciidoctor (glTF) no son ruido.
+CLASES_RUIDO = re.compile(
+    r"^(?:nav|navbar|navigation|menu|menubar|sidebar|side-bar|sidenav|sphinxsidebar|wy-nav-side|"
+    r"footer|site-footer|header|site-header|page-header|breadcrumbs?|toc|cookies?|cookie-banner|"
+    r"related|skip-link)$", re.I)
+CONTENEDORES = ("html", "body", "main", "article")
 
 
 def detectar_licencia(texto: str) -> str | None:
@@ -106,9 +114,19 @@ class LectorDocumentos:
                   else Path(archivo.nombre).stem)
         secciones: list[SeccionDocumento] = []
         actual = SeccionDocumento(titulo="Introducción", texto="", pagina=1)
-        for numero, pagina in enumerate(lector.pages, start=1):
-            for linea in (pagina.extract_text() or "").splitlines():
+        paginas = [(pagina.extract_text() or "").splitlines() for pagina in lector.pages]
+        # Encabezados y pies de página: líneas que se repiten en la mayoría de las páginas.
+        frecuencia: dict[str, int] = {}
+        for lineas in paginas:
+            for linea in {x.strip() for x in lineas if x.strip()}:
+                frecuencia[linea] = frecuencia.get(linea, 0) + 1
+        repetidas = ({x for x, n in frecuencia.items() if n >= max(3, len(paginas) // 2)}
+                     if len(paginas) >= 3 else set())
+        for numero, lineas in enumerate(paginas, start=1):
+            for linea in lineas:
                 limpia = linea.strip()
+                if limpia in repetidas:
+                    continue
                 coincidencia = ENCABEZADO_NUMERADO.match(limpia)
                 if coincidencia:
                     if actual.texto.strip():
@@ -131,13 +149,16 @@ class LectorDocumentos:
             etiqueta.decompose()
         for elemento in sopa.find_all(attrs={"role": re.compile("navigation|banner|contentinfo")}):
             elemento.decompose()
+        raiz = (sopa.find("main") or sopa.find(attrs={"role": "main"}) or sopa.find("article")
+                or sopa.body or sopa)
+        protegidos = {id(raiz)} | {id(p) for p in raiz.parents}
         for elemento in sopa.find_all(True):
-            if elemento.attrs is None:
+            if (elemento.attrs is None or elemento.name in CONTENEDORES
+                    or id(elemento) in protegidos or elemento.decomposed):
                 continue
-            clases = " ".join(elemento.get("class", []) or []) + " " + (elemento.get("id") or "")
-            if clases.strip() and CLASES_RUIDO.search(clases):
+            tokens = list(elemento.get("class", []) or []) + [elemento.get("id") or ""]
+            if any(CLASES_RUIDO.match(t) for t in tokens if t):
                 elemento.decompose()
-        raiz = sopa.find("main") or sopa.find("article") or sopa.body or sopa
         secciones: list[SeccionDocumento] = []
         actual = SeccionDocumento(titulo=titulo, texto="")
         for elemento in raiz.find_all(["h1", "h2", "h3", "p", "li", "pre", "td", "dd"]):

@@ -88,21 +88,77 @@ def aristas_no_manifold(malla: trimesh.Trimesh) -> int:
 
 
 def vertices_duplicados(malla: MallaCruda, distancia: float) -> int:
-    """Vértices a menos de ``distancia`` de otro en la malla sin procesar.
+    """Vértices a menos de ``distancia`` (euclídea) de otro vértice anterior en la
+    malla sin procesar, con los mismos atributos.
 
-    Se cuantiza la posición (rejilla de lado ``distancia``). Si hay UV o
-    normales, se incluyen en la clave: dos vértices en la misma posición con
-    UV distintas son una costura legítima, no un duplicado.
+    Dos vértices en la misma posición con UV o normales distintas son una costura o
+    una arista dura legítimas, no un duplicado. Para encontrar los pares sin un
+    árbol KD se usan 8 rejillas de lado 2·d desplazadas d en cada eje: cualquier par
+    a menos de d comparte celda en al menos una, y después se comprueba la
+    distancia real (así no hay errores en los bordes de las celdas).
     """
-    if len(malla.vertices) == 0:
+    v = np.asarray(malla.vertices, dtype=float)
+    if len(v) < 2:
         return 0
-    claves = [np.round(malla.vertices / distancia).astype(np.int64)]
-    if malla.uv is not None:
-        claves.append(np.round(malla.uv / 1e-6).astype(np.int64))
-    if malla.normales is not None:
-        claves.append(np.round(malla.normales / 1e-4).astype(np.int64))
-    unicos = np.unique(np.hstack(claves), axis=0)
-    return int(len(malla.vertices) - len(unicos))
+    lado = 2.0 * distancia
+    duplicado = np.zeros(len(v), dtype=bool)
+    for desplazamiento in np.array(np.meshgrid([0, 1], [0, 1], [0, 1])).T.reshape(-1, 3):
+        celdas = np.floor((v + desplazamiento * distancia) / lado).astype(np.int64)
+        _, inverso, cuenta = np.unique(celdas, axis=0, return_inverse=True, return_counts=True)
+        inverso = inverso.reshape(-1)
+        candidatos = np.flatnonzero(cuenta[inverso] > 1)
+        if len(candidatos) == 0:
+            continue
+        orden = candidatos[np.argsort(inverso[candidatos], kind="stable")]
+        grupos = np.split(orden, np.flatnonzero(np.diff(inverso[orden])) + 1)
+        for grupo in grupos:
+            for a, i in enumerate(grupo[:-1]):
+                otros = grupo[a + 1:]
+                cerca = np.linalg.norm(v[otros] - v[i], axis=1) < distancia
+                if malla.uv is not None:
+                    cerca &= np.all(np.abs(malla.uv[otros] - malla.uv[i]) < 1e-6, axis=1)
+                if malla.normales is not None:
+                    cerca &= np.all(np.abs(malla.normales[otros] - malla.normales[i]) < 1e-4, axis=1)
+                duplicado[otros[cerca]] = True
+    return int(np.count_nonzero(duplicado))
+
+
+def componentes(caras: np.ndarray, n_vertices: int) -> np.ndarray:
+    """Etiqueta de componente conexo de cada vértice (union-find vectorizado)."""
+    padre = np.arange(n_vertices)
+    aristas = np.vstack([caras[:, [0, 1]], caras[:, [1, 2]]])
+    while True:
+        pu, pv = padre[aristas[:, 0]], padre[aristas[:, 1]]
+        distintos = pu != pv
+        if not distintos.any():
+            return padre
+        np.minimum.at(padre, np.maximum(pu, pv)[distintos], np.minimum(pu, pv)[distintos])
+        while True:  # compresión de caminos
+            siguiente = padre[padre]
+            if np.array_equal(siguiente, padre):
+                break
+            padre = siguiente
+
+
+def normales_hacia_fuera(malla: trimesh.Trimesh) -> bool:
+    """Cada componente cerrado debe tener volumen con signo > 0 (V9 por componente:
+    un cuerpo pequeño invertido no se compensa con otro grande bien orientado)."""
+    caras = np.asarray(malla.faces)
+    if len(caras) == 0:
+        return True
+    etiqueta_vertice = componentes(caras, len(malla.vertices))
+    etiqueta_cara = etiqueta_vertice[caras[:, 0]]
+    v = np.asarray(malla.vertices)
+    triple = np.einsum("ij,ij->i", v[caras[:, 0]], np.cross(v[caras[:, 1]], v[caras[:, 2]])) / 6.0
+    volumen = np.zeros(len(v))
+    np.add.at(volumen, etiqueta_cara, triple)
+    aristas = np.sort(np.vstack([caras[:, [0, 1]], caras[:, [1, 2]], caras[:, [2, 0]]]), axis=1)
+    _, inverso, cuenta = np.unique(aristas, axis=0, return_inverse=True, return_counts=True)
+    abierta = np.zeros(len(v), dtype=bool)
+    np.logical_or.at(abierta, np.tile(etiqueta_cara, 3), cuenta[inverso.reshape(-1)] != 2)
+    cerrados = np.unique(etiqueta_cara)
+    cerrados = cerrados[~abierta[cerrados]]
+    return bool(np.all(volumen[cerrados] > 0))
 
 
 def factor_unidad(malla: MallaCruda, perfil: Perfil) -> float:
@@ -142,7 +198,7 @@ def medir(malla: MallaCruda, perfil: Perfil) -> dict:
         "caras_degeneradas": int(np.count_nonzero(cruda.area_faces < area_min)),
         "normales_consistentes": consistente,
         "volumen_con_signo": None if volumen is None else round(volumen, 9),
-        "normales_ok": consistente and (volumen is None or volumen > 0),
+        "normales_ok": consistente and normales_hacia_fuera(fusionada),
     }
     if malla.lados_por_cara:
         lados = np.asarray(malla.lados_por_cara)

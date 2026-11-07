@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 
-from servicio.dominio import Fragmento, Recuperado
+from servicio.dominio import ErrorDatos, Fragmento, Recuperado
 
 
 class AlmacenMemoria:
@@ -49,7 +49,10 @@ class AlmacenMemoria:
         with self._candado:
             candidatos = [(id_, f) for id_, f in self._fragmentos.items()
                           if self._cumple(f, filtro)]
-            puntajes = [(float(self._vectores[id_] @ consulta), f) for id_, f in candidatos]
+            try:
+                puntajes = [(float(self._vectores[id_] @ consulta), f) for id_, f in candidatos]
+            except ValueError as exc:   # dimensión distinta: otro modelo de embeddings
+                raise ErrorDatos("El vector de consulta no tiene la dimensión del índice.") from exc
         puntajes.sort(key=lambda par: (-par[0], par[1].id))
         return [Recuperado(f, p) for p, f in puntajes[:k]]
 

@@ -29,9 +29,10 @@ def leer_lados_obj(ruta: Path) -> list[int]:
             if linea.endswith("\\"):  # continuación de línea del formato OBJ
                 continuacion = linea[:-1] + " "
                 continue
+            linea = linea.split("#", 1)[0]  # comentario al final de la línea
             if linea.startswith("f ") or linea.startswith("f\t"):
                 indices = linea.split()[1:]
-                if indices:
+                if len(indices) >= 3:      # trimesh descarta las «caras» de 1 o 2 índices
                     lados.append(len(indices))
     return lados
 
@@ -40,8 +41,11 @@ def probar_obj(ruta: Path, muestra: int = 1 << 20) -> bool:
     """Lectura de prueba de un OBJ: en el primer MB hay vértices y caras válidas."""
     with open(ruta, "rb") as archivo:
         cabeza = archivo.read(muestra)
+        cortada = len(cabeza) == muestra and archivo.read(1) != b""
     if b"\x00" in cabeza:
         return False
+    if cortada and b"\n" in cabeza:   # la última línea puede estar incompleta
+        cabeza = cabeza[:cabeza.rfind(b"\n")]
     vertices = caras = 0
     for linea in cabeza.splitlines():
         partes = linea.split()
@@ -55,15 +59,17 @@ def probar_obj(ruta: Path, muestra: int = 1 << 20) -> bool:
             vertices += 1
         elif partes[0] == b"f" and len(partes) >= 4:
             caras += 1
-    return vertices >= 3 and (caras >= 1 or len(cabeza) == muestra)
+    return vertices >= 3 and (caras >= 1 or cortada)
 
 
 def probar_stl(ruta: Path) -> bool:
     """Lectura de prueba de un STL: binario con tamaño 84 + 50·n, o ASCII con «solid … facet»."""
     tamano = Path(ruta).stat().st_size
     with open(ruta, "rb") as archivo:
-        cabeza = archivo.read(1024)
-    if cabeza.lstrip().lower().startswith(b"solid") and b"facet" in cabeza.lower():
+        cabeza = archivo.read(1 << 16)
+    texto = cabeza.removeprefix(b"\xef\xbb\xbf").lstrip().lower()
+    if texto.startswith(b"solid") and (b"facet" in texto or b"endsolid" in texto
+                                       or len(cabeza) == 1 << 16):
         return True
     if tamano < 84:
         return False
@@ -94,39 +100,81 @@ class LectorTrimesh:
         return True
 
     def leer(self, ruta: Path) -> MallaCruda:
+        """Carga sin procesar. No usa ``force="mesh"`` porque esa conversión pierde
+        las normales declaradas en el archivo y V10 confundiría las aristas duras
+        con vértices duplicados; las escenas se combinan aplicando su transformación."""
         ruta = Path(ruta)
         formato = ruta.suffix.lower().lstrip(".")
         try:
-            malla = trimesh.load(str(ruta), process=False, force="mesh")
+            cargado = trimesh.load(str(ruta), process=False)
+            partes = _partes(cargado)
+        except EntradaInvalida:
+            raise
         except Exception as exc:  # noqa: BLE001
             raise EntradaInvalida("No se pudo leer la malla.") from exc
-        if not isinstance(malla, trimesh.Trimesh) or len(malla.faces) == 0:
+        partes = [p for p in partes if len(p[0].faces)]
+        if not partes:
             raise EntradaInvalida("El archivo no contiene una malla con caras.")
-        if len(malla.faces) > self.max_caras:
+        if sum(len(m.faces) for m, _ in partes) > self.max_caras:
             raise MallaDemasiadoCompleja()
 
-        uv = None
-        visual = getattr(malla, "visual", None)
-        if visual is not None and getattr(visual, "kind", None) == "texture":
-            uv_crudo = getattr(visual, "uv", None)
-            if uv_crudo is not None and len(uv_crudo) == len(malla.vertices):
-                uv = np.asarray(uv_crudo, dtype=float)
-
-        normales = None
-        cache = getattr(malla, "_cache", None)
-        guardadas = cache.cache.get("vertex_normals") if cache is not None else None
-        if guardadas is not None and len(guardadas) == len(malla.vertices):
-            normales = np.asarray(guardadas, dtype=float)
+        vertices, caras, uvs, normales, desplazamiento = [], [], [], [], 0
+        for malla, transformacion in partes:
+            v = np.asarray(malla.vertices, dtype=float)
+            if transformacion is not None:
+                v = trimesh.transformations.transform_points(v, transformacion)
+            vertices.append(v)
+            caras.append(np.asarray(malla.faces, dtype=np.int64) + desplazamiento)
+            desplazamiento += len(v)
+            uvs.append(_uv(malla))
+            n = _normales(malla)
+            if n is not None and transformacion is not None:
+                n = n @ np.asarray(transformacion)[:3, :3].T
+                n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
+            normales.append(n)
 
         return MallaCruda(
-            vertices=np.asarray(malla.vertices, dtype=float),
-            caras=np.asarray(malla.faces, dtype=np.int64),
-            uv=uv,
-            normales=normales,
+            vertices=np.vstack(vertices),
+            caras=np.vstack(caras),
+            uv=None if any(u is None for u in uvs) else np.vstack(uvs),
+            normales=None if any(n is None for n in normales) else np.vstack(normales),
             lados_por_cara=leer_lados_obj(ruta) if formato == "obj" else None,
             formato=formato,
             tamano_bytes=ruta.stat().st_size,
         )
+
+
+def _partes(cargado) -> list[tuple]:
+    """(malla, transformación) de cada geometría; una escena aporta sus nodos."""
+    if isinstance(cargado, trimesh.Trimesh):
+        return [(cargado, None)]
+    if isinstance(cargado, trimesh.Scene):
+        partes = []
+        for nodo in cargado.graph.nodes_geometry:
+            transformacion, nombre = cargado.graph[nodo]
+            geometria = cargado.geometry.get(nombre)
+            if isinstance(geometria, trimesh.Trimesh):
+                partes.append((geometria, transformacion))
+        return partes
+    raise EntradaInvalida("El archivo no contiene una malla con caras.")
+
+
+def _uv(malla) -> np.ndarray | None:
+    visual = getattr(malla, "visual", None)
+    if visual is not None and getattr(visual, "kind", None) == "texture":
+        uv = getattr(visual, "uv", None)
+        if uv is not None and len(uv) == len(malla.vertices):
+            return np.asarray(uv, dtype=float)
+    return None
+
+
+def _normales(malla) -> np.ndarray | None:
+    """Normales por vértice solo si el archivo las declara (están en la caché de trimesh)."""
+    cache = getattr(malla, "_cache", None)
+    guardadas = cache.cache.get("vertex_normals") if cache is not None else None
+    if guardadas is not None and len(guardadas) == len(malla.vertices):
+        return np.asarray(guardadas, dtype=float).copy()
+    return None
 
 
 class AlmacenMallasTemporal:

@@ -55,8 +55,10 @@ def _bloque_fragmentos(fragmentos: list[Recuperado]) -> str:
     lineas = ["<contexto>"]
     for r in fragmentos:
         f = r.fragmento
-        lineas.append(f'<fragmento id="{f.id}" documento="{escape(f.titulo)}" '
-                      f'seccion="{escape(f.seccion)}">{f.texto}</fragmento>')
+        # El texto del corpus se escapa: un documento no puede cerrar <contexto> ni
+        # inyectar fragmentos o instrucciones fuera de él.
+        lineas.append(f'<fragmento id="{escape(f.id)}" documento="{escape(f.titulo)}" '
+                      f'seccion="{escape(f.seccion)}">{f.texto.replace("<", "&lt;")}</fragmento>')
     lineas.append("</contexto>")
     return "\n".join(lineas)
 

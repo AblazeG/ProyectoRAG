@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from servicio.cache.exacta import CacheExacta
 from servicio.contexto.recuperador import Indice
-from servicio.dominio import ArchivoSubido, DocIndexado, ErrorDominio, RechazoSolicitud
+from servicio.dominio import (ArchivoSubido, DocIndexado, EntradaInvalida, ErrorDominio,
+                              RechazoSolicitud)
 from servicio.guardrails.entrada import MENSAJE_CUARENTENA, GuardrailsEntrada
 from servicio.guardrails.salida import GuardrailsSalida
 from servicio.observabilidad.traza import RegistroTrazas, Traza
@@ -34,6 +35,8 @@ class ServicioIngesta:
             with traza.etapa("contexto_extraccion"):                  # extraer y fragmentar
                 documento, fragmentos, registro = self.indice.extraer_y_fragmentar(
                     doc, aprobado.detalles["licencia"], doc_id, perfiles, titulo)
+            if not fragmentos:   # p. ej. un HTML sin contenido extraíble
+                raise EntradaInvalida("El documento no tiene texto extraíble para indexar.")
             with traza.etapa("guardrails_entrada"):                   # E5 (texto)
                 contenido = self.entrada.verificar_documento(texto=documento.texto)
             if not contenido.aprobado:

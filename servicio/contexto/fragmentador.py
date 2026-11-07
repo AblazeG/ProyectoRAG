@@ -11,11 +11,14 @@ TAM_FRAGMENTO = 800
 SOLAPE = 120
 
 
-def slug(texto: str) -> str:
+def slug(texto: str, maximo: int | None = 60) -> str:
+    """Identificador legible. Las secciones se truncan a 60 caracteres (su unicidad
+    la garantiza ``fragmentar``); los ``doc_id`` no se truncan (``maximo=None``) para
+    que dos documentos con nombres largos parecidos no se reemplacen entre sí."""
     texto = unicodedata.normalize("NFKD", texto.lower())
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     texto = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")
-    return texto[:60] or "seccion"
+    return (texto[:maximo] if maximo else texto) or "seccion"
 
 
 def _piezas(parrafo: str, tam: int) -> list[str]:
@@ -53,7 +56,8 @@ def _cola(texto: str, solape: int) -> str:
 
 def fragmentar_texto(texto: str, tam: int = TAM_FRAGMENTO, solape: int = SOLAPE) -> list[str]:
     parrafos = [p.strip() for p in re.split(r"\n\s*\n", texto) if p.strip()]
-    piezas = [x for p in parrafos for x in _piezas(" ".join(p.split()), tam - solape)]
+    # Una pieza más la cola de solape y el separador «\n\n» nunca superan ``tam``.
+    piezas = [x for p in parrafos for x in _piezas(" ".join(p.split()), tam - solape - 2)]
     fragmentos: list[str] = []
     actual = ""
     for pieza in piezas:
