@@ -1,0 +1,3 @@
+# Metadatos de los documentos del corpus de prueba. El Markdown ya los trae en
+# su front matter; este archivo sirve de ejemplo para PDF y HTML.
+documentos: {}

@@ -4,6 +4,10 @@
   truncada + 4-gramas de caracteres) con signo, proyectado a ``dimension``
   componentes y normalizado L2. Mismo texto, mismo vector; textos parecidos,
   vectores cercanos. Sirve para probar recuperación y caché semántica.
+  Se añade un componente común de peso ``anisotropia`` (como en los modelos
+  reales, cuyos vectores no son isótropos): el coseno resultante es
+  (a² + cos) / (1 + a²), lo que lleva los puntajes a la escala de los
+  umbrales del informe (0.30, 0.55 y 0.92).
 - ``ChatFalso``: devuelve JSON válido contra el esquema pedido y cita los ids
   de fragmento que recibió en el prompt. Puede inyectar fallas.
 """
@@ -76,9 +80,11 @@ def _indice(caracteristica: str, dimension: int) -> tuple[int, float]:
 class EmbeddingsFalsos:
     """Puerto ``ModeloEmbeddings`` determinista."""
 
-    def __init__(self, dimension: int = 512, nombre: str = "falso-ngramas-v1"):
+    def __init__(self, dimension: int = 512, nombre: str = "falso-ngramas-v1",
+                 anisotropia: float = 0.5):
         self.dimension = dimension
         self.nombre = nombre
+        self.anisotropia = anisotropia
 
     def _vector(self, texto: str) -> list[float]:
         palabras = [p for p in normalizar(texto).split()
@@ -87,17 +93,20 @@ class EmbeddingsFalsos:
         vector = [0.0] * self.dimension
         for raiz, frecuencia in raices.items():
             peso = 1.0 + math.log(frecuencia)
-            i, s = _indice("w:" + raiz, self.dimension)
-            vector[i] += s * peso
+            i, s = _indice("w:" + raiz, self.dimension - 1)
+            vector[i + 1] += s * peso
             marcada = f"#{raiz}#"
             for j in range(max(1, len(marcada) - 3)):
-                i, s = _indice("c:" + marcada[j:j + 4], self.dimension)
-                vector[i] += s * peso * 0.25
+                i, s = _indice("c:" + marcada[j:j + 4], self.dimension - 1)
+                vector[i + 1] += s * peso * 0.25
         norma = math.sqrt(sum(v * v for v in vector))
         if norma == 0:
             vector[0] = 1.0
             return vector
-        return [v / norma for v in vector]
+        vector = [v / norma for v in vector]
+        vector[0] = self.anisotropia
+        total = math.sqrt(1.0 + self.anisotropia ** 2)
+        return [v / total for v in vector]
 
     def vectorizar(self, textos: list[str], tipo: str) -> list[list[float]]:
         if tipo not in ("documento", "consulta"):
