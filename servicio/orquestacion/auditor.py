@@ -20,20 +20,20 @@ import uuid
 from pydantic import BaseModel
 
 from servicio.cache.exacta import CacheExacta, sha256
+from servicio.cache.informes import ArchivoInformes
 from servicio.contexto import prompts
 from servicio.contexto.herramientas import Analizador, ResultadoAnalisis
 from servicio.contexto.recuperador import Indice
 from servicio.dominio import (
     SIN_NORMA,
     SIN_NORMA_VERIFICADA,
-    AlmacenArchivosTemporales,
     ArchivoSubido,
     ErrorDominio,
     ErrorInterno,
     Generacion,
     Hallazgo,
     Recuperado,
-    RepositorioInformes,
+    NoEncontrado,
     RespuestaExplicaciones,
     Veredicto,
 )
@@ -43,6 +43,10 @@ from servicio.modelos.enrutador import SIN_MODELO, Enrutador, Ruta
 from servicio.modelos.gateway import Gateway
 from servicio.observabilidad.traza import RegistroTrazas, Traza
 from servicio.orquestacion.agente import CicloAgente, Presupuesto
+
+# Motivo del rechazo que queda en la traza (figura 9), sin revelar el patrón detectado.
+MOTIVOS = {"E1": "archivo_invalido", "E2": "posible_inyeccion", "E4": "fuera_de_dominio",
+           "E5": "documento_rechazado"}
 
 CORRECCION_S1 = ("La respuesta anterior no cumplía el esquema JSON pedido. Responde de nuevo "
                  "solo con el JSON válido.")
@@ -122,7 +126,7 @@ def cuerpo_de_error(salida: GuardrailsSalida, traza: Traza, error: ErrorDominio,
     """Todo rechazo o error responde con mensaje seguro, traza_id y S4."""
     guardrail = getattr(error, "guardrail", None)
     if guardrail:
-        traza.rechazar(guardrail, type(error).__name__)
+        traza.rechazar(guardrail, MOTIVOS.get(guardrail, "rechazada"))
     traza.anotar(estado="rechazo" if guardrail else "error", error=type(error).__name__)
     return salida.aplicar_aviso({"detalle": error.mensaje, "traza_id": traza.traza_id,
                                  "guardrails": traza.guardrails}, con_modelo=False, tipo=tipo)
@@ -136,7 +140,7 @@ class OrquestadorAuditoria:
     def __init__(self, *, entrada: GuardrailsEntrada, salida: GuardrailsSalida,
                  cache: CacheExacta, analizador: Analizador, enrutador: Enrutador,
                  gateway: Gateway, agente: CicloAgente, indice: Indice,
-                 temporales: AlmacenArchivosTemporales, informes: RepositorioInformes,
+                 informes: ArchivoInformes,
                  trazas: RegistroTrazas, embeddings_nombre: str,
                  lote: int = prompts.LOTE_HALLAZGOS, num_ctx: int = prompts.NUM_CTX,
                  max_reformulaciones_informe: int = 6,
@@ -150,7 +154,6 @@ class OrquestadorAuditoria:
         self.gateway = gateway
         self.agente = agente
         self.indice = indice
-        self.temporales = temporales
         self.informes = informes
         self.trazas = trazas
         self.embeddings_nombre = embeddings_nombre
@@ -163,6 +166,16 @@ class OrquestadorAuditoria:
     def versiones(self) -> dict:
         return versiones_actuales(self.analizador, self.indice, self.gateway,
                                   self.embeddings_nombre)
+
+    # -- consultas de informes ya generados (GET /auditorias/{id}) -----------
+    def obtener(self, auditoria_id: str) -> dict:
+        informe = self.informes.obtener(auditoria_id)
+        if informe is None:
+            raise NoEncontrado("Auditoría no encontrada.")
+        return {k: v for k, v in informe.items() if not k.startswith("_")}
+
+    def exportar_markdown(self, auditoria_id: str) -> str:
+        return informe_a_markdown(self.obtener(auditoria_id))
 
     def _responder(self, respuesta: dict, con_modelo: bool) -> dict:
         """Único punto de salida: todo camino de respuesta pasa por S4."""
@@ -177,7 +190,7 @@ class OrquestadorAuditoria:
         try:
             self.analizador.catalogo.obtener(perfil)
             with traza.etapa("archivo_temporal"):
-                ruta_archivo = self.temporales.guardar(malla.contenido, malla.extension)
+                ruta_archivo = self.analizador.preparar(malla.contenido, malla.extension)
             return self._auditar(traza, malla, ruta_archivo, perfil, notas, inicio)
         except ErrorDominio as error:
             error.cuerpo = cuerpo_de_error(self.salida, traza, error, "informe")
@@ -189,7 +202,7 @@ class OrquestadorAuditoria:
             raise error from exc
         finally:
             if ruta_archivo is not None:
-                self.temporales.borrar(ruta_archivo)   # la malla no se conserva
+                self.analizador.liberar(ruta_archivo)   # la malla no se conserva
             traza.cerrar()
 
     def _auditar(self, traza: Traza, malla: ArchivoSubido, ruta_archivo, perfil: str,
@@ -337,6 +350,8 @@ class OrquestadorAuditoria:
                 validos[h.id] = False
             else:
                 h.explicacion, h.correccion = item["texto"], item["correccion"]
+                if item["removidas"]:   # S2 (tabla 13): se quitó una cita inventada
+                    h.explicacion = f"{h.explicacion} ({SIN_NORMA_VERIFICADA})"
                 h.fuente = fuente_de(por_id.get(item["citas"][0]))
                 # La clave de la caché de hallazgos lleva el modelo de la ruta: lo que
                 # respondió el respaldo no se guarda bajo ella.

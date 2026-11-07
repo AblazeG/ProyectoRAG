@@ -26,10 +26,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     contenedor = construir()
-    indice = contenedor.indice
-    if args.reindexar:
-        version = indice.vaciar()
-        contenedor.cache.purgar(version)
+    if args.reindexar:   # se hace a través de C2, como cualquier cliente
+        version = contenedor.ingesta.reindexar()
         print(f"Índice vaciado (version_corpus={version}).")
     documentos = listar_corpus(args.directorio)
     if not documentos:

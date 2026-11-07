@@ -319,13 +319,22 @@ class Analizador:
     """Herramienta ``analizar_malla`` de C5: lee con el puerto de C7 (``LectorTrimesh``)
     y devuelve (métricas, hallazgos)."""
 
-    version = VERSION_ANALIZADOR
-
     def __init__(self, lector: LectorMalla, catalogo: CatalogoPerfiles,
-                 max_caras: int = MAX_CARAS):
+                 max_caras: int = MAX_CARAS, temporales=None,
+                 version: str = VERSION_ANALIZADOR):
         self.lector = lector
         self.catalogo = catalogo
         self.max_caras = max_caras
+        self.temporales = temporales     # puerto AlmacenArchivosTemporales (data/mallas/)
+        self.version = version
+
+    def preparar(self, contenido: bytes, extension: str) -> Path:
+        """Deja la malla subida en ``data/mallas/`` para leerla (C7, detrás de C5)."""
+        return self.temporales.guardar(contenido, extension)
+
+    def liberar(self, ruta: Path) -> None:
+        """Borra la malla al terminar la auditoría (privacidad, sección 10.1)."""
+        self.temporales.borrar(ruta)
 
     def leer(self, ruta: Path) -> MallaCruda:
         return self.lector.leer(ruta)

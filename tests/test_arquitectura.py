@@ -118,3 +118,21 @@ def test_fuera_de_datos_nadie_abre_mallas_ni_documentos():
         texto = ruta.read_text(encoding="utf-8")
         for patron in prohibidos:
             assert patron not in texto, f"{ruta} usa {patron}"
+
+
+def test_c2_y_c1_no_reciben_objetos_de_c7(tmp_path):
+    """La inyección puede saltarse la prueba de importaciones: se revisa en ejecución
+    que los orquestadores (C2) solo tengan dependencias de C3–C6 y transversales, y que
+    la API (C1) solo use la orquestación (figura 3: «la orquestación nunca toca a C7»)."""
+    from servicio.composicion import construir
+    c = construir(proveedor="falso", dir_datos=tmp_path, vectorial="memoria")
+    for orquestador in (c.auditor, c.preguntas, c.ingesta, c.estado):
+        for nombre, valor in vars(orquestador).items():
+            modulo = type(valor).__module__
+            assert not modulo.startswith("servicio.datos"), f"{type(orquestador).__name__}.{nombre}: {modulo}"
+    import inspect
+    from servicio.api import app as api
+    codigo = inspect.getsource(api.crear_app)
+    for prohibido in ("servicios.catalogo", "servicios.sondas", "servicios.indice", "servicios.gateway",
+                      ".informes.", "servicios.cache", "servicios.extras"):
+        assert prohibido not in codigo, prohibido

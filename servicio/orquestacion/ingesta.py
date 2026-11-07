@@ -7,6 +7,7 @@ versión anterior → ``DocIndexado``.
 from __future__ import annotations
 
 from servicio.cache.exacta import CacheExacta
+from servicio.cache.semantica import CacheSemantica
 from servicio.contexto.recuperador import Indice
 from servicio.dominio import (ArchivoSubido, DocIndexado, EntradaInvalida, ErrorDominio,
                               ErrorInterno, RechazoSolicitud)
@@ -18,11 +19,13 @@ from servicio.orquestacion.auditor import cuerpo_de_error
 
 class ServicioIngesta:
     def __init__(self, *, entrada: GuardrailsEntrada, salida: GuardrailsSalida,
-                 indice: Indice, cache: CacheExacta, trazas: RegistroTrazas):
+                 indice: Indice, cache: CacheExacta, trazas: RegistroTrazas,
+                 cache_semantica: CacheSemantica | None = None):
         self.entrada = entrada
         self.salida = salida
         self.indice = indice
         self.cache = cache
+        self.cache_semantica = cache_semantica
         self.trazas = trazas
 
     def ingerir(self, doc: ArchivoSubido, licencia: str | None = None,
@@ -45,7 +48,7 @@ class ServicioIngesta:
             with traza.etapa("contexto_indexado"):                    # embeddings + versión++
                 indexado = self.indice.indexar(fragmentos, registro)
             with traza.etapa("cache"):                                # purgar versión anterior
-                indexado.entradas_purgadas = self.cache.purgar(indexado.version_corpus)
+                indexado.entradas_purgadas = self._purgar(indexado.version_corpus)
             traza.anotar(version_corpus=indexado.version_corpus, doc_id=indexado.documento_id)
             return indexado
         except ErrorDominio as error:
@@ -64,7 +67,7 @@ class ServicioIngesta:
         traza = Traza("eliminacion", None, self.trazas)
         try:
             resultado = self.indice.eliminar(doc_id)
-            resultado["entradas_purgadas"] = self.cache.purgar(resultado["version_corpus"])
+            resultado["entradas_purgadas"] = self._purgar(resultado["version_corpus"])
             traza.anotar(version_corpus=resultado["version_corpus"], doc_id=doc_id)
             return resultado
         except ErrorDominio as error:
@@ -73,8 +76,23 @@ class ServicioIngesta:
         finally:
             traza.cerrar()
 
+    def _purgar(self, version: int) -> int:
+        """Purga la caché exacta y la semántica de las versiones anteriores del corpus."""
+        purgadas = self.cache.purgar(version)
+        if self.cache_semantica is not None:
+            purgadas += self.cache_semantica.purgar(version)
+        return purgadas
+
+    def reindexar(self) -> int:
+        """Vacía el índice (cambio de modelo de embeddings, ADR-02) y purga la caché.
+        Después hay que volver a ``ingerir`` el corpus."""
+        version = self.indice.vaciar()
+        self._purgar(version)
+        return version
+
     def listar(self) -> list[dict]:
-        return self.indice.listar()
+        """Documentos con identificador (``documento_id``), nombre, formato, fecha y fragmentos."""
+        return [{"documento_id": d.get("doc_id"), **d} for d in self.indice.listar()]
 
     def manifiesto(self) -> dict:
         return {**self.indice.manifiesto(), "fragmentos": self.indice.almacen.contar()}

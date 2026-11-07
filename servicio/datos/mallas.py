@@ -1,7 +1,8 @@
 """Lectura de mallas (C7). Es el único lugar que abre archivos de malla.
 
-- ``LectorTrimesh`` carga con ``trimesh.load(..., process=False, force="mesh")``
-  y entrega arreglos crudos en ``MallaCruda``.
+- ``LectorTrimesh`` carga con ``trimesh.load(..., process=False)`` (sin
+  ``force="mesh"``, que pierde las normales declaradas) y entrega arreglos crudos
+  en ``MallaCruda``; las escenas se combinan con la transformación de cada nodo.
 - ``leer_lados_obj`` es el lector propio de líneas ``f`` del OBJ: cuenta los
   lados de cada cara antes de que trimesh triangule (V1 y V2).
 - ``AlmacenMallasTemporal`` guarda las mallas subidas en ``data/mallas/`` y

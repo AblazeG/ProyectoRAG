@@ -71,8 +71,10 @@ class CicloAgente:
                     or not presupuesto.consumir()):
                 break                                           # tope por consulta o por informe
             try:
-                consulta = gateway.generar("rapido", prompt_reformular(consulta),
-                                           ruta="agente", traza=traza).texto.strip()
+                # Solo el modelo rápido (Código 4, ADR-07): sin respaldo, la latencia
+                # extra queda acotada a llamadas cortas.
+                consulta = gateway.generar("rapido", prompt_reformular(consulta), ruta="agente",
+                                           traza=traza, permitir_respaldo=False).texto.strip()
             except ErrorModelo:
                 # Sin modelo para reformular: lo recuperado no es un «sin norma» verificado,
                 # así que C2 no lo guarda en caché (se anota en la traza).

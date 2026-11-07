@@ -1,5 +1,5 @@
 """Esquemas Pydantic v2 de la API (C1). Contrato de ``POST /auditorias``
-según el Código 6 del informe."""
+según el Código 8 del informe."""
 from __future__ import annotations
 
 from typing import Literal

@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 
 from servicio.cache.exacta import CacheExacta
+from servicio.cache.informes import ArchivoInformes
 from servicio.cache.semantica import CacheSemantica
 from servicio.contexto.herramientas import Analizador
 from servicio.contexto.perfiles import CatalogoPerfiles, cargar_perfiles
@@ -44,6 +45,7 @@ from servicio.observabilidad.metricas import Metricas
 from servicio.observabilidad.traza import RegistroTrazas
 from servicio.orquestacion.agente import CicloAgente
 from servicio.orquestacion.auditor import OrquestadorAuditoria
+from servicio.orquestacion.estado import ServicioEstado
 from servicio.orquestacion.ingesta import ServicioIngesta
 from servicio.orquestacion.preguntas import ServicioPreguntas
 from servicio.retroalimentacion.almacen import AlmacenRetroalimentacion
@@ -84,6 +86,7 @@ class Contenedor:
     retroalimentacion: AlmacenRetroalimentacion
     trazas: RegistroTrazas
     metricas: Metricas | None = None
+    estado: ServicioEstado | None = None
     sondas: list = field(default_factory=list)
     indice: Indice | None = None
     gateway: Gateway | None = None
@@ -174,7 +177,7 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
         alias, tipo, *n = falla.split(":")
         for nombre in (("rapido", "completo") if alias == "*" else (alias,)):
             modelos_chat[nombre] = ChatConFalla(modelos_chat[nombre], tipo, int(n[0]) if n else None)
-    informes = RepositorioInformesSQLite(base)
+    informes = ArchivoInformes(RepositorioInformesSQLite(base))
     catalogo = cargar_perfiles(CONFIG_PERFILES)
 
     # C6
@@ -189,7 +192,8 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                     rag["tam_fragmento"], rag["solape"])
     recuperador = Recuperador(embeddings, almacen, rag["k"], rag["umbral"])
     g = config["guardrails"]
-    analizador = Analizador(LectorTrimesh(g["max_caras"]), catalogo, g["max_caras"])
+    analizador = Analizador(LectorTrimesh(g["max_caras"]), catalogo, g["max_caras"],
+                            temporales=temporales, version=str(config["version_analizador"]))
     # C4
     c = config["cache"]
     almacen_cache = AlmacenCacheSQLite(base)
@@ -208,7 +212,7 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                    enrutador=enrutador, gateway=gateway, agente=agente, indice=indice,
                    informes=informes, trazas=trazas, embeddings_nombre=embeddings.nombre,
                    num_ctx=rag["num_ctx"])
-    auditor = OrquestadorAuditoria(temporales=temporales, lote=rag["lote_hallazgos"],
+    auditor = OrquestadorAuditoria(lote=rag["lote_hallazgos"],
                                    max_reformulaciones_informe=config["agente"]["max_por_informe"],
                                    reserva_tokens=rag["reserva_prompt_tokens"],
                                    parametros_lote=_parametros_lote(rag), **comunes)
@@ -216,19 +220,22 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                                   max_reformulaciones=config["agente"]["max_por_informe"],
                                   **comunes)
     ingesta = ServicioIngesta(entrada=entrada, salida=salida, indice=indice, cache=cache,
-                              trazas=trazas)
+                              cache_semantica=cache_semantica, trazas=trazas)
     # T2
     retro = AlmacenRetroalimentacion(RepositorioRetroalimentacionSQLite(base),
                                      entrada.enmascarar, informes.obtener_por_traza)
     sondas = [*sondas_modelos, _Sonda("chromadb" if config["vectorial"] == "chroma"
                                       else "vectorial", almacen),
               _Sonda("sqlite", base)]
-    return Contenedor(config=config, catalogo=catalogo, auditor=auditor, preguntas=preguntas,
-                      ingesta=ingesta, retroalimentacion=retro, trazas=trazas,
-                      metricas=Metricas(trazas, retro), sondas=sondas,
-                      indice=indice, gateway=gateway, cache=cache,
-                      extras={"embeddings": embeddings, "almacen": almacen, "base": base,
-                              "chats": modelos_chat, "cache_semantica": cache_semantica})
+    contenedor = Contenedor(config=config, catalogo=catalogo, auditor=auditor, preguntas=preguntas,
+                            ingesta=ingesta, retroalimentacion=retro, trazas=trazas,
+                            metricas=Metricas(trazas, retro), sondas=sondas,
+                            indice=indice, gateway=gateway, cache=cache,
+                            extras={"embeddings": embeddings, "almacen": almacen, "base": base,
+                                    "chats": modelos_chat, "cache_semantica": cache_semantica})
+    contenedor.estado = ServicioEstado(sondas, catalogo.como_dict,
+                                       contenedor.configuracion_publica, config["proveedor"])
+    return contenedor
 
 
 def _chroma(ruta: Path):

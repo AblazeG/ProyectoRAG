@@ -26,9 +26,7 @@ from servicio.dominio import (
     EntradaInvalida,
     ErrorDominio,
     FormatoNoSoportado,
-    NoEncontrado,
 )
-from servicio.orquestacion.auditor import informe_a_markdown
 
 MB = 1024 * 1024
 CORS_POR_DEFECTO = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -40,10 +38,6 @@ def _leer(archivo: UploadFile, limite: int) -> bytes:
     if len(contenido) > limite:
         raise ArchivoDemasiadoGrande()
     return contenido
-
-
-def _publico(informe: dict) -> dict:
-    return {k: v for k, v in informe.items() if not k.startswith("_")}
 
 
 def crear_app(servicios: Any) -> FastAPI:
@@ -78,24 +72,16 @@ def crear_app(servicios: Any) -> FastAPI:
     # -- salud y configuración ---------------------------------------------
     @app.get("/health")
     def salud():
-        componentes = {}
-        for sonda in servicios.sondas:
-            try:
-                componentes[sonda.nombre] = sonda.comprobar()
-            except Exception as exc:  # noqa: BLE001
-                componentes[sonda.nombre] = {"ok": False, "detalle": type(exc).__name__}
-        ok = all(c.get("ok") for c in componentes.values())
-        cuerpo = {"estado": "ok" if ok else "degradado", "proveedor": config["proveedor"],
-                  "componentes": componentes}
+        ok, cuerpo = servicios.estado.salud()
         return JSONResponse(status_code=200 if ok else 503, content=cuerpo)
 
     @app.get("/configuracion")
     def configuracion():
-        return servicios.configuracion_publica()
+        return servicios.estado.configuracion()
 
     @app.get("/perfiles")
     def perfiles():
-        return servicios.catalogo.como_dict()
+        return servicios.estado.perfiles()
 
     @app.get("/metricas")
     def metricas():
@@ -137,19 +123,13 @@ def crear_app(servicios: Any) -> FastAPI:
         contenido = _leer(archivo, limite_malla)
         return servicios.auditor.auditar(ArchivoSubido(nombre, contenido), perfil, notas)
 
-    def _informe(auditoria_id: str) -> dict:
-        informe = servicios.auditor.informes.obtener(auditoria_id)
-        if informe is None:
-            raise NoEncontrado("Auditoría no encontrada.")
-        return informe
-
     @app.get("/auditorias/{auditoria_id}", response_model=RespuestaAuditoria)
     def obtener_auditoria(auditoria_id: str):
-        return _publico(_informe(auditoria_id))
+        return servicios.auditor.obtener(auditoria_id)
 
     @app.get("/auditorias/{auditoria_id}/markdown", response_class=PlainTextResponse)
     def exportar_markdown(auditoria_id: str):
-        return PlainTextResponse(informe_a_markdown(_informe(auditoria_id)),
+        return PlainTextResponse(servicios.auditor.exportar_markdown(auditoria_id),
                                  media_type="text/markdown; charset=utf-8",
                                  headers={"Content-Disposition":
                                           f'attachment; filename="auditoria-{auditoria_id}.md"'})

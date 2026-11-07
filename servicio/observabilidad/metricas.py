@@ -5,6 +5,8 @@ from collections import Counter, defaultdict
 
 import numpy as np
 
+from servicio.observabilidad.traza import CAPA_DE_ETAPA
+
 
 def _resumen(valores: list[float]) -> dict:
     if not valores:
@@ -13,15 +15,6 @@ def _resumen(valores: list[float]) -> dict:
     return {"n": int(arr.size), "media": round(float(arr.mean()), 3),
             "p50": round(float(np.percentile(arr, 50)), 3),
             "p95": round(float(np.percentile(arr, 95)), 3)}
-
-
-# Etapa de la traza (Código 5) -> capa del servicio.
-CAPA_DE_ETAPA = {
-    "guardrails_entrada": "C3", "guardrails_salida": "C3", "cache": "C4",
-    "contexto_malla": "C5", "contexto_rag": "C5", "contexto_extraccion": "C5",
-    "contexto_indexado": "C5", "enrutador": "C6", "gateway": "C6",
-    "ensamblado": "C2", "persistencia": "C7", "archivo_temporal": "C7",
-}
 
 
 def capa_de(etapa: str) -> str:

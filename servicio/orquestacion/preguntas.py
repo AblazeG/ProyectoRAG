@@ -10,6 +10,7 @@ import json
 import time
 
 from servicio.cache.exacta import CacheExacta
+from servicio.cache.informes import ArchivoInformes
 from servicio.cache.semantica import CacheSemantica
 from servicio.contexto import prompts
 from servicio.contexto.herramientas import Analizador
@@ -23,7 +24,6 @@ from servicio.dominio import (
     Fragmento,
     NoEncontrado,
     Recuperado,
-    RepositorioInformes,
     RespuestaPreguntaModelo,
 )
 from servicio.guardrails.entrada import MENSAJE_FUERA_DOMINIO, GuardrailsEntrada
@@ -57,7 +57,7 @@ class ServicioPreguntas:
     def __init__(self, *, entrada: GuardrailsEntrada, salida: GuardrailsSalida,
                  cache: CacheExacta, cache_semantica: CacheSemantica, analizador: Analizador,
                  enrutador: Enrutador, gateway: Gateway, agente: CicloAgente, indice: Indice,
-                 informes: RepositorioInformes, trazas: RegistroTrazas, embeddings_nombre: str,
+                 informes: ArchivoInformes, trazas: RegistroTrazas, embeddings_nombre: str,
                  num_ctx: int = prompts.NUM_CTX, max_reformulaciones: int = 6):
         self.entrada = entrada
         self.salida = salida
@@ -79,14 +79,15 @@ class ServicioPreguntas:
 
     # -- preguntar(id, texto) → Respuesta ----------------------------------
     def preguntar(self, id: str, texto: str) -> dict:  # noqa: A002 - nombre de la tabla 6
-        informe = self.informes.obtener(id)
-        if informe is None:
-            raise NoEncontrado("Auditoría no encontrada.")
-        traza = Traza("pregunta", informe["perfil"], self.trazas, prompts.VERSION_PROMPT,
+        traza = Traza("pregunta", None, self.trazas, prompts.VERSION_PROMPT,
                       self.indice.version_corpus)
-        traza.anotar(auditoria_id=id, archivo_sha=informe.get("_archivo_sha"))
         inicio = time.perf_counter()
         try:
+            informe = self.informes.obtener(id)
+            if informe is None:   # dentro del try: el 404 también lleva traza y S4
+                raise NoEncontrado("Auditoría no encontrada.")
+            traza.anotar(perfil=informe["perfil"], auditoria_id=id,
+                         archivo_sha=informe.get("_archivo_sha"))
             if not (texto or "").strip():
                 raise EntradaInvalida("La pregunta está vacía.")
             return self._preguntar(traza, informe, texto, inicio)
@@ -184,6 +185,8 @@ class ServicioPreguntas:
                                                 f"({SIN_NORMA_VERIFICADA})"), [], False
         else:
             respuesta_texto, citas = item["texto"], item["citas"]
+            if item["removidas"]:   # S2 (tabla 13): se quitó una cita inventada
+                respuesta_texto = f"{respuesta_texto} ({SIN_NORMA_VERIFICADA})"
             validada = resultado.aprobado and not item["removidas"]
         traza.anotar(modelo=generacion.modelo)
         respuesta = self._base(informe, traza, inicio, respuesta=respuesta_texto,

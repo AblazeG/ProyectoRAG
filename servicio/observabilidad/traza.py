@@ -4,11 +4,21 @@ malla, solo su hash."""
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
+
+
+# Etapa de la traza (Código 5) -> capa del servicio.
+CAPA_DE_ETAPA = {
+    "guardrails_entrada": "C3", "guardrails_salida": "C3", "cache": "C4",
+    "contexto_malla": "C5", "contexto_rag": "C5", "contexto_extraccion": "C5",
+    "contexto_indexado": "C5", "enrutador": "C6", "gateway": "C6",
+    "ensamblado": "C2", "persistencia": "C4", "archivo_temporal": "C5",
+}
 
 
 class RegistroTrazas:
@@ -90,14 +100,23 @@ class Traza:
 
     @contextmanager
     def etapa(self, nombre: str):
-        """Mide el tiempo de la etapa incluso si lanza una excepción."""
+        """Mide el tiempo de la etapa incluso si lanza una excepción y deja una bitácora
+        estructurada por capa (logger ``meshaudit.<capa>``, una línea JSON por etapa)."""
         inicio = time.perf_counter()
+        error = None
         try:
             yield self
+        except BaseException as exc:
+            error = type(exc).__name__
+            raise
         finally:
             ms = (time.perf_counter() - inicio) * 1000
             tiempos = self.datos["tiempos_ms"]
             tiempos[nombre] = round(tiempos.get(nombre, 0.0) + ms, 3)
+            capa = CAPA_DE_ETAPA.get(nombre, "C2")
+            logging.getLogger(f"meshaudit.{capa}").info(json.dumps(
+                {"traza_id": self.traza_id, "tipo": self.datos["tipo"], "capa": capa,
+                 "etapa": nombre, "ms": round(ms, 3), "error": error}, ensure_ascii=False))
 
     def anotar(self, **campos) -> None:
         if "archivo" in campos or "contenido" in campos:
