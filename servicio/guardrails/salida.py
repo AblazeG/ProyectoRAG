@@ -35,7 +35,7 @@ MENSAJE_SEGURO_FORMATO = ("No fue posible generar una explicación verificable. 
 
 # Claves que no se re-enmascaran en S4 (identificadores y hashes técnicos).
 CLAVES_TECNICAS = {"auditoria_id", "traza_id", "id", "verificacion", "hallazgo_id",
-                   "archivo_sha", "documento_id", "doc_id"}
+                   "archivo_sha", "documento_id", "doc_id", "documento", "url", "modelo"}
 
 
 @dataclass
@@ -62,36 +62,46 @@ class GuardrailsSalida:
     # -- S2 ----------------------------------------------------------------
     @staticmethod
     def verificar_citas(texto: str, citas: list[str], entregados: set[str]) -> ResultadoCitas:
-        """Quita las citas a ids que no se entregaron en el contexto."""
-        removidas = []
+        """Quita las citas a ids que no se entregaron en el contexto.
 
-        def reemplazo(m: re.Match) -> str:
+        Acepta citas sueltas o en grupo («[a#1]», «[a#1, b#2]», «(a#1)», «[ a#1 ]»)
+        y también ids escritos sin corchetes."""
+        removidas: list[str] = []
+
+        def grupo(m: re.Match) -> str:
+            ids = [x.strip() for x in re.split(r"[,;]", m.group(1)) if x.strip()]
+            validos = [x for x in ids if x in entregados]
+            removidas.extend(x for x in ids if x not in entregados)
+            return "".join(f"[{x}]" for x in validos)
+
+        def suelto(m: re.Match) -> str:
             if m.group(1) in entregados:
-                return m.group(0)
+                return f"[{m.group(1)}]"
             removidas.append(m.group(1))
             return ""
 
-        limpio = re.sub(r"\s{2,}", " ", patrones.CITA.sub(reemplazo, texto)).strip()
-        limpio = re.sub(r"\s+([.,;:])", r"\1", limpio)
+        limpio = patrones.GRUPO_CITAS.sub(grupo, texto)
+        limpio = patrones.ID_SUELTO.sub(suelto, limpio)
+        if removidas:  # solo se tocan los espacios horizontales que dejó la cita quitada
+            limpio = re.sub(r"[ \t]{2,}", " ", limpio)
+            limpio = re.sub(r"[ \t]+([.,;:])", r"\1", limpio)
+        limpio = limpio.strip()
         en_texto = [m.group(1) for m in patrones.CITA.finditer(limpio)]
         validas = list(dict.fromkeys([c for c in citas if c in entregados] + en_texto))
         removidas += [c for c in citas if c not in entregados and c not in removidas]
-        return ResultadoCitas(limpio, validas, removidas)
+        return ResultadoCitas(limpio, validas, list(dict.fromkeys(removidas)))
 
     # -- S3 ----------------------------------------------------------------
     @staticmethod
     def valores_respaldados(textos: list[str]) -> set[float]:
-        valores = set()
+        valores: set[float] = set()
         for texto in textos:
-            for crudo in re.findall(r"\d{1,3}(?:[  ]\d{3})+|\d+(?:[.,]\d+)?", texto):
-                valor = patrones.valor_numerico(crudo)
-                if valor is not None:
-                    valores.add(valor)
+            valores |= patrones.valores_en(texto)
         return valores
 
     @classmethod
     def verificar_cifras(cls, texto: str, textos_citados: list[str]) -> list[str]:
-        """Oraciones con cifras que no aparecen en los fragmentos citados."""
+        """Oraciones con cifras (con unidad o conteo) que no aparecen en los fragmentos citados."""
         respaldo = cls.valores_respaldados(textos_citados)
         return [o for o in patrones.oraciones(texto)
                 if any(valor not in respaldo for _, valor in patrones.cifras(o))]
@@ -119,14 +129,21 @@ class GuardrailsSalida:
         """Verifica una salida del modelo: formato (S1), citas (S2) y cifras (S3).
 
         ``permitidos``: ids de fragmento entregados (por hallazgo en las
-        explicaciones). ``textos``: texto de cada fragmento, para S3. La
-        instancia del veredicto ya trae las citas inventadas quitadas.
+        explicaciones). ``textos``: texto de cada fragmento, para S3. S3 se
+        evalúa por campo (explicación y cada paso por separado), para poder
+        eliminar después exactamente la frase sin respaldo.
         """
         instancia = self.validar_formato(texto, modelo)
         if instancia is None:
             return Veredicto(False, motivo="formato", activaciones=["S1"])
         if isinstance(instancia, RespuestaExplicaciones):
             elementos = [(e.id, e.explicacion, e.correccion, e.citas) for e in instancia.hallazgos]
+            if isinstance(permitidos, dict):
+                ids = [e[0] for e in elementos]
+                # S1: ids repetidos o que no se pidieron invalidan la respuesta.
+                if len(ids) != len(set(ids)) or not set(ids) <= set(permitidos):
+                    return Veredicto(False, motivo="formato", activaciones=["S1"],
+                                     detalles={"ids": ids})
         elif isinstance(instancia, RespuestaPreguntaModelo):
             elementos = [("respuesta", instancia.respuesta, [], instancia.citas)]
         else:
@@ -135,36 +152,48 @@ class GuardrailsSalida:
         for clave, principal, pasos, citas in elementos:
             if es_sin_norma(principal):
                 items[clave] = {"texto": SIN_NORMA, "correccion": [], "citas": [],
-                                "removidas": [], "malas": [], "sin_norma": True}
+                                "removidas": [], "malas": [], "malas_campo": {},
+                                "sin_norma": True}
                 continue
             validos = permitidos.get(clave, set()) if isinstance(permitidos, dict) else permitidos
             exp = self.verificar_citas(principal, citas, validos)
             corr = [self.verificar_citas(p, citas, validos) for p in pasos]
             usadas = list(dict.fromkeys(exp.citas + [c for p in corr for c in p.citas]))
-            removidas = exp.removidas + [c for p in corr for c in p.removidas]
-            malas = self.verificar_cifras(" ".join([exp.texto] + [p.texto for p in corr]),
-                                          [textos[c] for c in usadas if c in textos])
-            items[clave] = {"texto": exp.texto, "correccion": [p.texto for p in corr if p.texto],
-                            "citas": usadas, "removidas": removidas, "malas": malas,
+            removidas = list(dict.fromkeys(exp.removidas + [c for p in corr for c in p.removidas]))
+            respaldo = [textos[c] for c in usadas if c in textos]
+            pasos_txt = [p.texto for p in corr if p.texto]
+            malas_campo = {"texto": self.verificar_cifras(exp.texto, respaldo)}
+            for n, paso in enumerate(pasos_txt):
+                malas_campo[n] = self.verificar_cifras(paso, respaldo)
+            malas = [f for lista in malas_campo.values() for f in lista]
+            items[clave] = {"texto": exp.texto, "correccion": pasos_txt, "citas": usadas,
+                            "removidas": removidas, "malas": malas, "malas_campo": malas_campo,
                             "sin_norma": False}
             if removidas and "S2" not in activaciones:
                 activaciones.append("S2")
             if malas and "S3" not in activaciones:
                 activaciones.append("S3")
+        faltantes = ([h for h in permitidos if h not in items]
+                     if isinstance(permitidos, dict) and isinstance(instancia, RespuestaExplicaciones)
+                     else [])
         con_cifras = any(i["malas"] for i in items.values())
         return Veredicto(not con_cifras, motivo="cifras" if con_cifras else None,
-                         activaciones=activaciones, instancia=instancia, detalles=items)
+                         activaciones=activaciones, instancia=instancia, detalles=items,
+                         faltantes=faltantes)
 
     def eliminar_cifras(self, veredicto: Veredicto) -> Veredicto:
-        """S3 tras el reintento: elimina las frases con cifras sin respaldo."""
+        """S3 tras el reintento: elimina, campo por campo, las frases con cifras sin respaldo."""
         for item in veredicto.detalles.values():
-            if item["malas"]:
-                item["eliminadas"] = list(item["malas"])
-                item["texto"] = self.eliminar_frases(item["texto"], item["malas"])
-                item["correccion"] = [x for x in (self.eliminar_frases(c, item["malas"])
-                                                  for c in item["correccion"]) if x]
-                item["malas"] = []
+            if not item["malas"]:
+                continue
+            item["eliminadas"] = list(item["malas"])
+            campos = item["malas_campo"]
+            item["texto"] = self.eliminar_frases(item["texto"], campos.get("texto", []))
+            item["correccion"] = [x for x in (self.eliminar_frases(c, campos.get(n, []))
+                                              for n, c in enumerate(item["correccion"])) if x]
+            item["malas"], item["malas_campo"] = [], {}
         veredicto.aprobado = False   # corregida: no se guarda en caché
+        veredicto.motivo = None
         return veredicto
 
     # -- S4 --------------------------------------------------------------------
@@ -172,12 +201,16 @@ class GuardrailsSalida:
     def aplicar_aviso(cls, respuesta: dict, con_modelo: bool, tipo: str = "informe") -> dict:
         """S4: vuelve a enmascarar y añade el aviso («generado por un modelo» o,
         sin modelo, «automático»). Se aplica a toda respuesta, también de caché."""
+        tipo = {"pregunta": "respuesta"}.get(tipo, tipo)
+        if (tipo, bool(con_modelo)) not in AVISOS:
+            raise ValueError(f"tipo de respuesta desconocido: {tipo}")
         salida = cls._reenmascarar(copy.deepcopy(respuesta))
         salida["aviso"] = AVISOS[(tipo, bool(con_modelo))]
         guardrails = salida.get("guardrails")
-        if not isinstance(guardrails, dict):
-            guardrails = {"entrada": "aprobada", "salida": "aprobada",
-                          "activaciones": list(guardrails or [])}
+        if isinstance(guardrails, str):
+            guardrails = [guardrails]
+        if not isinstance(guardrails, dict):   # no se inventa el estado de entrada/salida
+            guardrails = {"activaciones": list(guardrails or [])}
         guardrails = {**guardrails, "activaciones": list(guardrails.get("activaciones", []))}
         if "S4" not in guardrails["activaciones"]:
             guardrails["activaciones"].append("S4")

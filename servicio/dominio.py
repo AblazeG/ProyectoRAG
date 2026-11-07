@@ -126,6 +126,7 @@ class Veredicto:
     activaciones: list[str] = field(default_factory=list)
     instancia: Any = None                     # salida validada (S1)
     detalles: dict = field(default_factory=dict)
+    faltantes: list[str] = field(default_factory=list)   # hallazgos pedidos sin respuesta
 
 
 @dataclass

@@ -64,7 +64,8 @@ class CacheExacta:
     def clave_pregunta(archivo_sha: str, perfil: str, pregunta_enmascarada: str,
                        versiones: dict) -> str:
         return _clave("pregunta", archivo_sha, perfil, normalizar_pregunta(pregunta_enmascarada),
-                      versiones["corpus"], versiones["prompt"], versiones["modelos"])
+                      versiones["perfiles"], versiones["analizador"], versiones["corpus"],
+                      versiones["prompt"], versiones["modelos"])
 
     # -- operaciones -------------------------------------------------------
     def obtener(self, espacio: str, clave: str) -> dict | None:

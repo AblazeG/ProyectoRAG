@@ -15,6 +15,7 @@ from typing import Callable
 from servicio.dominio import (
     ErrorConexion,
     ErrorModelo,
+    ErrorRespuestaModelo,
     ErrorServidorModelo,
     Generacion,
     ModeloChat,
@@ -54,21 +55,32 @@ class Gateway:
         return self.modelos[alias].nombre
 
     def _con_reintentos(self, alias: str, mensajes: list[dict], esquema: dict | None,
-                        errores: list[str]) -> tuple[Generacion, int]:
+                        ruta: str | None, respaldo: bool, traza, contador: list[int]) -> Generacion:
+        """Llama al modelo del alias. Reintenta hasta 2 veces (esperas de 1 y 2 s) solo
+        ante error de conexión o 5xx; timeout, 404 u otro error van directo al respaldo.
+        Cada intento queda registrado (sin contar las esperas) y suma en ``contador``."""
         modelo = self.modelos[alias]
         intento = 0
         while True:
             intento += 1
+            contador[0] += 1
+            inicio = time.perf_counter()
             try:
-                return modelo.generar(mensajes, esquema, self.tiempos_limite_s[alias]), intento
+                generacion = modelo.generar(mensajes, esquema, self.tiempos_limite_s[alias])
             except REINTENTABLES as exc:
-                errores.append(f"{alias}:{type(exc).__name__}")
+                self._registrar(alias, ruta, None, inicio, respaldo, traza, type(exc).__name__)
                 if intento > self.reintentos:
                     raise
                 self.dormir(self.esperas_s[min(intento - 1, len(self.esperas_s) - 1)])
-            except ErrorModelo as exc:  # timeout, 404 u otro: directo al respaldo
-                errores.append(f"{alias}:{type(exc).__name__}")
+                continue
+            except ErrorModelo as exc:
+                self._registrar(alias, ruta, None, inicio, respaldo, traza, type(exc).__name__)
                 raise
+            except Exception as exc:  # noqa: BLE001 - un adaptador defectuoso no tumba el flujo
+                self._registrar(alias, ruta, None, inicio, respaldo, traza, type(exc).__name__)
+                raise ErrorRespuestaModelo(f"Error inesperado del adaptador: {type(exc).__name__}") from exc
+            self._registrar(alias, ruta, generacion, inicio, respaldo, traza)
+            return generacion
 
     def generar(self, alias: str, mensajes: list[dict], esquema: dict | None = None,
                 ruta: str | None = None, traza=None,
@@ -76,24 +88,19 @@ class Gateway:
         """Interfaz única hacia los modelos: ``generar(alias, mensajes, esquema)``.
 
         La ``Generacion`` devuelta indica el alias que respondió, si se usó el
-        respaldo y cuántos intentos hubo.
+        respaldo y cuántas llamadas hubo en total (``intentos``).
         """
-        errores: list[str] = []
         candidatos = [alias] + ([RESPALDO[alias]] if permitir_respaldo else [])
-        intentos_totales = 0
+        contador = [0]
         for posicion, actual in enumerate(candidatos):
-            inicio = time.perf_counter()
             try:
-                generacion, intentos = self._con_reintentos(actual, mensajes, esquema, errores)
-            except ErrorModelo as exc:
-                intentos_totales += 1
-                self._registrar(actual, ruta, None, inicio, posicion > 0, traza, str(type(exc).__name__))
+                generacion = self._con_reintentos(actual, mensajes, esquema, ruta, posicion > 0,
+                                                  traza, contador)
+            except ErrorModelo:
                 continue
-            intentos_totales += intentos
-            self._registrar(actual, ruta, generacion, inicio, posicion > 0, traza)
             generacion.alias = actual
             generacion.uso_respaldo = posicion > 0
-            generacion.intentos = intentos_totales
+            generacion.intentos = contador[0]
             return generacion
         raise ModeloNoDisponible("Ni la ruta principal ni el respaldo respondieron.")
 
