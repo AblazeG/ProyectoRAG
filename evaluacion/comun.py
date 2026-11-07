@@ -91,7 +91,7 @@ class Sesion:
         self.contenedor = None
         if url:
             import httpx
-            self.http = httpx.Client(base_url=url.rstrip("/"), timeout=600)
+            self.http = httpx.Client(base_url=url.rstrip("/"), timeout=600, trust_env=False)
             self.ruta_trazas = trazas
             return
         from fastapi.testclient import TestClient

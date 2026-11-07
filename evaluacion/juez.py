@@ -25,7 +25,7 @@ class Juez:
         import httpx
         self.modelo = modelo
         self.url = url.rstrip("/")
-        self.http = httpx.Client(timeout=180)
+        self.http = httpx.Client(timeout=180, trust_env=False)
 
     def calificar(self, tarea: str, respuesta: str, fragmentos: list[str]) -> dict | None:
         contexto = "\n\n".join(f"[{i + 1}] {f}" for i, f in enumerate(fragmentos)) or "(sin fragmentos)"

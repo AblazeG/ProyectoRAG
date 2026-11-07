@@ -34,7 +34,7 @@ CANDIDATOS = ["gemma4:e2b", "qwen3:8b", "gpt-oss:20b"]
 def _ollama(metodo: str, ruta: str, **kw):
     import httpx
     try:
-        return httpx.request(metodo, f"{OLLAMA}{ruta}", timeout=600, **kw).json()
+        return httpx.request(metodo, f"{OLLAMA}{ruta}", timeout=600, trust_env=False, **kw).json()
     except Exception:  # noqa: BLE001
         return None
 

@@ -58,7 +58,7 @@ class ChatOllama:
         self.url = url.rstrip("/")
         self.opciones = {**OPCIONES_POR_DEFECTO, **(opciones or {})}
         self.keep_alive = keep_alive
-        self._cliente = cliente or httpx.Client()
+        self._cliente = cliente or httpx.Client(trust_env=False)  # Ollama es local: sin proxies del entorno
 
     def cuerpo(self, mensajes: list[dict], esquema: dict | None) -> dict:
         cuerpo: dict[str, Any] = {
@@ -118,7 +118,7 @@ class EmbeddingsOllama:
         self.tiempo_limite_s = tiempo_limite_s
         self.keep_alive = keep_alive
         self.lote = lote
-        self._cliente = cliente or httpx.Client()
+        self._cliente = cliente or httpx.Client(trust_env=False)  # Ollama es local: sin proxies del entorno
 
     def _prefijar(self, textos: list[str], tipo: str) -> list[str]:
         if tipo not in ("documento", "consulta"):
@@ -154,7 +154,7 @@ class SondaOllama:
                  cliente: httpx.Client | None = None):
         self.url = url.rstrip("/")
         self.modelos = modelos
-        self._cliente = cliente or httpx.Client()
+        self._cliente = cliente or httpx.Client(trust_env=False)  # Ollama es local: sin proxies del entorno
 
     def comprobar(self) -> dict:
         try:
