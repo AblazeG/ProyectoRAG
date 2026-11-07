@@ -1,0 +1,114 @@
+[
+  {
+    "id": "E02",
+    "caso_producto": "P02",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E03",
+    "caso_producto": "P03",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E04",
+    "caso_producto": "P04",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E05",
+    "caso_producto": "P05",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E07",
+    "caso_producto": "P07",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E08",
+    "caso_producto": "P08",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E09",
+    "caso_producto": "P09",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E10",
+    "caso_producto": "P10",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E12",
+    "caso_producto": "P12",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E13",
+    "caso_producto": "P13",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E14",
+    "caso_producto": "P14",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E15",
+    "caso_producto": "P15",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E17",
+    "caso_producto": "P17",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E18",
+    "caso_producto": "P18",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E19",
+    "caso_producto": "P19",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  },
+  {
+    "id": "E20",
+    "caso_producto": "P20",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null,
+    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+  }
+]

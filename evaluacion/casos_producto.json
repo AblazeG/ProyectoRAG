@@ -1,0 +1,342 @@
+[
+  {
+    "id": "P01",
+    "perfil": "animacion",
+    "mutacion": "base",
+    "malla": "base.obj",
+    "verificaciones_esperadas": {},
+    "semaforo_esperado": "verde",
+    "ruta_esperada_regla": "sin_modelo",
+    "fuentes_esperadas": {}
+  },
+  {
+    "id": "P02",
+    "perfil": "animacion",
+    "mutacion": "M1",
+    "malla": "M1.obj",
+    "verificaciones_esperadas": {
+      "V1": "grave",
+      "V7": "menor"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V1": {
+        "documento": "blender_manual",
+        "seccion": "Topología para deformación"
+      },
+      "V7": {
+        "documento": "gltf_spec",
+        "seccion": "Unidades y escala"
+      }
+    }
+  },
+  {
+    "id": "P03",
+    "perfil": "animacion",
+    "mutacion": "M2",
+    "malla": "M2.obj",
+    "verificaciones_esperadas": {
+      "V6": "grave"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V6": {
+        "documento": "blender_manual",
+        "seccion": "Desenvolvimiento UV"
+      }
+    }
+  },
+  {
+    "id": "P04",
+    "perfil": "animacion",
+    "mutacion": "M3",
+    "malla": "M3.obj",
+    "verificaciones_esperadas": {
+      "V9": "menor",
+      "V10": "informativo"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V9": {
+        "documento": "blender_manual",
+        "seccion": "Orientación de normales"
+      }
+    }
+  },
+  {
+    "id": "P05",
+    "perfil": "animacion",
+    "mutacion": "M5",
+    "malla": "M5.obj",
+    "verificaciones_esperadas": {
+      "V2": "menor",
+      "V8": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V2": {
+        "documento": "blender_manual",
+        "seccion": "Topología para deformación"
+      },
+      "V8": {
+        "documento": "blender_manual",
+        "seccion": "Disolver geometría degenerada"
+      }
+    }
+  },
+  {
+    "id": "P06",
+    "perfil": "juego_movil",
+    "mutacion": "base",
+    "malla": "base.obj",
+    "verificaciones_esperadas": {},
+    "semaforo_esperado": "verde",
+    "ruta_esperada_regla": "sin_modelo",
+    "fuentes_esperadas": {}
+  },
+  {
+    "id": "P07",
+    "perfil": "juego_movil",
+    "mutacion": "M1",
+    "malla": "M1.obj",
+    "verificaciones_esperadas": {
+      "V1": "informativo",
+      "V7": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V7": {
+        "documento": "gltf_spec",
+        "seccion": "Unidades y escala"
+      }
+    }
+  },
+  {
+    "id": "P08",
+    "perfil": "juego_movil",
+    "mutacion": "M2",
+    "malla": "M2.obj",
+    "verificaciones_esperadas": {
+      "V6": "grave"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V6": {
+        "documento": "gltf_spec",
+        "seccion": "Coordenadas de textura"
+      }
+    }
+  },
+  {
+    "id": "P09",
+    "perfil": "juego_movil",
+    "mutacion": "M4",
+    "malla": "M4.obj",
+    "verificaciones_esperadas": {
+      "V3": "grave",
+      "V4": "menor"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V3": {
+        "documento": "guia_tiempo_real",
+        "seccion": "Presupuesto de polígonos"
+      },
+      "V4": {
+        "documento": "blender_manual",
+        "seccion": "Limpieza de geometría no manifold"
+      }
+    }
+  },
+  {
+    "id": "P10",
+    "perfil": "juego_movil",
+    "mutacion": "M5",
+    "malla": "M5.obj",
+    "verificaciones_esperadas": {
+      "V8": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual",
+        "seccion": "Disolver geometría degenerada"
+      }
+    }
+  },
+  {
+    "id": "P11",
+    "perfil": "impresion_3d",
+    "mutacion": "base",
+    "malla": "base.obj",
+    "verificaciones_esperadas": {},
+    "semaforo_esperado": "verde",
+    "ruta_esperada_regla": "sin_modelo",
+    "fuentes_esperadas": {}
+  },
+  {
+    "id": "P12",
+    "perfil": "impresion_3d",
+    "mutacion": "M1",
+    "malla": "M1.obj",
+    "verificaciones_esperadas": {
+      "V7": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V7": {
+        "documento": "guia_impresion3d",
+        "seccion": "Escala y volumen de impresión"
+      }
+    }
+  },
+  {
+    "id": "P13",
+    "perfil": "impresion_3d",
+    "mutacion": "M2",
+    "malla": "M2.obj",
+    "verificaciones_esperadas": {
+      "V5": "grave"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V5": {
+        "documento": "guia_impresion3d",
+        "seccion": "Mallas cerradas"
+      }
+    }
+  },
+  {
+    "id": "P14",
+    "perfil": "impresion_3d",
+    "mutacion": "M3",
+    "malla": "M3.obj",
+    "verificaciones_esperadas": {
+      "V9": "grave",
+      "V10": "menor"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V9": {
+        "documento": "guia_impresion3d",
+        "seccion": "Normales invertidas"
+      },
+      "V10": {
+        "documento": "blender_manual",
+        "seccion": "Fusionar vértices por distancia"
+      }
+    }
+  },
+  {
+    "id": "P15",
+    "perfil": "impresion_3d",
+    "mutacion": "M5",
+    "malla": "M5.obj",
+    "verificaciones_esperadas": {
+      "V8": "grave"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V8": {
+        "documento": "guia_impresion3d",
+        "seccion": "Caras degeneradas"
+      }
+    }
+  },
+  {
+    "id": "P16",
+    "perfil": "web_ar",
+    "mutacion": "base",
+    "malla": "base.obj",
+    "verificaciones_esperadas": {},
+    "semaforo_esperado": "verde",
+    "ruta_esperada_regla": "sin_modelo",
+    "fuentes_esperadas": {}
+  },
+  {
+    "id": "P17",
+    "perfil": "web_ar",
+    "mutacion": "M2",
+    "malla": "M2.obj",
+    "verificaciones_esperadas": {
+      "V6": "grave"
+    },
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
+    "fuentes_esperadas": {
+      "V6": {
+        "documento": "gltf_spec",
+        "seccion": "Coordenadas de textura"
+      }
+    }
+  },
+  {
+    "id": "P18",
+    "perfil": "web_ar",
+    "mutacion": "M3",
+    "malla": "M3.obj",
+    "verificaciones_esperadas": {
+      "V9": "menor",
+      "V10": "informativo"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V9": {
+        "documento": "blender_manual",
+        "seccion": "Orientación de normales"
+      }
+    }
+  },
+  {
+    "id": "P19",
+    "perfil": "web_ar",
+    "mutacion": "M4",
+    "malla": "M4.obj",
+    "verificaciones_esperadas": {
+      "V3": "menor",
+      "V4": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V3": {
+        "documento": "guia_tiempo_real",
+        "seccion": "Presupuesto de polígonos"
+      },
+      "V4": {
+        "documento": "blender_manual",
+        "seccion": "Limpieza de geometría no manifold"
+      }
+    }
+  },
+  {
+    "id": "P20",
+    "perfil": "web_ar",
+    "mutacion": "M5",
+    "malla": "M5.obj",
+    "verificaciones_esperadas": {
+      "V8": "menor"
+    },
+    "semaforo_esperado": "amarillo",
+    "ruta_esperada_regla": "rapida",
+    "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual",
+        "seccion": "Disolver geometría degenerada"
+      }
+    }
+  }
+]

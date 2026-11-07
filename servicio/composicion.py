@@ -154,6 +154,12 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
     modelos_chat, embeddings, sondas_modelos = _modelos(config, config["proveedor"])
     if chats:
         modelos_chat.update(chats)
+    falla = os.environ.get("MESHAUDIT_FALLA")  # evaluación de fallas: alias:tipo[:n]
+    if falla:
+        from servicio.datos.falsos import ChatConFalla
+        alias, tipo, *n = falla.split(":")
+        for nombre in (("rapido", "completo") if alias == "*" else (alias,)):
+            modelos_chat[nombre] = ChatConFalla(modelos_chat[nombre], tipo, int(n[0]) if n else None)
     informes = RepositorioInformesSQLite(base)
     catalogo = cargar_perfiles(CONFIG_PERFILES)
 

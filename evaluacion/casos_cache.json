@@ -1,0 +1,200 @@
+{
+  "auditorias_repetidas": [
+    {
+      "id": "C01",
+      "caso_producto": "P01"
+    },
+    {
+      "id": "C02",
+      "caso_producto": "P03"
+    },
+    {
+      "id": "C03",
+      "caso_producto": "P05"
+    },
+    {
+      "id": "C04",
+      "caso_producto": "P07"
+    },
+    {
+      "id": "C05",
+      "caso_producto": "P09"
+    },
+    {
+      "id": "C06",
+      "caso_producto": "P11"
+    },
+    {
+      "id": "C07",
+      "caso_producto": "P13"
+    },
+    {
+      "id": "C08",
+      "caso_producto": "P15"
+    },
+    {
+      "id": "C09",
+      "caso_producto": "P17"
+    },
+    {
+      "id": "C10",
+      "caso_producto": "P19"
+    }
+  ],
+  "preguntas_repetidas": [
+    {
+      "id": "Q01",
+      "pregunta": "¿Por qué evitar n-gons en una malla que se deforma?",
+      "seccion": "Topología para deformación"
+    },
+    {
+      "id": "Q02",
+      "pregunta": "¿Cómo selecciono la geometría non-manifold en Blender?",
+      "seccion": "Limpieza de geometría no manifold"
+    },
+    {
+      "id": "Q03",
+      "pregunta": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
+      "seccion": "Desenvolvimiento UV"
+    },
+    {
+      "id": "Q04",
+      "pregunta": "¿Qué hace Degenerate Dissolve?",
+      "seccion": "Disolver geometría degenerada"
+    },
+    {
+      "id": "Q05",
+      "pregunta": "¿Cómo recalculo las normales hacia fuera?",
+      "seccion": "Orientación de normales"
+    },
+    {
+      "id": "Q06",
+      "pregunta": "¿Cómo uso Merge by Distance?",
+      "seccion": "Fusionar vértices por distancia"
+    },
+    {
+      "id": "Q07",
+      "pregunta": "¿Qué unidad de longitud usa glTF?",
+      "seccion": "Unidades y escala"
+    },
+    {
+      "id": "Q08",
+      "pregunta": "¿Qué es TEXCOORD_0 en glTF?",
+      "seccion": "Coordenadas de textura"
+    },
+    {
+      "id": "Q09",
+      "pregunta": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
+      "seccion": "Presupuesto de polígonos"
+    },
+    {
+      "id": "Q10",
+      "pregunta": "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
+      "seccion": "Tamaño de archivo para web"
+    }
+  ],
+  "parafrasis": [
+    {
+      "id": "F01",
+      "original": "¿Por qué evitar n-gons en una malla que se deforma?",
+      "pregunta": "¿Por qué no conviene tener n-gons si la malla se va a deformar?"
+    },
+    {
+      "id": "F02",
+      "original": "¿Cómo selecciono la geometría non-manifold en Blender?",
+      "pregunta": "¿Cómo selecciono la geometría no manifold en Blender?"
+    },
+    {
+      "id": "F03",
+      "original": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
+      "pregunta": "¿Cómo marco las costuras y desenvuelvo el UV?"
+    },
+    {
+      "id": "F04",
+      "original": "¿Qué hace Degenerate Dissolve?",
+      "pregunta": "¿Para qué sirve Degenerate Dissolve?"
+    },
+    {
+      "id": "F05",
+      "original": "¿Cómo recalculo las normales hacia fuera?",
+      "pregunta": "¿Cómo recalculo las normales hacia afuera?"
+    },
+    {
+      "id": "F06",
+      "original": "¿Cómo uso Merge by Distance?",
+      "pregunta": "¿Cómo se usa Merge by Distance?"
+    },
+    {
+      "id": "F07",
+      "original": "¿Qué unidad de longitud usa glTF?",
+      "pregunta": "¿Qué unidad de longitud utiliza glTF?"
+    },
+    {
+      "id": "F08",
+      "original": "¿Qué es TEXCOORD_0 en glTF?",
+      "pregunta": "¿Qué significa TEXCOORD_0 en glTF?"
+    },
+    {
+      "id": "F09",
+      "original": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
+      "pregunta": "¿Cuántos triángulos debe tener un personaje para juego móvil?"
+    },
+    {
+      "id": "F10",
+      "original": "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
+      "pregunta": "¿Cuál es el tamaño máximo recomendado para un GLB web?"
+    }
+  ],
+  "distractores": [
+    {
+      "id": "D01",
+      "original": "¿Por qué evitar n-gons en una malla que se deforma?",
+      "pregunta": "¿Por qué evitar triángulos en una malla que se deforma?"
+    },
+    {
+      "id": "D02",
+      "original": "¿Cómo selecciono la geometría non-manifold en Blender?",
+      "pregunta": "¿Cómo selecciono los vértices sueltos en Blender?"
+    },
+    {
+      "id": "D03",
+      "original": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
+      "pregunta": "¿Cómo exporto el mapa UV como imagen?"
+    },
+    {
+      "id": "D04",
+      "original": "¿Qué hace Degenerate Dissolve?",
+      "pregunta": "¿Qué hace Limited Dissolve?"
+    },
+    {
+      "id": "D05",
+      "original": "¿Cómo recalculo las normales hacia fuera?",
+      "pregunta": "¿Cómo invierto las normales de una sola cara?"
+    },
+    {
+      "id": "D06",
+      "original": "¿Cómo uso Merge by Distance?",
+      "pregunta": "¿Cómo uso Merge at Center?"
+    },
+    {
+      "id": "D07",
+      "original": "¿Qué unidad de longitud usa glTF?",
+      "pregunta": "¿Qué sistema de ejes usa glTF?"
+    },
+    {
+      "id": "D08",
+      "original": "¿Qué es TEXCOORD_0 en glTF?",
+      "pregunta": "¿Qué es TEXCOORD_1 en glTF?"
+    },
+    {
+      "id": "D09",
+      "original": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
+      "pregunta": "¿Cuántos triángulos puede tener un escenario de juego móvil?"
+    },
+    {
+      "id": "D10",
+      "original": "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
+      "pregunta": "¿Cuál es la resolución máxima recomendada de una textura web?"
+    }
+  ]
+}

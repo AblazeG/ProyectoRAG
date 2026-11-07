@@ -1,0 +1,52 @@
+[
+  {
+    "id": "F1",
+    "falla": "rapido:timeout",
+    "malla": "M5.obj",
+    "perfil": "animacion",
+    "esperado": {
+      "codigo": 200,
+      "uso_respaldo": true
+    }
+  },
+  {
+    "id": "F2",
+    "falla": "rapido:404",
+    "malla": "M3.obj",
+    "perfil": "web_ar",
+    "esperado": {
+      "codigo": 200,
+      "uso_respaldo": true
+    }
+  },
+  {
+    "id": "F3",
+    "falla": "completo:conexion:2",
+    "malla": "M2.obj",
+    "perfil": "impresion_3d",
+    "esperado": {
+      "codigo": 200,
+      "uso_respaldo": false,
+      "reintentos": 2
+    }
+  },
+  {
+    "id": "F4",
+    "falla": "completo:5xx",
+    "malla": "M1.obj",
+    "perfil": "animacion",
+    "esperado": {
+      "codigo": 200,
+      "uso_respaldo": true
+    }
+  },
+  {
+    "id": "F5",
+    "falla": "*:timeout",
+    "malla": "M1.obj",
+    "perfil": "animacion",
+    "esperado": {
+      "codigo": 503
+    }
+  }
+]

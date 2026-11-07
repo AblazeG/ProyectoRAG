@@ -265,3 +265,27 @@ class SondaFalsa:
 
     def comprobar(self) -> dict:
         return {"ok": self.ok, "proveedor": "falso"}
+
+
+class ChatConFalla:
+    """Envoltura de un adaptador real que inyecta fallas (``casos_fallas.json``).
+
+    Se activa con ``MESHAUDIT_FALLA=alias:tipo[:n]``; por ejemplo
+    ``rapido:timeout`` o ``completo:conexion:2``.
+    """
+
+    ERRORES = {"timeout": ErrorTiempoLimite, "conexion": ErrorConexion,
+               "5xx": ErrorServidorModelo, "404": ModeloInexistente}
+
+    def __init__(self, interno, falla: str, fallas: int | None = None):
+        self.interno = interno
+        self.nombre = interno.nombre
+        self.falla = falla
+        self.fallas = fallas
+
+    def generar(self, mensajes, esquema, tiempo_limite_s):
+        if self.fallas is None or self.fallas > 0:
+            if self.fallas is not None:
+                self.fallas -= 1
+            raise self.ERRORES[self.falla](f"falla inyectada: {self.falla}")
+        return self.interno.generar(mensajes, esquema, tiempo_limite_s)
