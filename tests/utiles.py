@@ -26,3 +26,15 @@ def cargar_corpus(indice):
     for ruta in sorted(CORPUS.glob("*.md")):
         archivo = ArchivoSubido(ruta.name, ruta.read_bytes())
         indice.indexar(indice.extraer(archivo), archivo, "CC0-1.0")
+
+
+def contenedor_de_prueba(tmp_path, vectorial="memoria", chats=None, cache_activa=True,
+                         con_corpus=True):
+    """Contenedor completo con el proveedor falso, en un directorio temporal."""
+    from servicio.composicion import construir
+    c = construir(proveedor="falso", dir_datos=tmp_path / "data", vectorial=vectorial,
+                  chats=chats, cache_activa=cache_activa, dormir=lambda s: None)
+    if con_corpus:
+        for ruta in sorted(CORPUS.glob("*.md")):
+            c.ingesta.ingestar(ArchivoSubido(ruta.name, ruta.read_bytes()))
+    return c

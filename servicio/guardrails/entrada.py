@@ -138,7 +138,7 @@ class GuardrailsEntrada:
         try:
             resultado = self.gateway.generar("rapido", construir_clasificador(texto),
                                              ClasificacionInyeccion.model_json_schema(),
-                                             permitir_respaldo=False)
+                                             ruta="clasificador", permitir_respaldo=False)
             return ClasificacionInyeccion.model_validate_json(resultado.generacion.texto).inyeccion
         except Exception:  # noqa: BLE001 - sin clasificador quedan los patrones
             activaciones.append("E2_sin_clasificador")
