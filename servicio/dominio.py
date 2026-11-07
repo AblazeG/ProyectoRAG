@@ -85,6 +85,7 @@ class DocumentoExtraido:
     titulo: str
     formato: str
     secciones: list[SeccionDocumento]
+    metadatos: dict = field(default_factory=dict)   # front matter, si existe
 
     @property
     def texto(self) -> str:
