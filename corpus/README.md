@@ -1,34 +1,29 @@
-# Corpus normativo
+# Corpus normativo (tabla 2 del informe)
 
-Esta carpeta está vacía en el repositorio: los documentos se descargan en tu equipo
-(la sesión en la nube no tiene acceso a internet) y se ingieren con
+La carpeta queda vacía en el repositorio: descarga los documentos en tu equipo y ejecuta
 
 ```bash
 python -m servicio.ingestar corpus/
 ```
 
-Cada documento pasa por E5: formato (PDF, HTML o Markdown), tamaño (≤ 20 MB),
-licencia permitida e inyección tras extraer el texto.
+Cada documento pasa por E5 (formato PDF/HTML/Markdown, tamaño ≤ 20 MB, licencia permitida y
+patrones de inyección en el texto extraído). Ningún documento debe contener datos personales.
 
-## Qué poner
-
-Las reglas de `config/perfiles.yaml` apuntan (campo `norma`) a cuatro `doc_id`.
-Para que la evaluación encuentre la fuente esperada, usa esos identificadores y
-títulos de sección parecidos, o ajusta los punteros de `perfiles.yaml`.
-
-| `doc_id` | Fuente propuesta | Licencia (verifícala antes de usarla) | Secciones que cubre |
+| `doc_id` | Fuente | Formato | Licencia |
 |---|---|---|---|
-| `blender_manual` | Blender Manual: Modeling › Meshes (Clean Up, Normals, Select All by Trait, UV Unwrap, Merge by Distance), docs.blender.org | CC BY-SA 4.0 | Topología para deformación, Limpieza de geometría no manifold, Desenvolvimiento UV, Disolver geometría degenerada, Orientación de normales, Fusionar vértices por distancia |
-| `gltf_spec` | Especificación glTF 2.0 de Khronos (unidades, TEXCOORD_n), registry.khronos.org | Revisa la licencia de la especificación (Khronos publica partes bajo CC BY 4.0) | Unidades y escala, Coordenadas de textura |
-| `guia_tiempo_real` | Khronos 3D Commerce «Real-time Asset Creation Guidelines» | CC BY 4.0 (verificar) | Presupuesto de polígonos, Tamaño de archivo para web |
-| `guia_impresion3d` | Blender Manual: complemento 3D Print Toolbox, o una guía abierta de preparación para impresión 3D (por ejemplo, Wikibooks) | CC BY-SA 4.0 (verificar) | Mallas cerradas, Geometría no manifold, Escala y volumen de impresión, Caras degeneradas, Normales invertidas |
+| `blender_manual` | Blender Manual: modelado de mallas, limpieza, 3D-Print Toolbox, mapeo UV, normales y exportador glTF 2.0 (docs.blender.org/manual) | HTML | CC BY-SA 4.0 |
+| `godot_docs` | Documentación de Godot Engine: importación de escenas 3D, mallas, LOD y rendimiento 3D (docs.godotengine.org) | HTML | CC BY 3.0 |
+| `gltf_spec` | Especificación glTF 2.0 (registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) | HTML | **Pendiente: verificar** |
+| `guia_entrega` | Guía de entrega de modelos 3D con los límites de cada perfil (documento del autor) | Markdown | Propio |
+| `rubrica_animacion` | Rúbrica de modelado para un curso de animación 3D (documento del autor) | PDF | Propio |
 
-Licencias aceptadas por defecto (`config/servicio.yaml` → `guardrails.licencias_permitidas`):
-CC-BY-4.0, CC-BY-SA-4.0, CC0-1.0, MIT, Apache-2.0 y dominio-publico.
+Mínimo sugerido: 20 documentos o 50 páginas. Si una fuente se divide en varios archivos HTML, dale
+a cada uno su propio `doc_id` (por ejemplo `blender_manual_cleanup`) y actualiza los punteros
+`norma` de `config/perfiles.yaml`.
 
-## Metadatos: `fuentes.yaml`
+## Metadatos: `corpus/fuentes.yaml`
 
-Los PDF y HTML no llevan front matter. Declara sus metadatos en `corpus/fuentes.yaml`:
+Los PDF y HTML no llevan front matter; declara sus metadatos así:
 
 ```yaml
 documentos:
@@ -37,32 +32,41 @@ documentos:
     titulo: Blender Manual — Mesh Clean Up
     licencia: CC-BY-SA-4.0
     perfiles: [animacion, juego_movil, impresion_3d, web_ar]
-  gltf-2.0.pdf:
-    doc_id: gltf_spec
-    titulo: glTF 2.0 Specification
-    licencia: CC-BY-4.0
-    perfiles: [animacion, juego_movil, web_ar]
+  godot_3d_performance.html:
+    doc_id: godot_docs
+    titulo: Godot Engine — Optimizing 3D performance
+    licencia: CC-BY-3.0
+    perfiles: [juego_movil, web_ar]
+  rubrica_animacion.pdf:
+    doc_id: rubrica_animacion
+    titulo: Rúbrica de modelado para animación 3D
+    licencia: propio
+    perfiles: [animacion, juego_movil]
 ```
 
 En Markdown, los mismos campos pueden ir en el front matter (ver `tests/corpus/*.md`).
-Si varios archivos comparten un `doc_id`, cada ingesta reemplaza la anterior: dales
-identificadores distintos (`blender_manual_cleanup`, `blender_manual_normals`, …) y
-actualiza los punteros de `perfiles.yaml`.
+Licencias aceptadas por defecto (`config/servicio.yaml`): CC-BY-4.0, CC-BY-SA-4.0, CC-BY-3.0,
+CC0-1.0, propio, MIT, Apache-2.0 y dominio-publico.
+
+## Punteros `norma` de `config/perfiles.yaml`
+
+Cada regla apunta al documento y la sección que la justifican; ese puntero es la fuente esperada de
+la evaluación. Los títulos actuales coinciden con el corpus de prueba en español; **ajústalos a los
+títulos reales** después de ingerir (consúltalos en `GET /documentos` o en las fuentes que cita un informe).
 
 ## Corpus de prueba
 
-`tests/corpus/` contiene cuatro documentos **sintéticos** (CC0, redactados para las
-pruebas; no son las fuentes oficiales) con los mismos `doc_id` y secciones. Sirven para
-las pruebas y para una demostración sin internet:
+`tests/corpus/` contiene cinco textos **sintéticos**, redactados para las pruebas (no son las fuentes
+oficiales), con los mismos `doc_id`. Sirven para las pruebas y para una demostración sin internet:
 
 ```bash
-python -m servicio.ingestar tests/corpus/
+MESHAUDIT_PROVEEDOR=falso python -m servicio.ingestar tests/corpus/
 ```
 
 ## Cambiar el modelo de embeddings
 
-El manifiesto del índice guarda el modelo con que se vectorizó. Si cambias
-`modelos.embeddings`, reindexa:
+El manifiesto del índice guarda el modelo (bge-m3, ADR-02). Si lo cambias, reindexa y recalibra los
+umbrales:
 
 ```bash
 python -m servicio.ingestar corpus/ --reindexar

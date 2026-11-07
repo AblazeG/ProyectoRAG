@@ -1,105 +1,127 @@
 # Desviaciones respecto al informe técnico
 
-Cada entrada indica qué dice el informe (o la especificación del encargo), qué se implementó y por qué.
+Fuente de verdad: `docs/Informe_tecnico_MeshAudit.pdf` (junto con `docs/Especificacion_proyecto_integrador.pdf`
+y `docs/Rubrica_proyecto_integrador.pdf`). Cada entrada dice qué dice el informe, qué se implementó y por qué.
+Lo que no aparece aquí se implementó tal como lo describe el informe.
 
-## D0. El informe no estaba en el repositorio
+## A. Diferencias entre el encargo inicial y el informe
 
-- **Informe:** `Informe_tecnico_MeshAudit.pdf` debía estar en `docs/` o en la raíz.
-- **Implementado:** el repositorio estaba vacío al empezar. Se usó como fuente de verdad la especificación detallada del encargo (capas, módulos, umbrales, tablas, guardrails, cachés, rutas, API y fases). Lo que el informe define y la especificación no repite se reconstruyó y se marca abajo: redacción y numeración de los 8 ADR (D15), contenido de las tablas 16–23 (D16), Código 6 completo (D11) y fuentes del corpus (D17).
-- **Pendiente:** copiar el PDF a `docs/` y contrastar esta lista.
+| Tema | Encargo inicial | Informe (se siguió) |
+|---|---|---|
+| Modelo de embeddings | nomic-embed-text con prefijos | **bge-m3** (ADR-02, figura 5). Los prefijos `search_document:`/`search_query:` se conservan en `EmbeddingsOllama` y solo se aplican a nomic-embed-text, que sigue en el experimento de la tabla 9. |
+| Nombres de C2 | `ingestar` | `ingerir(doc) → DocIndexado`; clases `OrquestadorAuditoria` y `CicloAgente` (tabla 6, figura 4). |
+| Corpus | sin fuentes definidas | Las cinco fuentes de la tabla 2: Blender Manual, documentación de Godot, especificación glTF 2.0, guía de entrega propia y rúbrica propia. |
+| Conjuntos de prueba | E1 dentro de los 23 casos de guardrails; fallas con 503 | Composición de la tabla 15: 4 inyección, 3 fuera de dominio, 3 datos personales, 3 documentos y 10 normales. Las 5 fallas deben terminar con el respaldo. E1 queda cubierto por las pruebas unitarias (`tests/test_guardrails.py`, `tests/test_api.py`). |
+| Numeración de tablas | 16–23 con otro orden | 16 producto, 17 fragmentos, 18 barrido, 19 guardrails, 20 agente, 21 enrutador, 22 caché, 23 latencias; 8 y 9 salen de los experimentos. |
 
-## D1. Embeddings falsos con componente común (anisotropía)
+## B. Desviaciones de implementación
 
-- **Informe:** dobles deterministas, por ejemplo un hash de n-gramas normalizado.
-- **Implementado:** `EmbeddingsFalsos` usa hash con signo de raíces de palabras y 4-gramas de caracteres, más un componente común de peso 0.5 (coseno resultante = (0.25 + cos) / 1.25).
-- **Por qué:** sin ese componente, los puntajes del hash quedaban muy por debajo de los umbrales del informe (0.30, 0.55 y 0.92), que están pensados para modelos reales y no isótropos. Con el doble falso, la recuperación es pobre (acierto@5 ≈ 0.03–0.07 con el criterio de suficiencia) y E4 depende mucho de la frase: algunos textos fuera de dominio quedan cerca de 0.30. Esas cifras no son las del sistema real; las del informe deben medirse en el Mac con `nomic-embed-text`.
+### B1. Puertos del dominio con métodos adicionales (Código 1)
+- **Informe:** `ModeloEmbeddings.vectorizar`, `AlmacenVectorial.agregar/buscar/eliminar_documento` y `LectorMalla.leer`.
+- **Implementado:** además, `ModeloEmbeddings.nombre` (el manifiesto guarda el modelo con que se indexó), `AlmacenVectorial.contar` (manifiesto y `/health`) y `LectorMalla.probar` (lectura de prueba de E1, ver B2).
 
-## D2. Unidad de los archivos para V7
+### B2. Lectura de prueba ligera en E1
+- **Informe:** «OBJ y STL, que no tienen firma fiable, se validan con una lectura de prueba» (tabla 13), y la caché exacta se consulta después de E1 (sección 5).
+- **Implementado:** `LectorTrimesh.probar` revisa la estructura (OBJ: líneas `v` y `f` válidas en el primer MB; STL: tamaño binario 84 + 50·n o ASCII con `solid … facet`) sin cargar la malla. La carga completa ocurre en `analizar_malla`, solo cuando la caché falla.
+- **Por qué:** con una carga completa en E1, un acierto de caché sobre la malla de M4 (10 MB) tardaba ~630 ms (p95). La meta de la tabla 5 es ≤ 300 ms; con la lectura ligera queda en ~25 ms.
+- **Consecuencia:** un archivo que pasa la lectura de prueba pero falla en la carga completa responde 422 (malla inválida) y no 415.
 
-- **Informe:** dimensión máxima de la caja envolvente en la unidad del perfil.
-- **Implementado:** GLB se interpreta en metros (lo fija la especificación glTF) y se convierte a la unidad del perfil. OBJ, STL y PLY no declaran unidad y se interpretan directamente en la unidad del perfil (m o mm).
+### B3. Ciclo de agente (Código 4)
+- **Implementado:** misma lógica, condición de salida y topes (3 por consulta, 6 por informe), como método de `CicloAgente`, que recibe `recuperador` y `gateway` por inyección. Devuelve `(fragmentos, intento)`, con lista vacía para «sin norma aplicable». Si el modelo rápido no responde, el ciclo termina sin reformular en vez de propagar el error. Además de `traza.anotar(reformulacion, intento)`, suma `iteraciones_agente`.
 
-## D3. V10 sin falsos positivos por costuras; STL no medible
+### B4. Traza (Código 5)
+- **Implementado:** las claves de `tiempos_ms` del Código 5 (`guardrails_entrada`, `cache`, `contexto_malla`, `enrutador`, `contexto_rag`, `gateway`, `guardrails_salida`), más `archivo_temporal`, `ensamblado` y `persistencia`.
+- `guardrails` es `{"entrada", "salida"}` como en el Código 5, más la lista `activaciones` (E1–E5, S1–S4), que alimenta las métricas por guardrail.
+- `hallazgos` cuenta los graves y menores.
+- Contadores añadidos para la tabla 16: `citas_generadas`, `citas_removidas_s2`, `frases_eliminadas_s3` y `hallazgos_cache`.
 
-- **Informe:** vértices a menos de 1e-6 en la malla sin procesar.
-- **Implementado:** al leer un OBJ con UV, trimesh separa vértices en las costuras. Dos vértices en la misma posición con UV (o normal) distintas son una costura legítima, así que la clave de duplicado incluye UV y normales cuando existen. En STL cada faceta guarda sus propios vértices por definición, por lo que V10 se marca «no medible».
+### B5. Respuesta de `POST /auditorias` (Código 8)
+- Se respetan los campos y su forma: ids `h1…`, `medido` y `limite` como texto con unidad, `fuente.documento` = doc_id, `guardrails` con `entrada`/`salida`, aviso «Informe generado por un modelo; puede contener errores.» y resumen «Animación: 2 hallazgos (1 grave, 1 menor)».
+- **Campos añadidos:**
+  - En el informe: `uso_respaldo`, `archivo`, `perfil`, `perfil_nombre`, `versiones` y `guardrails.activaciones`.
+  - En cada hallazgo: `descripcion`, `valor` (número sin formato) y `norma_esperada`.
+  - En la fuente: `titulo`, `id` y `pagina`.
+- `cache` puede valer `ninguna`, `exacta`, `hallazgos` (si algún hallazgo vino de la caché de hallazgos) o `semantica` (solo en preguntas).
+- El resumen añade los informativos y las verificaciones no medibles.
+- En la ruta sin modelo, el aviso dice «Informe automático; puede contener errores.». En las preguntas y los rechazos se usa «Respuesta generada por un modelo…» o «Respuesta automática…».
 
-## D4. «No medible» como hallazgo informativo
+### B6. Rechazos de C1 sin aviso
+- **Informe (3.3):** «toda respuesta incluye el aviso».
+- **Implementado:** todo lo que pasa por C2 lleva el aviso de S4, incluidos rechazos, 503 y respuestas de caché. Las validaciones de esquema, extensión, perfil y tamaño que hace C1 antes de crear la traza (paso 1) responden solo con `detalle`, porque C1 no puede depender de C3 y en ese punto no se ha generado contenido.
 
-- **Implementado:** cuando V1/V2 (o V10 en STL) no se pueden medir, se añade un hallazgo informativo `tipo: "no_medible"` y el resumen recomienda auditar en OBJ. No cuenta para el semáforo ni para el enrutador.
+### B7. Analizador (sección 7.1.1)
+- **V7:** los GLB están en metros por especificación y se convierten a la unidad del perfil. OBJ, STL y PLY se interpretan en la unidad del perfil, como dice la sección 10.1.
+- **V10:** dos vértices en la misma posición pero con UV o normales distintas son una costura legítima, no un duplicado. En STL, V10 es «no medible», porque cada faceta guarda sus propios vértices.
+- **No medibles:** V1 y V2 fuera de OBJ, y V10 en STL, aparecen como hallazgos informativos `tipo: "no_medible"`. El resumen recomienda auditar en OBJ.
+- El orden de los hallazgos es graves, menores e informativos, y dentro de cada gravedad, por número de verificación.
 
-## D5. Archivos añadidos a la estructura del Anexo A
+### B8. Hallazgos sin fragmentos
+- Un hallazgo para el que el agente no encuentra norma no se envía al modelo: la plantilla escribe «Sin norma aplicable en el corpus». La regla 3 del prompt se mantiene para el caso en que el modelo lo decida.
 
-- `servicio/datos/memoria.py`: segundo adaptador vectorial (en memoria), pedido en la especificación.
-- `servicio/datos/mallas.py` incluye `AlmacenMallasTemporal` (guardar y borrar en `data/mallas/`).
-- `servicio/datos/falsos.py` incluye `ChatConFalla`, activado con `MESHAUDIT_FALLA=alias:tipo[:n]` para la tabla de fallas con Ollama real.
-- `evaluacion/`: `comun.py`, `juez.py`, `sinteticas.py` (mallas M1–M5 sin Blender para el modo falso) y `plantillas.py` (genera los `casos_*.json`).
-- `tests/corpus/`: corpus sintético de prueba (CC0, redactado para este proyecto).
+### B9. Preguntas de seguimiento
+- El propio informe se entrega al modelo como un fragmento citable `informe:<id>#1` (semáforo, hallazgos, mediciones y límites). Así puede responder preguntas sobre el informe sin que S3 elimine las cifras.
 
-## D6. El prompt del clasificador E2 vive en C3
+### B10. Clasificador de E2
+- El prompt few-shot del clasificador vive en `guardrails/entrada.py`, porque C3 solo depende de C6 y C7 (figura 3), no de C5.
+- Usa el alias `rapido` sin respaldo: si no responde, E2 se queda con los patrones y la traza registra `E2_sin_clasificador`.
 
-- **Informe:** prompts versionados en `contexto/prompts.py`.
-- **Implementado:** el prompt few-shot del clasificador de inyección está en `guardrails/entrada.py`, porque C3 solo puede depender de C6 y C7, no de C5. El prompt v1 del sistema, la reformulación y la pregunta siguen en `prompts.py`.
+### B11. Persistencia de las mallas (sección 10.1)
+- **Informe:** «las mallas subidas se borran tras la auditoría salvo que el usuario pida conservarlas».
+- **Implementado:** siempre se borran. No hay opción para conservarlas (no figura en la API del anexo B).
 
-## D7. Firma de `recuperar_con_agente`
+### B12. Corpus y licencias
+- `licencias_permitidas` incluye `CC-BY-3.0` (Godot) y `propio` (guía y rúbrica del autor). La licencia de la especificación glTF está «Pendiente: verificar» en la tabla 2; `gltf_spec` se acepta con la que se declare en `corpus/fuentes.yaml`.
+- `tests/corpus/` contiene textos **sintéticos**, redactados para las pruebas, con los `doc_id` y la licencia de las fuentes reales; la rúbrica real es PDF y aquí es Markdown.
+- Los títulos de sección de `config/perfiles.yaml` coinciden con esos textos en español. Tras ingerir el corpus real (en inglés) hay que ajustarlos a las secciones reales (por ejemplo, «Mesh cleanup», como en el Código 8).
 
-- **Informe (Código 4):** `recuperar_con_agente(consulta, perfil, presupuesto, traza)`.
-- **Implementado:** misma firma posicional, más dependencias por palabra clave (`recuperador`, `gateway`), porque no hay estado global. `Agente` envuelve la función con las dependencias ya inyectadas.
+### B13. Evaluación
+- `run_eval.py` ejecuta la API en proceso (TestClient, el mismo código que uvicorn) o contra `--url`.
+- Las tablas 17 y 18 miden C5 directamente, porque la API no expone la recuperación. La tabla 22 y la de fallas necesitan el modo en proceso: ajustan el umbral o inyectan fallas en el adaptador.
+- **Fallas:** el «doble del adaptador» es `ChatConFalla` (`MESHAUDIT_FALLA=alias:tipo`). El «alias hacia una etiqueta inexistente» se configura con `MESHAUDIT_MODELO_RAPIDO|COMPLETO` (404 real de Ollama).
+- **Enrutador (tabla 21):** sin `--juez`, la ruta esperada cae en la regla del enrutador y la tabla se vuelve circular. Hay que correrla con `--juez`.
+- **«Sin RAG» (tabla 16):** se usa un prompt de sistema sin las reglas de contexto y citas, con el mismo modelo y los mismos hallazgos.
+- **Juez–autor:** `experimento_llm.py` escribe `muestra_revision_manual.csv` (5 casos por modelo). Al llenar las columnas del autor, `run_eval.py` calcula la diferencia media.
 
-## D8. Recuperación insuficiente
+### B14. Mallas de evaluación
+- `evaluacion/mutar_blender.py` implementa M1–M5 con bpy, pero **no se ejecutó aquí**: no hay Blender en la nube.
+- En modo falso, `evaluacion/sinteticas.py` genera cinco bases y sus variantes con numpy. Imitan la sección 2.4: una pieza pequeña, un modelo triangulado tipo Kenney que falla V2 y un «escaneo» que supera V3. Reproducen exactamente la tabla 3.
+- `plantillas.py --bases …` recalcula la línea base con tus mallas reales, pero **hay que revisarla a mano**, como pide el informe.
 
-- Si tras las reformulaciones no hay al menos 2 fragmentos sobre 0.55, se responde «Sin norma aplicable en el corpus», aunque exista un único fragmento bueno. Es la lectura estricta del criterio de suficiencia.
-- Los hallazgos sin fragmentos no se envían al modelo: la plantilla escribe directamente «Sin norma aplicable en el corpus». Así se ahorran llamadas; la regla 3 del prompt se mantiene para el caso en que el modelo lo decida.
+### B15. Dobles de prueba
+- `EmbeddingsFalsos` (hash de n-gramas) añade un componente común para que sus cosenos caigan en la escala de los umbrales del informe (0.30, 0.55 y 0.92).
+- Las métricas de recuperación en modo falso son bajas (acierto@5 ≈ 0.07) y no representan al sistema. Las cifras del informe deben medirse con bge-m3 en el Mac.
 
-## D9. Clasificador de E2 sin respaldo
+### B16. Archivos añadidos a la estructura del Anexo A (Código 6)
+- `config/servicio.yaml` (modelos, umbrales, tiempos límite).
+- `servicio/datos/memoria.py` (segundo adaptador vectorial, meta de modificabilidad de la tabla 5).
+- `servicio/datos/falsos.py` (dobles y `ChatConFalla`).
+- `evaluacion/{comun,juez,sinteticas,plantillas}.py`.
+- `tests/corpus/` y `tests/mallas/`.
 
-- El clasificador usa el alias `rapido` sin pasar al respaldo (`completo`): si `rapido` no responde, E2 se queda con los patrones y la traza registra `E2_sin_clasificador`. Así el clasificador no bloquea el servicio ni dispara el modelo grande.
+### B17. Entorno
+- En la nube se probó con Python 3.13; el CI usa Python 3.11, como el Mac.
+- `<model-viewer>` 4.1.0 está en `web/vendor/` (Apache-2.0).
 
-## D10. Rechazos de la API frente a rechazos de C3
+## C. Pendientes del informe y dónde se obtienen
 
-- La API valida perfil, extensión y tamaño antes de llamar a C2. Esas respuestas (413/415/422) llevan solo `detalle`. Todos los rechazos de C3 y los errores de C2 (incluido el 503) pasan por S4 y llevan `aviso`.
-
-## D11. Contrato de respuesta y preguntas
-
-- `POST /auditorias` devuelve los campos del Código 6 y además `archivo`, `perfil`, `perfil_nombre`, `uso_respaldo`, `versiones` y, por hallazgo, `descripcion` y `norma_esperada`. `fuente` incluye también `id`, `doc_id` y `pagina`.
-- `cache` toma los valores `ninguna`, `exacta`, `hallazgos` (aciertos de la caché de hallazgos) o `semantica` (solo preguntas).
-- `uso_respaldo` del informe es verdadero si hubo respaldo en cualquier llamada de la auditoría, incluidas las reformulaciones del agente.
-- En las preguntas, el propio informe se entrega como un fragmento citable `informe:<auditoria_id>#1`, para que el modelo pueda usar sus mediciones sin violar S3.
-
-## D12. Retroalimentación por `traza_id`
-
-- `POST /retroalimentacion` recibe `traza_id`, `util`, `comentario` y `hallazgo_id`. Responde 404 si la traza no corresponde a un informe o si el hallazgo no pertenece a él.
-
-## D13. E5: licencia y cuarentena
-
-- La licencia sale del formulario, del front matter o del texto, y debe estar en `guardrails.licencias_permitidas`. Si falta o no está permitida: 422. Un documento con instrucciones inyectadas se registra en estado `cuarentena` (no se indexa) y la API responde 422.
-
-## D14. Orden de las fases
-
-- `servicio/ingestar.py` (fase 4) y el núcleo de `composicion.py` (fase 9) se escribieron en las fases 9 y 8: el punto de entrada necesita la raíz de composición, y las pruebas de C2 usan la misma composición que la API.
-
-## D15. ADR reconstruidos
-
-- Los 8 ADR de `docs/adr/` se redactaron a partir de las decisiones de la especificación. Hay que contrastar títulos y numeración con el informe.
-
-## D16. Tablas 16–23
-
-- Sin el PDF, el contenido de cada tabla se infirió: 16 producto, 17 recuperación, 18 guardrails, 19 caché, 20 enrutador, 21 agente, 22 fallas y 23 latencias. `run_eval.py` corre la API en proceso (TestClient, mismo código que uvicorn) o contra `--url`. La tabla 22 necesita el modo en proceso, porque inyecta fallas en el adaptador.
-
-## D17. Corpus
-
-- `perfiles.yaml` apunta a cuatro documentos: `blender_manual`, `gltf_spec`, `guia_tiempo_real` y `guia_impresion3d`. En `tests/corpus/` hay versiones sintéticas (CC0) con esas secciones. Las fuentes reales y sus licencias se listan en `corpus/README.md`; hay que verificarlas antes de usarlas.
-
-## D18. Mutaciones M4 y M5
-
-- M4 crea la arista no manifold con una aleta triangular, que además abre la malla (V5 en impresión 3D).
-- M5 crea caras degeneradas colapsando un vértice sobre la arista opuesta, lo que mantiene la malla cerrada.
-
-## D19. Trazas sin pasar por C7
-
-- T1 es una capa abierta y escribe `data/trazas.jsonl` directamente con la biblioteca estándar. El criterio solo restringe `httpx`, `chromadb`, `sqlite3` y la lectura de mallas y documentos.
-
-## D20. Entorno
-
-- En la nube se probó con Python 3.13; el CI (GitHub Actions) usa Python 3.11, la versión del Mac. El código evita sintaxis posterior a 3.11.
-- `<model-viewer>` 4.1.0 se obtuvo con npm y está en `web/vendor/` (Apache-2.0).
+| Pendiente en el informe | Se obtiene con | Archivo |
+|---|---|---|
+| Resumen: recall, precisión, acierto@5, fidelidad, latencia p95, guardrails | `python evaluacion/run_eval.py --juez` | tablas 16, 19, 23 |
+| Tabla 2: documentos, páginas y licencia de glTF | `python -m servicio.ingestar corpus/` y `GET /documentos` | — |
+| Sección 2.3: número de fragmentos | manifiesto (`GET /documentos`) | — |
+| Tabla 8 y ADR-01 | `python -m experimentos.experimento_llm --juez` | `tabla08_llm.csv` |
+| Tabla 9 y ADR-02 | `python -m experimentos.experimento_embeddings` | `tabla09_embeddings.csv` |
+| 6.4.1 Conclusión de la selección | tablas 8 y 9 | — |
+| Tabla 16 y ADR-08 | `run_eval.py --juez` (+ notas del autor en `muestra_revision_manual.csv`) | `tabla16_producto.csv` |
+| Tablas 17, 18 y ADR-06 | `python -m experimentos.experimento_fragmentos` | `tabla17_fragmentos.csv`, `tabla18_barrido.csv` |
+| Tabla 19 y ADR-05 | `run_eval.py` | `tabla19_guardrails.csv` |
+| Tabla 20 y ADR-07 | `run_eval.py` | `tabla20_agente.csv` |
+| Tabla 21 y ADR-04 | `run_eval.py --juez` | `tabla21_enrutador.csv` |
+| Tabla 22 y ADR-03 | `python -m experimentos.experimento_cache` | `tabla22_cache.csv` |
+| Tabla 23 | `run_eval.py` (5 corridas, caché desactivada) | `tabla23_latencias.csv` |
+| 9.2: errores 500 y auditorías con respaldo | `run_eval.py` | `fallas.csv` |
+| 9.2: calificaciones y tasa de utilidad | uso real de la web + `run_eval.py --datos data/` | `retroalimentacion.csv`, `GET /metricas` |
+| Tabla 5: privacidad (0 datos personales) | `run_eval.py` | `privacidad.csv` |
+| Medición del valor con el revisor independiente | cronometraje manual | — |
+| Referencias: versión de Blender Manual y de trimesh | `pip show trimesh` (5.2 en la nube) | — |
+| 10.3 Declaración de uso de asistentes de IA | Claude Code construyó el código a partir del informe; ver el historial de commits | — |

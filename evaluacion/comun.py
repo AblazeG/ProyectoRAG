@@ -23,7 +23,7 @@ OLLAMA = "http://127.0.0.1:11434"
 
 
 def argumentos_comunes(parser) -> None:
-    parser.add_argument("--proveedor", default=os.environ.get("MESHAUDIT_PROVEEDOR", "falso"),
+    parser.add_argument("--proveedor", default=os.environ.get("MESHAUDIT_PROVEEDOR", "ollama"),
                         choices=["falso", "ollama"])
     parser.add_argument("--corpus", type=Path, default=None,
                         help="corpus a ingerir (por defecto: corpus/ con Ollama, tests/corpus/ en falso)")

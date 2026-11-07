@@ -1,121 +1,178 @@
 # MeshAudit
 
-Servicio local que recibe una malla 3D (OBJ, GLB, STL o PLY) y un perfil de destino
-(Animación, Juego móvil, Impresión 3D o Web/AR) y entrega un informe de auditoría:
-hallazgos medidos, la norma técnica que los respalda (recuperada con RAG) y los pasos
-de corrección. **Los modelos de lenguaje nunca miden la geometría:** un analizador
-determinista mide y el modelo solo explica, citando fragmentos del corpus.
+**Auditor técnico de modelos 3D con normas citadas, ejecutado de forma local.**
 
-Proyecto integrador de la maestría (Tópicos selectos de arquitectura de software).
-El diseño está en `docs/` (informe, ADR y [desviaciones](docs/DESVIACIONES.md)).
+MeshAudit recibe un archivo de malla (`.obj`, `.glb`, `.stl`, `.ply`) y un perfil de destino
+(Animación, Juego móvil, Impresión 3D o Web/AR) y entrega un informe de auditoría con:
+- un semáforo;
+- los hallazgos con su gravedad, el valor medido frente al límite;
+- la norma técnica que los respalda (recuperada con RAG);
+- los pasos de corrección en Blender.
 
-## Arquitectura
+La decisión central es separar *medir* de *interpretar*:
+- un analizador determinista calcula todas las métricas;
+- los modelos de lenguaje nunca generan mediciones, solo explican cada hallazgo con fragmentos citados del corpus.
+
+Proyecto integrador de *Tópicos selectos de arquitectura de software* (Unidad II), Maestría en
+Ciencias e Innovación Tecnológica, UPChiapas. Diseño completo en
+[`docs/Informe_tecnico_MeshAudit.pdf`](docs/Informe_tecnico_MeshAudit.pdf); ADR en [`docs/adr/`](docs/adr/);
+diferencias con el informe en [`docs/DESVIACIONES.md`](docs/DESVIACIONES.md).
+
+## Arquitectura (sección 4 del informe)
 
 ```
-web/ (HTML + JS)  ──HTTP──▶  C1 api  ──▶  C2 orquestacion (mediador)
-                                             │
-                     ┌───────────────┬───────┴──────┬──────────────┐
-                     ▼               ▼              ▼              ▼
-               C3 guardrails     C4 cache     C5 contexto     C6 modelos
-                     └───────────────┴──────┬───────┴──────────────┘
-                                            ▼
-                     C7 datos: Ollama · ChromaDB · SQLite · mallas · documentos
-   T1 observabilidad y T2 retroalimentacion: capas abiertas
+Aplicación web (HTML + JS) ──HTTP──▶ C1 API (FastAPI)
+                                       │
+                                       ▼
+                                C2 Orquestación y agente (mediador)
+              ┌──────────────┬─────────┴──────┬───────────────┐
+              ▼              ▼                ▼               ▼
+        C3 Guardrails    C4 Caché       C5 Contexto      C6 Modelos        T1 Observabilidad (abierta)
+        E1–E5, S1–S4     exacta y       analizar_malla,  enrutador,        T2 Retroalimentación (abierta)
+        (usa C6 en E2)   semántica      RAG, prompts     gateway, respaldo
+              └──────────────┴─────────┬──────┴───────────────┘
+                                       ▼
+                    C7 Acceso a datos: Ollama · ChromaDB · SQLite · archivos
 ```
 
 - `servicio/dominio.py`: entidades y puertos (`typing.Protocol`).
-- `servicio/composicion.py`: raíz de composición; único lugar que conoce implementaciones.
-- `tests/test_arquitectura.py`: falla ante cualquier importación entre capas no permitida.
+- `servicio/composicion.py`: raíz de composición, el único lugar que conoce las implementaciones.
+- `tests/test_arquitectura.py`: falla si una capa importa algo que no tiene permitido (Código 2).
 
-## Requisitos (Mac de producción)
+## Estructura del repositorio (Código 6)
 
-- macOS en Apple Silicon (probado para M4 Max, 128 GB), Python 3.11.
-- Ollama 0.40 o posterior, sin nube: `OLLAMA_NO_CLOUD=1`.
-- Opcional: Blender 4.2 o posterior para las mutaciones de la evaluación.
-
-Todo escucha solo en `127.0.0.1`.
-
-## Puesta en marcha (Anexo A)
-
-```bash
-# 1. Ollama local y modelos
-export OLLAMA_NO_CLOUD=1
-ollama serve &                                # o la app de Ollama con esa variable
-ollama pull gemma4:e2b                        # alias «rapido»
-ollama pull gpt-oss:20b                       # alias «completo»
-ollama pull nomic-embed-text                  # embeddings
-ollama pull mistral-small3.2:24b              # juez de la evaluación
-ollama pull qwen3:8b                          # experimentos (opcional)
-ollama pull bge-m3 && ollama pull embeddinggemma
-
-# 2. Entorno de Python
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# 3. Corpus (ver corpus/README.md); para una demostración rápida: tests/corpus/
-python -m servicio.ingestar corpus/
-
-# 4. Servicio en 127.0.0.1:8000
-uvicorn servicio.composicion:app --host 127.0.0.1 --port 8000
-
-# 5. Aplicación web en 127.0.0.1:5173 (otra terminal)
-python -m http.server 5173 --bind 127.0.0.1 -d web
-# abre http://127.0.0.1:5173
+```
+meshaudit/
+  web/                  # Presentación: HTML + JS, consume solo la API
+  servicio/
+    dominio.py          # Entidades y puertos (Protocol)
+    api/                # C1  Interfaz del servicio
+    orquestacion/       # C2  Flujo de auditoría, ingesta, preguntas y ciclo de agente
+    guardrails/         # C3  Verificaciones de entrada y salida
+    cache/              # C4  Caché exacta y semántica
+    contexto/           # C5  analizar_malla, perfiles, RAG y prompts
+    modelos/            # C6  Enrutador y gateway
+    datos/              # C7  Adaptadores: Ollama, Chroma, SQLite, trimesh, documentos
+    observabilidad/     # T1  Trazas, bitácoras y métricas
+    retroalimentacion/  # T2  Opinión del usuario ligada a la traza
+    composicion.py      # Raíz de composición
+    ingestar.py         # Ingesta inicial del corpus desde una carpeta
+  config/perfiles.yaml  # Límites por perfil de destino (y config/servicio.yaml)
+  corpus/               # Documentos normativos con su licencia
+  data/                 # Generado: chroma/, meshaudit.sqlite, trazas.jsonl, mallas/
+  experimentos/         # experimento_llm.py, _embeddings.py, _fragmentos.py, _cache.py
+  evaluacion/           # Conjuntos de prueba, run_eval.py y resultados CSV
+  tests/                # Pruebas por capa y test_arquitectura.py
+  docs/                 # Informe, especificación, diagramas y ADR
 ```
 
-La web solo habla con la API (nunca con Ollama ni ChromaDB). Si la API está en otra
-dirección, abre `http://127.0.0.1:5173/?api=http://127.0.0.1:8001`.
+## Instalación y ejecución (Código 7)
+
+Requisitos: macOS con Apple Silicon, Python 3.11, Ollama 0.40 o posterior y unos 45 GB libres en
+disco (unos 30 GB sin el juez). Equipo de referencia: M4 Max, 128 GB. Todo escucha solo en `127.0.0.1`.
+
+```bash
+# 1. Modelos locales (sin nube)
+launchctl setenv OLLAMA_NO_CLOUD 1      # luego reiniciar la app de Ollama
+ollama pull gemma4:e2b                  # ruta rápida (ADR-01)
+ollama pull qwen3:8b                    # candidato del experimento
+ollama pull gpt-oss:20b                 # ruta completa (ADR-01)
+ollama pull bge-m3                      # embeddings del servicio (ADR-02)
+ollama pull embeddinggemma              # candidato del experimento
+ollama pull nomic-embed-text            # candidato del experimento
+ollama pull mistral-small3.2:24b        # solo para la evaluación (juez)
+
+# 2. Entorno de Python
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Ingesta del corpus (ver corpus/README.md)
+python -m servicio.ingestar corpus/
+
+# 4. Servicio y aplicación web (dos terminales)
+uvicorn servicio.composicion:app --host 127.0.0.1 --port 8000
+python -m http.server 5173 --bind 127.0.0.1 -d web
+# Web: http://localhost:5173   API: http://localhost:8000/docs
+
+# 5. Pruebas y evaluación
+MESHAUDIT_PROVEEDOR=falso pytest -q
+python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
+
+# 6. Experimentos de selección (modelos, embeddings, fragmentos y caché)
+for e in llm embeddings fragmentos cache; do
+  python -m experimentos.experimento_$e --salida evaluacion/resultados/
+done
+python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/   # tabla 8 con calidad
+```
+
+La web solo habla con la API (nunca con Ollama ni ChromaDB). Si la API está en otra dirección:
+`http://localhost:5173/?api=http://127.0.0.1:8001`.
 
 ### Sin Ollama (proveedor falso)
 
-```bash
-MESHAUDIT_PROVEEDOR=falso python -m servicio.ingestar tests/corpus/
-MESHAUDIT_PROVEEDOR=falso uvicorn servicio.composicion:app --host 127.0.0.1 --port 8000
-```
+Para pruebas y demostraciones sin modelos, con dobles deterministas (`ChatFalso`, `EmbeddingsFalsos`):
 
-`ChatFalso` devuelve JSON válido que cita los fragmentos recibidos y `EmbeddingsFalsos`
-es un hash determinista de n-gramas. Todo el sistema funciona de punta a punta.
+```bash
+export MESHAUDIT_PROVEEDOR=falso
+python -m servicio.ingestar tests/corpus/       # corpus sintético de prueba
+uvicorn servicio.composicion:app --host 127.0.0.1 --port 8000
+```
 
 ## Configuración
 
-- `config/servicio.yaml`: modelos, umbrales, tiempos límite, reintentos, caché y rutas de datos.
-- `config/perfiles.yaml`: límites V1–V11 por perfil, unidad y la norma que justifica cada regla.
+- `config/servicio.yaml`: modelos por alias, `num_ctx` 8192, `keep_alive` 30m, k = 5, umbral 0.55, lotes de hasta 4, tiempos límite 45/90 s, reintentos 1 y 2 s, caché (7 días / 24 h, 0.92), guardrails y licencias.
+- `config/perfiles.yaml`: verificaciones V1–V11 por perfil (tabla 11), con unidad y puntero `norma`.
 
-Variables de entorno:
-
-| Variable | Valores | Uso |
-|---|---|---|
-| `MESHAUDIT_PROVEEDOR` | `ollama` · `falso` | proveedor de modelos |
-| `MESHAUDIT_VECTORIAL` | `chroma` · `memoria` | almacén vectorial |
-| `MESHAUDIT_DATOS` | ruta | directorio de `data/` |
-| `MESHAUDIT_CACHE` | `0` · `1` | desactiva la caché (latencias de la evaluación) |
-| `MESHAUDIT_OLLAMA_URL` | URL | por defecto `http://127.0.0.1:11434` |
-| `MESHAUDIT_FALLA` | `alias:tipo[:n]` | inyecta fallas en el adaptador (`rapido:timeout`, `*:timeout`) |
+| Variable | Uso |
+|---|---|
+| `MESHAUDIT_PROVEEDOR=ollama\|falso` | proveedor de modelos |
+| `MESHAUDIT_VECTORIAL=chroma\|memoria` | almacén vectorial (segundo adaptador: modificabilidad) |
+| `MESHAUDIT_DATOS=ruta` | directorio de datos (por defecto `data/`) |
+| `MESHAUDIT_CACHE=0` | desactiva la caché (latencias de la tabla 23) |
+| `MESHAUDIT_MODELO_RAPIDO`, `_COMPLETO`, `_EMBEDDINGS` | cambian el modelo de un alias |
+| `MESHAUDIT_FALLA=alias:tipo[:n]` | inyecta fallas en el adaptador (evaluación de disponibilidad) |
+| `MESHAUDIT_OLLAMA_URL` | por defecto `http://127.0.0.1:11434` |
 
 ## API (Anexo B)
 
-| Método y ruta | Propósito |
-|---|---|
-| `GET /health` | Estado de Ollama, ChromaDB, SQLite y modelos (200 / 503) |
-| `POST /documentos` | Sube una norma (E5, fragmenta, indexa, versión++) |
-| `GET /documentos` | Lista de documentos y manifiesto |
-| `DELETE /documentos/{id}` | Borra el documento y sus fragmentos, versión++ |
-| `POST /auditorias` | Multipart: `archivo`, `perfil`, `notas` |
-| `GET /auditorias/{id}` | Informe generado |
-| `GET /auditorias/{id}/markdown` | Exportar a Markdown |
-| `POST /auditorias/{id}/preguntas` | `{"pregunta": "..."}` con fuentes |
-| `POST /retroalimentacion` | `{"traza_id", "util", "comentario", "hallazgo_id"}` |
-| `GET /metricas` | Métricas de T1 y T2 |
-| `GET /configuracion` | Modelos activos, k, umbrales, tiempos límite y expiraciones |
-| `GET /perfiles` | Perfiles y límites |
-
-Documentación interactiva: `http://127.0.0.1:8000/docs`.
+| Método y ruta | Propósito | Códigos |
+|---|---|---|
+| `GET /health` | Estado de Ollama, ChromaDB, SQLite y modelos | 200, 503 |
+| `POST /documentos` | Sube una norma (E5, fragmenta, indexa, versión++) → `documento_id`, fragmentos | 201, 413, 415, 422, 503 |
+| `GET /documentos` | Documentos con identificador, nombre, formato, fecha y fragmentos | 200 |
+| `DELETE /documentos/{id}` | Elimina el documento y sus fragmentos; sube la versión del corpus | 200, 404 |
+| `POST /auditorias` | Función principal (multipart: `archivo`, `perfil`, `notas`) | 200, 413, 415, 422, 503 |
+| `GET /auditorias/{id}` | Informe generado | 200, 404 |
+| `GET /auditorias/{id}/markdown` | Exporta el informe a Markdown | 200, 404 |
+| `POST /auditorias/{id}/preguntas` | Pregunta de seguimiento con fuentes | 200, 404, 422, 503 |
+| `POST /retroalimentacion` | Útil o no útil y comentario, ligados a la traza y opcionalmente a un hallazgo | 201, 404, 422 |
+| `GET /metricas` | Latencias por capa, caché, guardrails, uso por modelo y retroalimentación | 200 |
+| `GET /configuracion` | Modelos activos, k, umbrales, tiempos límite y expiraciones | 200 |
+| `GET /perfiles` | Perfiles de destino y sus límites | 200 |
 
 ```bash
-curl -F archivo=@tests/mallas/cubo_aleta.obj -F perfil=impresion_3d \
-     http://127.0.0.1:8000/auditorias
+curl -F archivo=@tests/mallas/prisma_ngon.obj -F perfil=animacion http://127.0.0.1:8000/auditorias
 ```
+
+La respuesta sigue el Código 8: `auditoria_id`, `resumen`, `semaforo`, `metricas_malla`,
+`hallazgos[]` (`id`, `verificacion`, `tipo`, `gravedad`, `medido`, `limite`, `explicacion`,
+`correccion[]`, `fuente{documento, seccion, puntaje, fragmento}`), `modelo`, `ruta`, `cache`,
+`guardrails{entrada, salida}`, `iteraciones_agente`, `tiempo_ms`, `traza_id` y `aviso`.
+
+## Evaluación (sección 9)
+
+```bash
+# Mutaciones M1–M5 (tabla 3) de las cinco mallas base CC0 de evaluacion/mallas_base/
+blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas
+# Conjuntos de prueba (tabla 15) con la línea base de tus mallas; revísala a mano
+python -m evaluacion.plantillas --bases silla,personaje,engrane,escaneo,lampara
+# Tablas 16–23, fallas, privacidad y retroalimentación
+python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
+```
+
+Sin Ollama, `python evaluacion/run_eval.py --proveedor falso` usa mallas sintéticas equivalentes
+(`evaluacion/sinteticas.py`) y el corpus de prueba. `docs/DESVIACIONES.md` (sección C) indica qué
+archivo llena cada «[Pendiente]» del informe.
 
 ## Pruebas
 
@@ -123,67 +180,6 @@ curl -F archivo=@tests/mallas/cubo_aleta.obj -F perfil=impresion_3d \
 MESHAUDIT_PROVEEDOR=falso pytest -q
 ```
 
-Incluye pruebas por capa, la prueba de arquitectura, la que recorre todos los caminos de
-respuesta verificando S4, y pruebas de extremo a extremo con `TestClient` (una auditoría
-por perfil). GitHub Actions las corre en cada push con Python 3.11.
-
-## Evaluación
-
-```bash
-# Mutaciones M1–M5 de tus mallas base (evaluacion/mallas_base/*.obj)
-blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas
-
-# Tablas 16–23 con Ollama real (la API corre en proceso: mismo código que uvicorn)
-python -m evaluacion.run_eval --proveedor ollama --corpus corpus/ \
-       --mallas evaluacion/mallas_generadas --prefijo <nombre_malla_base> --juez
-
-# Contra un servicio ya levantado (sin la tabla 22 de fallas)
-python -m evaluacion.run_eval --url http://127.0.0.1:8000 --trazas data/trazas.jsonl \
-       --mallas evaluacion/mallas_generadas --tablas 16,17,18,19,20,21
-
-# En la nube o sin Ollama: mallas sintéticas y corpus de prueba
-python -m evaluacion.run_eval --proveedor falso
-```
-
-Los CSV quedan en `evaluacion/resultados/` (`tabla16_producto.csv` … `tabla23_latencias.csv`).
-Las latencias usan la caché desactivada y cinco corridas por caso (mediana, p95 y máximo).
-Para la tabla 23 contra un servicio externo, levántalo con `MESHAUDIT_CACHE=0`.
-Las plantillas de casos (`evaluacion/casos_*.json`) se regeneran con
-`python -m evaluacion.plantillas`; revísalas con tus mallas reales.
-
-## Experimentos
-
-```bash
-python -m experimentos.experimento_llm --proveedor ollama --corpus corpus/ --juez   # gemma4:e2b, qwen3:8b, gpt-oss:20b
-python -m experimentos.experimento_embeddings --proveedor ollama --corpus corpus/   # bge-m3, embeddinggemma, nomic-embed-text
-python -m experimentos.experimento_fragmentos --proveedor ollama --corpus corpus/   # 500/k8, 800/k5, 1000/k4 y barrido k × umbral
-python -m experimentos.experimento_cache --proveedor ollama                         # umbral semántico 0.85–0.95
-```
-
-Resultados en `experimentos/resultados/`. Con `--proveedor falso` corren sin Ollama.
-
-## Estructura
-
-```
-web/                  Presentación (index, documentos, métricas; vendor/model-viewer)
-servicio/
-  dominio.py          Entidades y puertos
-  api/                C1  app.py, esquemas.py
-  orquestacion/       C2  auditor.py, agente.py, ingesta.py, preguntas.py
-  guardrails/         C3  entrada.py, salida.py, patrones.py
-  cache/              C4  exacta.py, semantica.py
-  contexto/           C5  herramientas.py, perfiles.py, fragmentador.py, recuperador.py, prompts.py
-  modelos/            C6  enrutador.py, gateway.py
-  datos/              C7  ollama.py, chroma.py, memoria.py, sqlite.py, mallas.py, documentos.py, falsos.py
-  observabilidad/     T1  traza.py, metricas.py
-  retroalimentacion/  T2  almacen.py
-  composicion.py      Raíz de composición
-  ingestar.py         python -m servicio.ingestar corpus/
-config/               perfiles.yaml, servicio.yaml
-corpus/               Documentos normativos (ver corpus/README.md)
-data/                 Generado: chroma/, meshaudit.sqlite, trazas.jsonl, mallas/
-experimentos/         experimento_{llm,embeddings,fragmentos,cache}.py
-evaluacion/           casos_*.json, run_eval.py, mutar_blender.py, resultados/
-tests/                Pruebas por capa, mallas sintéticas, corpus de prueba
-docs/                 Informe, ADR y DESVIACIONES.md
-```
+Incluyen pruebas por capa, la prueba de arquitectura, la prueba de C2 que recorre todos los caminos
+de respuesta y falla si alguno omite S4, y pruebas de extremo a extremo con `TestClient` (una auditoría
+por perfil). GitHub Actions las ejecuta con Python 3.11 en cada push.
