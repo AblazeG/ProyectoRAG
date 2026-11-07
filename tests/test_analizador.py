@@ -183,5 +183,17 @@ def test_semaforo_ignora_informativos():
 
 def test_analizador_con_lector():
     analizador = Analizador(LECTOR, CATALOGO)
-    r = analizador.analizar(MALLAS["prisma_ngon"], "animacion")
+    r = analizador.analizar_malla(MALLAS["prisma_ngon"], "animacion")
     assert r.semaforo == "rojo" and r.hallazgos[0].consulta
+
+
+def test_formato_del_codigo_8():
+    r = analizar("prisma_ngon", "animacion")
+    v1 = r.hallazgos[0]
+    assert v1.id == "h1" and v1.verificacion == "V1" and v1.tipo == "ngons"
+    assert v1.medido == "28.6 %" and v1.limite == "0 %"
+    assert {"caras", "pct_ngons", "aristas_no_manifold", "uv", "dimension_max", "unidad"} <= set(r.metricas)
+    assert r.metricas["caras"] == 7
+    graves_primero = analizar("cubo_aleta", "impresion_3d").hallazgos
+    assert [h.id for h in graves_primero] == ["h1", "h2"]
+    assert graves_primero[0].medido == "1 arista" and graves_primero[1].medido == "abierta"

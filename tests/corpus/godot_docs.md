@@ -1,11 +1,12 @@
 ---
-doc_id: guia_tiempo_real
-titulo: Guía de recursos para tiempo real (texto sintético de prueba)
-licencia: CC0-1.0
+doc_id: godot_docs
+titulo: Godot Engine — importación de escenas 3D, LOD y rendimiento (texto sintético de prueba)
+licencia: CC-BY-3.0
 perfiles: [juego_movil, web_ar]
-fuente: Texto redactado para las pruebas de MeshAudit.
+fuente: Texto redactado para las pruebas de MeshAudit; sustituye a la documentación de Godot (HTML, CC BY 3.0).
+formato_real: html
 ---
-# Guía de recursos para tiempo real
+# Godot Engine: rendimiento 3D
 
 ## Presupuesto de polígonos
 
@@ -16,13 +17,3 @@ Para reducir el número de triángulos usa el modificador Decimate en modo Colla
 También puedes generar niveles de detalle: versiones con menos triángulos que el motor muestra cuando el objeto está lejos de la cámara. Revisa el conteo final en las estadísticas de la escena.
 
 El presupuesto incluye todos los triángulos que el motor dibuja, por lo que un quad cuenta como dos triángulos y un n-gon como varios. Mide el presupuesto después de triangular. Reparte los triángulos según la importancia visual: la silueta y las zonas cercanas a la cámara merecen más detalle que las caras ocultas o pequeñas, que se pueden simplificar sin pérdida visible.
-
-## Tamaño de archivo para web
-
-Los modelos para web se descargan antes de mostrarse, por lo que el tamaño del archivo afecta el tiempo de carga. Un modelo para web o realidad aumentada no debería superar 10 MB.
-
-Para reducir el tamaño comprime la geometría con Draco o meshopt al exportar a glTF, reduce la resolución de las texturas y elimina atributos que no se usan, como colores de vértice innecesarios.
-
-Prefiere el formato binario GLB, que empaqueta geometría y texturas en un solo archivo. Mide el resultado y repite la compresión si el archivo sigue siendo grande.
-
-Las texturas suelen ocupar la mayor parte del archivo. Usa formatos comprimidos como KTX2 con Basis Universal o reduce la resolución a la mínima que se vea bien en pantalla. Elimina las animaciones, los materiales y las mallas que no se usan antes de exportar. Un archivo más pequeño también reduce el consumo de memoria en teléfonos y la espera del usuario.

@@ -1,11 +1,14 @@
-"""Mutaciones M1–M5 de las mallas base con Blender (bpy).
+"""Mutaciones M1–M5 de las mallas base con Blender (bpy), tabla 3 del informe.
 
 Uso (Blender 4.2 o posterior):
     blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas
 
-Para cada ``<nombre>.obj`` de ``mallas_base/`` escribe ``<nombre>_base.obj`` y
+Para cada ``<nombre>.obj`` de ``mallas_base/`` (cinco mallas CC0 de Kenney,
+Poly Haven o propias; sección 2.4) escribe ``<nombre>_base.obj`` y
 ``<nombre>_M1.obj`` … ``<nombre>_M5.obj``; cuando el defecto sobrevive al
-formato, exporta también GLB, STL y PLY:
+formato, exporta también GLB, STL y PLY. Después, ``evaluacion/plantillas.py
+--bases b1,…,b5`` asigna a cada variante su base (M1 necesita una base cuya
+dimensión máxima supere 0.3 unidades) y calcula la línea base:
 
 - M1: n-gons (se disuelven aristas entre quads vecinos) y escala ×1000.
 - M2: abrir la malla (se borran caras) y quitar las UV.
@@ -160,10 +163,15 @@ def m4(obj, rng) -> None:
     con_bmesh(obj, mutar)
 
 
-def textura_de_prueba(obj) -> None:
-    """Material con una imagen empaquetada para la exportación GLB con texturas."""
-    imagen = bpy.data.images.new("meshaudit_textura", 1024, 1024)
-    imagen.generated_type = "UV_GRID"
+def textura_de_prueba(obj, lado_px: int = 2048) -> None:
+    """Material con una textura de ruido (incompresible) para que el GLB con
+    texturas incrustadas supere los 10 MB de V11 en Web/AR (tabla 3)."""
+    import numpy as np  # Blender incluye numpy
+    imagen = bpy.data.images.new("meshaudit_textura", lado_px, lado_px, alpha=False)
+    ruido = np.random.default_rng(SEMILLA).random((lado_px * lado_px, 4), dtype=np.float32)
+    ruido[:, 3] = 1.0
+    imagen.pixels.foreach_set(ruido.ravel())
+    imagen.file_format = "PNG"
     imagen.pack()
     material = bpy.data.materials.new("meshaudit_material")
     material.use_nodes = True

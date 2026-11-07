@@ -88,13 +88,16 @@ class ChatOllama:
         except Exception as exc:  # noqa: BLE001 - se traduce al dominio
             raise _traducir_error(exc, self.nombre) from exc
         duracion = datos.get("total_duration")
+        eval_ns = datos.get("eval_duration")
+        tokens_salida = int(datos.get("eval_count") or 0)
         return Generacion(
             texto=texto,
             modelo=datos.get("model", self.nombre),
             tokens_entrada=int(datos.get("prompt_eval_count") or 0),
-            tokens_salida=int(datos.get("eval_count") or 0),
+            tokens_salida=tokens_salida,
             duracion_ms=(duracion / 1e6) if duracion else
             (time.perf_counter() - inicio) * 1000,
+            tokens_por_s=(tokens_salida / eval_ns * 1e9) if eval_ns else None,
         )
 
 

@@ -1,16 +1,18 @@
-"""Orquestador de ingesta de normas (C2).
+"""Orquestador de ingesta de normas (C2), figura 6 del informe.
 
-E5(archivo) → extraer → E5(texto) → fragmentar e indexar (version_corpus++) →
-purgar la caché de versiones anteriores.
+``ingerir(doc)``: E5(archivo) → C5 extrae y fragmenta → E5(texto) →
+C5 indexa (embeddings, alta, versión++ en el manifiesto) → C4 purga la
+versión anterior → ``DocIndexado``.
 """
 from __future__ import annotations
 
 from servicio.cache.exacta import CacheExacta
 from servicio.contexto.recuperador import Indice
-from servicio.dominio import ArchivoSubido, ErrorDominio, RechazoSolicitud
+from servicio.dominio import ArchivoSubido, DocIndexado, ErrorDominio, RechazoSolicitud
 from servicio.guardrails.entrada import MENSAJE_CUARENTENA, GuardrailsEntrada
 from servicio.guardrails.salida import GuardrailsSalida
 from servicio.observabilidad.traza import RegistroTrazas, Traza
+from servicio.orquestacion.auditor import cuerpo_de_error
 
 
 class ServicioIngesta:
@@ -22,43 +24,35 @@ class ServicioIngesta:
         self.cache = cache
         self.trazas = trazas
 
-    def _envolver(self, traza: Traza, error: ErrorDominio) -> None:
-        guardrail = getattr(error, "guardrail", None)
-        if guardrail:
-            traza.registrar_guardrail(guardrail)
-        traza.anotar(estado="rechazo" if guardrail else "error", error=type(error).__name__)
-        error.cuerpo = self.salida.aplicar_aviso(
-            {"detalle": error.mensaje, "traza_id": traza.traza_id,
-             "guardrails": list(traza.datos["guardrails"])}, con_modelo=False)
-
-    def ingestar(self, archivo: ArchivoSubido, licencia: str | None = None,
-                 doc_id: str | None = None, perfiles: list[str] | None = None,
-                 titulo: str | None = None) -> dict:
+    def ingerir(self, doc: ArchivoSubido, licencia: str | None = None,
+                doc_id: str | None = None, perfiles: list[str] | None = None,
+                titulo: str | None = None) -> DocIndexado:
         traza = Traza("ingesta", None, self.trazas, version_corpus=self.indice.version_corpus)
         try:
-            with traza.etapa("C3.entrada"):
-                revision = self.entrada.verificar_documento(archivo, licencia=licencia)
-            with traza.etapa("C5.extraccion"):
-                documento = self.indice.extraer(archivo)
-            with traza.etapa("C3.entrada"):
+            with traza.etapa("guardrails_entrada"):                   # E5 (archivo)
+                aprobado = self.entrada.verificar_documento(doc, licencia=licencia)
+            with traza.etapa("contexto_extraccion"):                  # extraer y fragmentar
+                documento, fragmentos, registro = self.indice.extraer_y_fragmentar(
+                    doc, aprobado.detalles["licencia"], doc_id, perfiles, titulo)
+            with traza.etapa("guardrails_entrada"):                   # E5 (texto)
                 contenido = self.entrada.verificar_documento(texto=documento.texto)
-            if contenido["cuarentena"]:
-                self.indice.registrar_cuarentena(archivo, contenido["motivo"])
+            if not contenido.aprobado:
+                self.indice.registrar_cuarentena(doc, "contenido con instrucciones")
                 raise RechazoSolicitud(422, MENSAJE_CUARENTENA, "E5")
-            with traza.etapa("C5.indexado"):
-                registro = self.indice.indexar(documento, archivo, revision["licencia"],
-                                               doc_id=doc_id, perfiles=perfiles, titulo=titulo)
-            with traza.etapa("C4.purga"):
-                registro["entradas_purgadas"] = self.cache.purgar(registro["version_corpus"])
-            traza.anotar(version_corpus=registro["version_corpus"], doc_id=registro["doc_id"])
-            return registro
+            with traza.etapa("contexto_indexado"):                    # embeddings + versión++
+                indexado = self.indice.indexar(fragmentos, registro)
+            with traza.etapa("cache"):                                # purgar versión anterior
+                indexado.entradas_purgadas = self.cache.purgar(indexado.version_corpus)
+            traza.anotar(version_corpus=indexado.version_corpus, doc_id=indexado.documento_id)
+            return indexado
         except ErrorDominio as error:
-            self._envolver(traza, error)
+            error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
             raise
         finally:
             traza.cerrar()
 
     def eliminar(self, doc_id: str) -> dict:
+        """Elimina el documento y sus fragmentos, sube la versión y purga la caché."""
         traza = Traza("eliminacion", None, self.trazas)
         try:
             resultado = self.indice.eliminar(doc_id)
@@ -66,7 +60,7 @@ class ServicioIngesta:
             traza.anotar(version_corpus=resultado["version_corpus"], doc_id=doc_id)
             return resultado
         except ErrorDominio as error:
-            self._envolver(traza, error)
+            error.cuerpo = cuerpo_de_error(self.salida, traza, error, "respuesta")
             raise
         finally:
             traza.cerrar()

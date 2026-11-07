@@ -2,7 +2,7 @@
 según el Código 6 del informe."""
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,11 +14,17 @@ class Abierto(BaseModel):
 
 
 class Fuente(Abierto):
-    documento: str
+    documento: str            # doc_id, p. ej. "blender_manual"
     seccion: str
     puntaje: float
     fragmento: str
     id: str | None = None
+
+
+class Guardrails(Abierto):
+    entrada: str              # "aprobada" | "enmascarada" | "rechazada"
+    salida: str               # "aprobada" | "corregida"
+    activaciones: list[str] = Field(default_factory=list)
 
 
 class HallazgoSalida(Abierto):
@@ -26,8 +32,8 @@ class HallazgoSalida(Abierto):
     verificacion: str
     tipo: str
     gravedad: Literal["grave", "menor", "informativo"]
-    medido: Any
-    limite: str
+    medido: str               # p. ej. "12.4 %"
+    limite: str               # p. ej. "0 %"
     explicacion: str | None = None
     correccion: list[str] = Field(default_factory=list)
     fuente: Fuente | None = None
@@ -47,7 +53,7 @@ class RespuestaAuditoria(Abierto):
     modelo: str
     ruta: Literal["sin_modelo", "rapida", "completa"]
     cache: str
-    guardrails: list[str]
+    guardrails: Guardrails
     iteraciones_agente: int
     tiempo_ms: float
     traza_id: str
@@ -74,7 +80,7 @@ class RespuestaPregunta(Abierto):
     cache: str
     modelo: str | None
     ruta: str | None
-    guardrails: list[str]
+    guardrails: Guardrails
     iteraciones_agente: int
     traza_id: str
     aviso: str
@@ -97,8 +103,11 @@ class RespuestaRetroalimentacion(Abierto):
 
 class RespuestaDocumento(Abierto):
     documento_id: str
+    nombre: str
+    formato: str
     fragmentos: int
     version_corpus: int
+    fecha: float
 
 
 class Error(Abierto):

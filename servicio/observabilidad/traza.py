@@ -54,6 +54,10 @@ class RegistroTrazas:
 
 
 class Traza:
+    """Traza de una consulta (Código 5). Las etapas usan los nombres del informe:
+    ``guardrails_entrada``, ``cache``, ``contexto_malla``, ``enrutador``,
+    ``contexto_rag``, ``gateway`` y ``guardrails_salida`` (más ``persistencia``)."""
+
     def __init__(self, tipo: str, perfil: str | None = None,
                  registro: RegistroTrazas | None = None, version_prompt: str | None = None,
                  version_corpus: int | None = None):
@@ -70,9 +74,9 @@ class Traza:
             "ruta": None,
             "modelo": None,
             "uso_respaldo": False,
-            "hallazgos": {},
+            "hallazgos": 0,
             "iteraciones_agente": 0,
-            "guardrails": [],
+            "guardrails": {"entrada": "aprobada", "salida": "aprobada", "activaciones": []},
             "llamadas": [],
             "recuperaciones": [],
             "version_prompt": version_prompt,
@@ -101,7 +105,24 @@ class Traza:
         self.datos.update(campos)
 
     def registrar_guardrail(self, guardrail: str) -> None:
-        self.datos["guardrails"].append(guardrail)
+        """Anota una activación (E1–E5, S1–S4) y actualiza el estado de entrada/salida."""
+        g = self.datos["guardrails"]
+        if guardrail not in g["activaciones"]:
+            g["activaciones"].append(guardrail)
+        if guardrail.startswith("S") and guardrail != "S4":
+            g["salida"] = "corregida"
+        if guardrail == "E3" and g["entrada"] == "aprobada":
+            g["entrada"] = "enmascarada"
+
+    def rechazar(self, guardrail: str, motivo: str) -> None:
+        self.registrar_guardrail(guardrail)
+        self.datos["guardrails"]["entrada"] = "rechazada"
+        self.datos["guardrails"]["motivo"] = motivo
+
+    @property
+    def guardrails(self) -> dict:
+        g = self.datos["guardrails"]
+        return {**g, "activaciones": list(g["activaciones"])}
 
     def registrar_llamada(self, llamada: dict) -> None:
         self.datos["llamadas"].append(llamada)
@@ -116,6 +137,10 @@ class Traza:
 
     def sumar_iteraciones(self, n: int) -> None:
         self.datos["iteraciones_agente"] += n
+
+    def sumar(self, campo: str, n: int = 1) -> None:
+        """Contadores para la evaluación (citas generadas, quitadas por S2, …)."""
+        self.datos[campo] = self.datos.get(campo, 0) + n
 
     def cerrar(self, estado: str = "ok") -> dict:
         if self._cerrada:

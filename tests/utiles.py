@@ -25,7 +25,8 @@ def indice_de_prueba(almacen=None, embeddings=None, base=None):
 def cargar_corpus(indice):
     for ruta in sorted(CORPUS.glob("*.md")):
         archivo = ArchivoSubido(ruta.name, ruta.read_bytes())
-        indice.indexar(indice.extraer(archivo), archivo, "CC0-1.0")
+        _, fragmentos, registro = indice.extraer_y_fragmentar(archivo, "CC0-1.0")
+        indice.indexar(fragmentos, registro)
 
 
 def contenedor_de_prueba(tmp_path, vectorial="memoria", chats=None, cache_activa=True,
@@ -36,5 +37,5 @@ def contenedor_de_prueba(tmp_path, vectorial="memoria", chats=None, cache_activa
                   chats=chats, cache_activa=cache_activa, dormir=lambda s: None)
     if con_corpus:
         for ruta in sorted(CORPUS.glob("*.md")):
-            c.ingesta.ingestar(ArchivoSubido(ruta.name, ruta.read_bytes()))
+            c.ingesta.ingerir(ArchivoSubido(ruta.name, ruta.read_bytes()))
     return c

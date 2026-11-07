@@ -1,20 +1,31 @@
-"""Mallas de evaluación sin Blender (modo falso): línea base y mutaciones M1–M5.
+"""Mallas de evaluación sin Blender (modo falso), con la misma estructura que
+la sección 2.4 y la tabla 3 del informe: cinco mallas base y una variante por
+base, nombradas como las produce ``mutar_blender.py`` (``<base>_<variante>``).
 
-En el Mac se usan las mallas reales de ``mallas_base/`` mutadas con
-``mutar_blender.py``; aquí se generan equivalentes con numpy para que
-``run_eval.py`` y los experimentos corran en la nube.
+| Base  | Imita                                  | Variante | Mutaciones (tabla 3)                          |
+|-------|----------------------------------------|----------|-----------------------------------------------|
+| base1 | modelo propio de quads, 20 unidades    | M1       | n-gons y escala ×1000 (base > 0.3 unidades)   |
+| base2 | pieza pequeña de 0.5 unidades          | M2       | abrir la malla y quitar las UV                |
+| base3 | modelo de Kenney (triangulado)         | M3       | invertir normales de una región y duplicar vértices |
+| base4 | escaneo denso (43 200 triángulos)      | M4       | subdividir > 100 000 triángulos y arista no manifold; GLB con texturas > 10 MB |
+| base5 | modelo propio de quads                 | M5       | triangular una zona amplia y crear caras degeneradas |
+
+En el Mac se usan las mallas reales de ``mallas_base/`` y el script de Blender.
 """
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 import numpy as np
 
 DESTINO = Path(__file__).resolve().parent / "mallas_generadas"
+BASES = ["base1", "base2", "base3", "base4", "base5"]
+VARIANTE_DE_BASE = {"base1": "M1", "base2": "M2", "base3": "M3", "base4": "M4", "base5": "M5"}
 
 
 def cubo_rejilla(n: int, lado: float = 20.0):
-    """Cubo de quads n×n por cara, con vértices compartidos y UV por vértice."""
+    """Cubo de quads n×n por cara, con vértices compartidos (normales hacia fuera)."""
     indice: dict[tuple, int] = {}
     vertices: list[tuple] = []
 
@@ -37,7 +48,7 @@ def cubo_rejilla(n: int, lado: float = 20.0):
                         p = np.zeros(3)
                         p[eje], p[u_eje], p[w_eje] = signo, t[a], t[b]
                         esquinas.append(v(p * lado))
-                    if (signo == 1.0) == (eje == 1):  # orientación hacia fuera
+                    if (signo == 1.0) == (eje == 1):
                         esquinas.reverse()
                     caras.append(esquinas)
     return [list(x) for x in vertices], caras
@@ -58,60 +69,102 @@ def escribir(ruta: Path, vertices, caras, uv=True):
     return ruta
 
 
-def _ngon(caras):
-    """Une dos quads vecinos en un hexágono (n-gon) encadenando su contorno."""
-    a = caras[0]
-    for k, b in enumerate(caras[1:], start=1):
-        if len(set(a) & set(b)) == 2:
-            break
-    else:
-        return caras
-    aristas = [(c[i], c[(i + 1) % 4]) for c in (a, b) for i in range(4)]
-    contorno = {u: v for u, v in aristas if (v, u) not in aristas}
-    inicio = next(iter(contorno))
-    hexagono = [inicio]
-    while contorno[hexagono[-1]] != inicio:
-        hexagono.append(contorno[hexagono[-1]])
-    resto = [c for i, c in enumerate(caras) if i not in (0, k)]
-    return [hexagono] + resto
+def triangular(caras):
+    return [[c[0], c[i], c[i + 1]] for c in caras for i in range(1, len(c) - 1)]
 
 
-def generar(destino: Path = DESTINO, n: int = 6) -> dict[str, Path]:
+def _ngons(caras, cuantos: int):
+    """Une pares de quads vecinos en hexágonos encadenando su contorno."""
+    resto = list(caras)
+    nuevos = []
+    for _ in range(cuantos):
+        a = resto.pop(0)
+        k = next((i for i, b in enumerate(resto) if len(set(a) & set(b)) == 2), None)
+        if k is None:
+            nuevos.append(a)
+            continue
+        b = resto.pop(k)
+        aristas = [(c[i], c[(i + 1) % 4]) for c in (a, b) for i in range(4)]
+        contorno = {u: w for u, w in aristas if (w, u) not in aristas}
+        inicio = next(iter(contorno))
+        hexagono = [inicio]
+        while contorno[hexagono[-1]] != inicio:
+            hexagono.append(contorno[hexagono[-1]])
+        nuevos.append(hexagono)
+    return nuevos + resto
+
+
+def _glb_con_textura(obj: Path, destino: Path, lado_px: int = 2048) -> Path:
+    """GLB con una textura de ruido incrustada (incompresible) para superar 10 MB (V11)."""
+    import trimesh
+    from PIL import Image
+
+    malla = trimesh.load(obj, process=False, force="mesh")
+    rng = np.random.default_rng(42)
+    imagen = Image.fromarray(rng.integers(0, 255, (lado_px, lado_px, 3), dtype=np.uint8))
+    uv = malla.visual.uv if getattr(malla.visual, "uv", None) is not None else np.zeros((len(malla.vertices), 2))
+    material = trimesh.visual.material.PBRMaterial(baseColorTexture=imagen)
+    malla.visual = trimesh.visual.TextureVisuals(uv=uv, material=material)
+    destino.write_bytes(malla.export(file_type="glb"))
+    return destino
+
+
+def generar(destino: Path = DESTINO, con_glb_texturas: bool = True) -> dict[str, Path]:
+    destino = Path(destino)
     destino.mkdir(parents=True, exist_ok=True)
-    v, f = cubo_rejilla(n)
-    rutas = {"base": escribir(destino / "base.obj", v, f)}
-    # M1: n-gons y escala ×1000
-    rutas["M1"] = escribir(destino / "M1.obj", [[c * 1000 for c in p] for p in v], _ngon(f))
-    # M2: abrir la malla y quitar UV
-    rutas["M2"] = escribir(destino / "M2.obj", v, f[1:], uv=False)
-    # M3: invertir las normales de una región y duplicar vértices
-    region = [c[::-1] for c in f[:n]] + f[n:]
-    dup_inicio = len(v) + 1
-    v3 = v + [list(v[i - 1]) for i in region[-1]]
-    region[-1] = list(range(dup_inicio, dup_inicio + 4))
-    rutas["M3"] = escribir(destino / "M3.obj", v3, region)
-    # M4: subdividir hasta superar 100 000 triángulos y crear una arista no manifold
-    v4, f4 = cubo_rejilla(130)
-    a, b = f4[0][0], f4[0][1]
-    v4 = v4 + [[-5.0, -5.0, -5.0]]
-    rutas["M4"] = escribir(destino / "M4.obj", v4, f4 + [[a, b, len(v4)]])
-    # M5: triangular una zona y crear caras degeneradas
-    tri = [[c[0], c[1], c[2]] for c in f[:n * 2]] + [[c[0], c[2], c[3]] for c in f[:n * 2]]
-    v5 = [list(p) for p in v]
-    a, b, c = tri[n + 1]  # colapsar un vértice sobre la arista opuesta: área cero, malla cerrada
-    v5[c - 1] = [(v5[a - 1][i] + v5[b - 1][i]) / 2 for i in range(3)]
-    rutas["M5"] = escribir(destino / "M5.obj", v5, tri + f[n * 2:])
-    try:  # exportaciones extra (GLB, STL, PLY) cuando el defecto sobrevive
+    rutas: dict[str, Path] = {}
+
+    # Líneas base
+    v1, f1 = cubo_rejilla(6, 20.0)
+    v2, f2 = cubo_rejilla(4, 0.5)
+    v3, f3 = cubo_rejilla(6, 2.0)
+    f3 = triangular(f3)                               # como un modelo de Kenney
+    v4, f4 = cubo_rejilla(60, 1.5)                    # 43 200 triángulos: un «escaneo»
+    v5, f5 = cubo_rejilla(8, 1.0)
+    for nombre, (v, f) in {"base1": (v1, f1), "base2": (v2, f2), "base3": (v3, f3),
+                           "base4": (v4, f4), "base5": (v5, f5)}.items():
+        rutas[f"{nombre}_base"] = escribir(destino / f"{nombre}_base.obj", v, f)
+
+    # M1 sobre base1: n-gons y escala ×1000
+    rutas["base1_M1"] = escribir(destino / "base1_M1.obj", [[c * 1000 for c in p] for p in v1],
+                                 _ngons(f1, 4))
+    # M2 sobre base2: abrir la malla y quitar las UV
+    rutas["base2_M2"] = escribir(destino / "base2_M2.obj", v2, f2[2:], uv=False)
+    # M3 sobre base3: invertir las normales de una región y duplicar vértices
+    region = [c[::-1] for c in f3[:12]] + f3[12:]
+    inicio = len(v3) + 1
+    v3m = v3 + [list(v3[i - 1]) for i in region[-1]]
+    region[-1] = list(range(inicio, inicio + 3))
+    rutas["base3_M3"] = escribir(destino / "base3_M3.obj", v3m, region)
+    # M4 sobre base4: subdividir hasta superar 100 000 triángulos y crear una arista no manifold
+    v4m, f4m = cubo_rejilla(130, 1.5)
+    a, b = f4m[0][0], f4m[0][1]
+    v4m = v4m + [[-0.5, -0.5, -0.5]]
+    rutas["base4_M4"] = escribir(destino / "base4_M4.obj", v4m, f4m + [[a, b, len(v4m)]])
+    # M5 sobre base5: triangular una cara entera del cubo y colapsar vértices (área cero)
+    zona = 8 * 8
+    tri = triangular(f5[:zona])
+    v5m = [list(p) for p in v5]
+    for k in (10, 30, 50):
+        a, b, c = tri[k]
+        v5m[c - 1] = [(v5m[a - 1][i] + v5m[b - 1][i]) / 2 for i in range(3)]
+    rutas["base5_M5"] = escribir(destino / "base5_M5.obj", v5m, tri + f5[zona:])
+
+    # Exportaciones extra cuando el defecto sobrevive (GLB, STL y PLY)
+    try:
         import trimesh
-        for nombre in ("M3", "M4", "M5"):
+        for nombre in ("base2_M2", "base3_M3", "base5_M5"):
             m = trimesh.load(rutas[nombre], process=False, force="mesh")
             for ext in ("glb", "stl", "ply"):
                 m.export(destino / f"{nombre}.{ext}")
-    except Exception:  # noqa: BLE001
-        pass
+        if con_glb_texturas:
+            rutas["base4_M4_texturas"] = _glb_con_textura(rutas["base4_M4"],
+                                                          destino / "base4_M4_texturas.glb")
+    except Exception as exc:  # noqa: BLE001
+        print(f"aviso: exportaciones extra omitidas ({exc})")
     return rutas
 
 
 if __name__ == "__main__":
     for k, r in generar().items():
-        print(k, r)
+        print(k, r, f"{r.stat().st_size / 1e6:.1f} MB")

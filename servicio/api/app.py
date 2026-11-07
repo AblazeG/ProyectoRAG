@@ -2,6 +2,7 @@
 llama al orquestador que corresponde y traduce errores del dominio a HTTP."""
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
@@ -26,7 +27,6 @@ from servicio.dominio import (
     FormatoNoSoportado,
     NoEncontrado,
 )
-from servicio.observabilidad.metricas import calcular_metricas
 from servicio.orquestacion.auditor import informe_a_markdown
 
 MB = 1024 * 1024
@@ -87,7 +87,7 @@ def crear_app(servicios: Any) -> FastAPI:
 
     @app.get("/metricas")
     def metricas():
-        return calcular_metricas(servicios.trazas.leer(), servicios.retroalimentacion.resumen())
+        return servicios.metricas.resumen()
 
     # -- documentos ----------------------------------------------------------
     @app.post("/documentos", status_code=201, response_model=RespuestaDocumento)
@@ -96,10 +96,10 @@ def crear_app(servicios: Any) -> FastAPI:
                         titulo: str | None = Form(None)):
         contenido = _leer(archivo, limite_documento)
         lista = [p.strip() for p in perfiles.split(",") if p.strip()] if perfiles else None
-        registro = servicios.ingesta.ingestar(ArchivoSubido(archivo.filename or "documento", contenido),
-                                              licencia=licencia or None, doc_id=doc_id or None,
-                                              perfiles=lista, titulo=titulo or None)
-        return {"documento_id": registro["doc_id"], **registro}
+        indexado = servicios.ingesta.ingerir(ArchivoSubido(archivo.filename or "documento", contenido),
+                                             licencia=licencia or None, doc_id=doc_id or None,
+                                             perfiles=lista, titulo=titulo or None)
+        return asdict(indexado)
 
     @app.get("/documentos")
     def listar_documentos():
@@ -114,6 +114,8 @@ def crear_app(servicios: Any) -> FastAPI:
     @app.post("/auditorias", response_model=RespuestaAuditoria)
     def auditar(archivo: UploadFile = File(...), perfil: str = Form(...),
                 notas: str = Form("", max_length=4000)):
+        """Función principal: devuelve el informe con fuentes, modelo, ruta, caché,
+        guardrails, iteraciones del agente, tiempo y ``traza_id``."""
         nombre = archivo.filename or "malla"
         if perfil not in PERFILES:
             raise EntradaInvalida(f"Perfil desconocido. Usa uno de: {', '.join(PERFILES)}.")

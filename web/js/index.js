@@ -1,6 +1,14 @@
 // Página principal: subir malla, ver el informe, retroalimentación, preguntas y exportación.
 let informeActual = null;
 
+// guardrails: {"entrada": "aprobada", "salida": "aprobada", "activaciones": [...]} (Código 8)
+function textoGuardrails(g) {
+  if (!g) return "";
+  if (Array.isArray(g)) return g.join(", ");
+  return `entrada ${g.entrada}, salida ${g.salida}` +
+    (g.activaciones && g.activaciones.length ? ` (${g.activaciones.join(", ")})` : "");
+}
+
 async function cargarPerfiles() {
   const selector = $("#perfil");
   try {
@@ -52,9 +60,9 @@ $("#formulario").addEventListener("submit", async (evento) => {
 
 const ETIQUETAS = {
   formato: "Formato", tamano_bytes: "Tamaño (bytes)", vertices: "Vértices", triangulos: "Triángulos",
-  caras_originales: "Caras en el OBJ", dimension_max: "Dimensión máxima", dimensiones: "Dimensiones",
+  caras: "Caras", dimension_max: "Dimensión máxima", dimensiones: "Dimensiones",
   pct_ngons: "% n-gons", pct_triangulos: "% triángulos", aristas_no_manifold: "Aristas no manifold",
-  cerrada: "Cerrada", tiene_uv: "UV", caras_degeneradas: "Caras degeneradas",
+  cerrada: "Cerrada", uv: "UV", caras_degeneradas: "Caras degeneradas",
   normales_consistentes: "Normales consistentes", volumen_con_signo: "Volumen con signo",
   vertices_duplicados: "Vértices duplicados",
 };
@@ -67,7 +75,7 @@ function pintarInforme(inf) {
   s.textContent = inf.semaforo;
   $("#resumen").textContent = inf.resumen;
   $("#detalles").textContent = `Ruta ${inf.ruta} · modelo ${inf.modelo} · caché ${inf.cache}` +
-    ` · guardrails ${inf.guardrails.join(", ")} · iteraciones del agente ${inf.iteraciones_agente}` +
+    ` · guardrails ${textoGuardrails(inf.guardrails)} · iteraciones del agente ${inf.iteraciones_agente}` +
     ` · traza ${inf.traza_id}`;
   const m = inf.metricas_malla;
   $("#metricas").innerHTML = Object.entries(ETIQUETAS).filter(([k]) => k in m && m[k] !== null)
@@ -85,15 +93,15 @@ function pintarInforme(inf) {
 
 function pintarHallazgo(h) {
   const pasos = (h.correccion || []).map(p => `<li>${esc(p)}</li>`).join("");
-  const fuente = h.fuente ? `<details><summary>Fuente: ${esc(h.fuente.documento)} — ${esc(h.fuente.seccion)}
+  const fuente = h.fuente ? `<details><summary>Fuente: ${esc(h.fuente.titulo || h.fuente.documento)} — ${esc(h.fuente.seccion)}
       (puntaje ${Number(h.fuente.puntaje).toFixed(2)})</summary>
-      <blockquote>${esc(h.fuente.fragmento)}</blockquote><p class="meta">${esc(h.fuente.id || "")}</p></details>` : "";
+      <blockquote>${esc(h.fuente.fragmento)}</blockquote><p class="meta">${esc(h.fuente.documento)} · ${esc(h.fuente.id || "")}</p></details>` : "";
   const retro = h.gravedad === "informativo" ? "" : `<div class="retro" data-hallazgo="${esc(h.id)}">
       <input type="text" maxlength="2000" placeholder="Comentario sobre este hallazgo (opcional)">
       <button class="secundario" data-util="true">👍</button>
       <button class="secundario" data-util="false">👎</button><span class="meta"></span></div>`;
   return `<article class="hallazgo ${esc(h.gravedad)}">
-    <h3>${esc(h.verificacion)} · ${esc(h.descripcion)} <span class="chip ${esc(h.gravedad)}">${esc(h.gravedad)}</span></h3>
+    <h3>${esc(h.id)} · ${esc(h.verificacion)} · ${esc(h.descripcion || h.tipo)} <span class="chip ${esc(h.gravedad)}">${esc(h.gravedad)}</span></h3>
     <p class="medido">Medido: <strong>${esc(formatoMedido(h.medido))}</strong> · Límite: ${esc(h.limite)}</p>
     ${h.explicacion ? `<p>${esc(h.explicacion)}</p>` : ""}
     ${pasos ? `<strong>Pasos de corrección</strong><ol>${pasos}</ol>` : ""}
@@ -144,11 +152,11 @@ $("#form-pregunta").addEventListener("submit", async (evento) => {
   campo.value = "";
   try {
     const r = await API.preguntar(informeActual.auditoria_id, pregunta);
-    const fuentes = r.fuentes.map(f => `<details><summary>${esc(f.documento)} — ${esc(f.seccion)}
+    const fuentes = r.fuentes.map(f => `<details><summary>${esc(f.titulo || f.documento)} — ${esc(f.seccion)}
       (${Number(f.puntaje).toFixed(2)})</summary><blockquote>${esc(f.fragmento)}</blockquote></details>`).join("");
     nodo.innerHTML = `<p><strong>${esc(pregunta)}</strong></p><p>${esc(r.respuesta)}</p>${fuentes}
       <p class="meta">Caché ${esc(r.cache)} · ruta ${esc(r.ruta)} · modelo ${esc(r.modelo)} ·
-      guardrails ${esc(r.guardrails.join(", "))}</p><p class="aviso">${esc(r.aviso)}</p>`;
+      guardrails ${esc(textoGuardrails(r.guardrails))}</p><p class="aviso">${esc(r.aviso)}</p>`;
   } catch (e) {
     nodo.innerHTML = `<p><strong>${esc(pregunta)}</strong></p><p class="error">${esc(e.message)}</p>`;
   }

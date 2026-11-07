@@ -15,9 +15,23 @@ def _resumen(valores: list[float]) -> dict:
             "p95": round(float(np.percentile(arr, 95)), 3)}
 
 
+# Etapa de la traza (Código 5) -> capa del servicio.
+CAPA_DE_ETAPA = {
+    "guardrails_entrada": "C3", "guardrails_salida": "C3", "cache": "C4",
+    "contexto_malla": "C5", "contexto_rag": "C5", "contexto_extraccion": "C5",
+    "contexto_indexado": "C5", "enrutador": "C6", "gateway": "C6",
+    "ensamblado": "C2", "persistencia": "C7", "archivo_temporal": "C7",
+}
+
+
+def capa_de(etapa: str) -> str:
+    return CAPA_DE_ETAPA.get(etapa, etapa.split(".")[0])
+
+
 def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None) -> dict:
     por_etapa: dict[str, list[float]] = defaultdict(list)
     por_capa: dict[str, list[float]] = defaultdict(list)
+    gateway_por_ruta: dict[str, list[float]] = defaultdict(list)
     totales: dict[str, list[float]] = defaultdict(list)
     cache = Counter()
     guardrails = Counter()
@@ -31,7 +45,9 @@ def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None)
         tipos[t.get("tipo")] += 1
         for etapa, ms in (t.get("tiempos_ms") or {}).items():
             por_etapa[etapa].append(ms)
-            por_capa[etapa.split(".")[0]].append(ms)
+            por_capa[capa_de(etapa)].append(ms)
+            if etapa == "gateway" and t.get("ruta"):
+                gateway_por_ruta[t["ruta"]].append(ms)
         if t.get("tiempo_total_ms") is not None:
             totales[t.get("tipo")].append(t["tiempo_total_ms"])
         if t.get("tipo") in ("auditoria", "pregunta"):
@@ -41,8 +57,9 @@ def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None)
             iteraciones.append(t.get("iteraciones_agente", 0))
             if t.get("uso_respaldo"):
                 respaldo += 1
-        for g in t.get("guardrails") or []:
-            guardrails[g] += 1
+        g = t.get("guardrails") or {}
+        for activacion in (g.get("activaciones", []) if isinstance(g, dict) else g):
+            guardrails[activacion] += 1
         for llamada in t.get("llamadas") or []:
             if llamada.get("ok"):
                 llamadas_ok += 1
@@ -53,6 +70,7 @@ def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None)
         "latencia_ms": {
             "por_capa": {c: _resumen(v) for c, v in sorted(por_capa.items())},
             "por_etapa": {e: _resumen(v) for e, v in sorted(por_etapa.items())},
+            "gateway_por_ruta": {r: _resumen(v) for r, v in gateway_por_ruta.items()},
             "total": {t: _resumen(v) for t, v in totales.items()},
         },
         "cache": {
@@ -73,3 +91,15 @@ def calcular_metricas(trazas: list[dict], retroalimentacion: dict | None = None)
                    "maximo": int(max(iteraciones)) if iteraciones else 0},
         "retroalimentacion": retroalimentacion or {},
     }
+
+
+class Metricas:
+    """``GET /metricas``: lee las trazas (T1) y la retroalimentación (T2)."""
+
+    def __init__(self, registro, retroalimentacion=None):
+        self.registro = registro
+        self.retroalimentacion = retroalimentacion
+
+    def resumen(self) -> dict:
+        retro = self.retroalimentacion.resumen() if self.retroalimentacion else {}
+        return calcular_metricas(self.registro.leer(), retro)

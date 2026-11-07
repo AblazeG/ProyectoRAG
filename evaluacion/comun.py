@@ -19,6 +19,21 @@ DIR_EVAL = RAIZ / "evaluacion"
 RESULTADOS = DIR_EVAL / "resultados"
 MALLAS_GENERADAS = DIR_EVAL / "mallas_generadas"
 CORPUS_PRUEBA = RAIZ / "tests" / "corpus"
+OLLAMA = "http://127.0.0.1:11434"
+
+
+def argumentos_comunes(parser) -> None:
+    parser.add_argument("--proveedor", default=os.environ.get("MESHAUDIT_PROVEEDOR", "falso"),
+                        choices=["falso", "ollama"])
+    parser.add_argument("--corpus", type=Path, default=None,
+                        help="corpus a ingerir (por defecto: corpus/ con Ollama, tests/corpus/ en falso)")
+    parser.add_argument("--salida", type=Path, default=RESULTADOS)
+
+
+def corpus_por_defecto(args) -> Path:
+    if args.corpus:
+        return args.corpus
+    return CORPUS_PRUEBA if args.proveedor == "falso" else RAIZ / "corpus"
 
 
 def cargar(nombre: str):
@@ -68,7 +83,8 @@ class Sesion:
 
     def __init__(self, url: str | None = None, proveedor: str = "falso", cache: bool = True,
                  corpus: Path | None = None, falla: str | None = None, dir_datos: Path | None = None,
-                 trazas: Path | None = None, vectorial: str = "memoria", chats: dict | None = None):
+                 trazas: Path | None = None, vectorial: str = "memoria", chats: dict | None = None,
+                 variables: dict | None = None):
         self.contenedor = None
         if url:
             import httpx
@@ -78,7 +94,7 @@ class Sesion:
         from fastapi.testclient import TestClient
         from servicio.composicion import construir, crear_aplicacion
         self.dir_datos = Path(dir_datos or tempfile.mkdtemp(prefix="meshaudit_eval_"))
-        with entorno(MESHAUDIT_FALLA=falla):
+        with entorno(MESHAUDIT_FALLA=falla, **(variables or {})):
             self.contenedor = construir(proveedor=proveedor, dir_datos=self.dir_datos,
                                         cache_activa=cache, vectorial=vectorial, chats=chats,
                                         dormir=(lambda s: None) if proveedor == "falso" else None)
@@ -115,37 +131,16 @@ class Sesion:
         return salida
 
 
-class DirMallas:
-    """Resuelve ``M1.obj`` tanto en mallas sintéticas (``M1.obj``) como en las de
-    Blender (``<malla>_M1.obj``; con ``prefijo`` se elige la malla base)."""
-
-    def __init__(self, ruta: Path, prefijo: str | None = None):
-        self.ruta = Path(ruta)
-        self.prefijo = prefijo
-
-    def __truediv__(self, nombre: str) -> Path:
-        directa = self.ruta / (f"{self.prefijo}_{nombre}" if self.prefijo else nombre)
-        if directa.exists():
-            return directa
-        candidatas = sorted(self.ruta.glob(f"*_{nombre}"))
-        if not candidatas:
-            raise FileNotFoundError(f"No encuentro {nombre} en {self.ruta}")
-        return candidatas[0]
-
-    def __str__(self) -> str:
-        return str(self.ruta)
-
-
-def mallas(directorio: Path | None, proveedor: str, prefijo: str | None = None) -> DirMallas:
-    """Directorio con base y M1–M5; en modo falso se generan si faltan."""
+def mallas(directorio: Path | None, proveedor: str) -> Path:
+    """Directorio con ``<base>_base.obj`` y ``<base>_M1.obj``…; en modo falso se
+    generan las mallas sintéticas si faltan."""
     directorio = Path(directorio or MALLAS_GENERADAS)
-    hay = (directorio / "base.obj").exists() or any(directorio.glob("*_base.obj"))
-    if not hay:
+    if not any(directorio.glob("*_base.obj")):
         if proveedor != "falso" and directorio != MALLAS_GENERADAS:
             raise SystemExit(f"Faltan mallas en {directorio}: ejecuta mutar_blender.py primero.")
         from evaluacion.sinteticas import generar
         generar(directorio)
-    return DirMallas(directorio, prefijo)
+    return directorio
 
 
 def embeddings_para(modelo: str, proveedor: str, url: str = "http://127.0.0.1:11434"):
@@ -175,15 +170,21 @@ def indice_en_memoria(embeddings, corpus: Path, tam: int = 800, solape: int = 12
     indice = Indice(embeddings, almacen, RepositorioManifiestoSQLite(base),
                     RepositorioDocumentosSQLite(base), LectorDocumentos(), tam, solape)
     for archivo, meta in listar_corpus(corpus):
-        documento = indice.extraer(archivo)
-        indice.indexar(documento, archivo, meta.get("licencia") or "CC0-1.0", meta.get("doc_id"),
-                       meta.get("perfiles"), meta.get("titulo"))
+        _, fragmentos, registro = indice.extraer_y_fragmentar(
+            archivo, meta.get("licencia") or "CC0-1.0", meta.get("doc_id"),
+            meta.get("perfiles"), meta.get("titulo"))
+        indice.indexar(fragmentos, registro)
     return indice, Recuperador(embeddings, almacen)
 
 
 def evaluar_recuperacion(recuperador, casos: list[dict], k: int, umbral: float) -> dict:
-    """Acierto@k, MRR y rechazo correcto sobre casos_recuperacion.json."""
-    aciertos, reciprocos, rechazos, n_rel, n_neg = 0, 0.0, 0, 0, 0
+    """Acierto@1, acierto@k, MRR y rechazos correctos sobre casos_recuperacion.json.
+
+    La relevancia se define por documento y sección, no por id de fragmento,
+    para comparar tamaños de fragmento (sección 9.1). Un acierto exige la
+    sección entre los k primeros y sobre el umbral.
+    """
+    aciertos1, aciertos, reciprocos, rechazos, n_rel, n_neg = 0, 0, 0.0, 0, 0, 0
     for caso in casos:
         r = recuperador.recuperar(caso["consulta"], k=k, umbral=umbral)
         if caso["relevante"]:
@@ -191,11 +192,13 @@ def evaluar_recuperacion(recuperador, casos: list[dict], k: int, umbral: float) 
             rango = next((i + 1 for i, x in enumerate(r.fragmentos)
                           if x.fragmento.doc_id == caso["documento"]
                           and x.fragmento.seccion == caso["seccion"]), None)
+            aciertos1 += rango == 1
             aciertos += rango is not None
             reciprocos += 1 / rango if rango else 0
         else:
             n_neg += 1
             rechazos += not r.fragmentos
-    return {"acierto_k": round(aciertos / n_rel, 3) if n_rel else None,
+    return {"acierto_1": round(aciertos1 / n_rel, 3) if n_rel else None,
+            "acierto_k": round(aciertos / n_rel, 3) if n_rel else None,
             "mrr": round(reciprocos / n_rel, 3) if n_rel else None,
-            "rechazo_correcto": round(rechazos / n_neg, 3) if n_neg else None}
+            "rechazos_correctos": rechazos, "rechazos_de": n_neg}

@@ -23,6 +23,7 @@
           <select id="licencia" name="licencia">
             <option value="">Detectar en el documento</option>
             <option>CC-BY-4.0</option><option>CC-BY-SA-4.0</option><option>CC0-1.0</option>
+            <option>CC-BY-3.0</option><option>propio</option>
             <option>MIT</option><option>Apache-2.0</option><option>dominio-publico</option>
           </select></div>
       </div>
@@ -43,8 +44,8 @@
     <h2>Documentos del corpus</h2>
     <p class="meta" id="manifiesto"></p>
     <table>
-      <thead><tr><th>Identificador</th><th>Título</th><th>Licencia</th><th>Perfiles</th>
-        <th>Fragmentos</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>Identificador</th><th>Nombre</th><th>Formato</th><th>Licencia</th><th>Perfiles</th>
+        <th>Fragmentos</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
       <tbody id="lista"></tbody>
     </table>
   </section>
@@ -58,11 +59,13 @@ async function cargar() {
     $("#manifiesto").textContent = `version_corpus ${m.version_corpus} · modelo de embeddings ` +
       `${m.modelo_embeddings || "—"} · ${m.fragmentos} fragmentos indexados`;
     $("#lista").innerHTML = datos.documentos.map(d => `<tr>
-      <td>${esc(d.doc_id)}</td><td>${esc(d.titulo)}</td><td>${esc(d.licencia || "—")}</td>
+      <td>${esc(d.doc_id)}</td><td title="${esc(d.titulo)}">${esc(d.nombre || d.titulo)}</td>
+      <td>${esc(d.formato || "")}</td><td>${esc(d.licencia || "—")}</td>
       <td>${esc((d.perfiles || []).join(", "))}</td><td>${esc(d.fragmentos)}</td>
+      <td>${d.fecha ? esc(new Date(d.fecha * 1000).toLocaleString("es-MX")) : ""}</td>
       <td>${esc(d.estado)}</td>
       <td><button class="secundario" data-borrar="${esc(d.doc_id)}">Borrar</button></td></tr>`).join("")
-      || `<tr><td colspan="7">El corpus está vacío.</td></tr>`;
+      || `<tr><td colspan="9">El corpus está vacío.</td></tr>`;
   } catch (e) {
     $("#error").textContent = e.message;
     $("#error").classList.remove("oculto");

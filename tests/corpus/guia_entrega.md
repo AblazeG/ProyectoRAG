@@ -1,11 +1,11 @@
 ---
-doc_id: guia_impresion3d
-titulo: Guía de preparación para impresión 3D (texto sintético de prueba)
-licencia: CC0-1.0
-perfiles: [impresion_3d]
-fuente: Texto redactado para las pruebas de MeshAudit.
+doc_id: guia_entrega
+titulo: Guía de entrega de modelos 3D con los límites de cada perfil (texto sintético de prueba)
+licencia: propio
+perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+fuente: Texto redactado para las pruebas de MeshAudit; en el corpus real es un Markdown propio del autor.
 ---
-# Guía de preparación para impresión 3D
+# Guía de entrega de modelos 3D
 
 ## Mallas cerradas
 
@@ -56,3 +56,13 @@ Activa Face Orientation para ver las caras invertidas en rojo. Selecciona toda l
 Comprueba que el volumen calculado sea positivo; un volumen negativo indica que todas las normales apuntan hacia dentro.
 
 Las normales invertidas aparecen con frecuencia en modelos reflejados con escala negativa, en piezas unidas desde varios archivos y en mallas reparadas de forma automática. El laminador muestra las zonas afectadas con un color distinto en la vista previa. Corrige la orientación antes de exportar a STL, porque el formato guarda la normal de cada faceta y algunos programas la usan para decidir qué es interior.
+
+## Tamaño de archivo para web
+
+Los modelos para web se descargan antes de mostrarse, por lo que el tamaño del archivo afecta el tiempo de carga. Un modelo para web o realidad aumentada no debería superar 10 MB.
+
+Para reducir el tamaño comprime la geometría con Draco o meshopt al exportar a glTF, reduce la resolución de las texturas y elimina atributos que no se usan, como colores de vértice innecesarios.
+
+Prefiere el formato binario GLB, que empaqueta geometría y texturas en un solo archivo. Mide el resultado y repite la compresión si el archivo sigue siendo grande.
+
+Las texturas suelen ocupar la mayor parte del archivo. Usa formatos comprimidos como KTX2 con Basis Universal o reduce la resolución a la mínima que se vea bien en pantalla. Elimina las animaciones, los materiales y las mallas que no se usan antes de exportar. Un archivo más pequeño también reduce el consumo de memoria en teléfonos y la espera del usuario.

@@ -20,9 +20,9 @@ ollama:
     num_ctx: 8192            # fijo: cambiarlo recarga el modelo en Ollama
 
 modelos:                     # el enrutador solo conoce los alias
-  rapido: gemma4:e2b
-  completo: gpt-oss:20b
-  embeddings: nomic-embed-text
+  rapido: gemma4:e2b          # ADR-01, ruta rápida
+  completo: gpt-oss:20b       # ADR-01, ruta completa
+  embeddings: bge-m3          # ADR-02 (alternativas: embeddinggemma, nomic-embed-text)
   juez: mistral-small3.2:24b
 
 tiempos_limite_s:
@@ -40,8 +40,10 @@ rag:
   k: 5
   umbral: 0.55
   num_ctx: 8192
-  reserva_salida_tokens: 1500
-  lote_hallazgos: 4
+  reserva_prompt_tokens: 1500     # prompt de sistema + margen de razonamiento de gpt-oss
+  tokens_salida_por_hallazgo: 250
+  caracteres_por_token: 3.5
+  lote_hallazgos: 4               # máximo; se recalcula con k y el tamaño de fragmento (sección 7.1.2)
 
 agente:
   max_reformulaciones: 3
@@ -55,7 +57,9 @@ guardrails:
   licencias_permitidas:
     - CC-BY-4.0
     - CC-BY-SA-4.0
+    - CC-BY-3.0          # documentación de Godot
     - CC0-1.0
+    - propio             # documentos elaborados por el autor
     - MIT
     - Apache-2.0
     - dominio-publico

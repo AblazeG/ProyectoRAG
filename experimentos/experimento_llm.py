@@ -1,70 +1,122 @@
-"""Experimento de modelos de chat: gemma4:e2b, qwen3:8b y gpt-oss:20b.
+"""Experimento de modelos de lenguaje (ADR-01): tabla 8 del informe.
 
-Cada candidato explica los hallazgos de los casos de producto (ambos alias
-apuntan al candidato). Se mide latencia, validez del JSON (S1), citas
-inventadas (S2), cifras sin respaldo (S3), «sin norma» y, con --juez, la
-calidad con mistral-small3.2:24b.
+Candidatos: gemma4:e2b, qwen3:8b y gpt-oss:20b, con temperature 0.1, num_ctx 8192
+y seed 42 (think desactivado en gemma4 y qwen3, bajo en gpt-oss). Cada candidato
+explica los hallazgos de los 20 casos de producto (ambos alias apuntan a él).
 
-    python -m experimentos.experimento_llm --proveedor ollama --corpus corpus/ --juez
-    python -m experimentos.experimento_llm --proveedor falso
+Columnas: calidad (0–5, media de fidelidad y relevancia del juez
+mistral-small3.2:24b), español (0–5), latencia p50/p95 por auditoría (s),
+tok/s en caliente (eval_count / eval_duration × 10⁹), memoria (GB, ``ollama ps``)
+y carga en frío (s), medida una sola vez y aparte. Entre candidatos cada modelo
+se libera de la memoria. Además escribe ``muestra_revision_manual.csv`` con cinco
+casos al azar por modelo para validar al juez a mano (15 casos).
+
+    python -m experimentos.experimento_llm --proveedor ollama --juez --salida evaluacion/resultados/
 """
 from __future__ import annotations
 
 import argparse
+import random
+import statistics
+import sys
+import time
 from pathlib import Path
 
-from evaluacion.comun import (CORPUS_PRUEBA, RAIZ, Sesion, cargar, chat_para, escribir_csv,
-                              estadisticos, mallas)
-from evaluacion.juez import crear_juez
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from evaluacion.comun import (OLLAMA, Sesion, argumentos_comunes, cargar, chat_para,  # noqa: E402
+                              corpus_por_defecto, escribir_csv, estadisticos, mallas)
+from evaluacion.juez import crear_juez  # noqa: E402
 
 CANDIDATOS = ["gemma4:e2b", "qwen3:8b", "gpt-oss:20b"]
-SALIDA = RAIZ / "experimentos" / "resultados"
+
+
+def _ollama(metodo: str, ruta: str, **kw):
+    import httpx
+    try:
+        return httpx.request(metodo, f"{OLLAMA}{ruta}", timeout=600, **kw).json()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def liberar(modelo: str) -> None:
+    _ollama("POST", "/api/generate", json={"model": modelo, "keep_alive": 0})
+
+
+def memoria_gb(modelo: str) -> float | None:
+    estado = _ollama("GET", "/api/ps") or {}
+    for m in estado.get("models", []):
+        if m.get("name", "").startswith(modelo):
+            return round(m.get("size", 0) / 1e9, 2)
+    return None
+
+
+def carga_en_frio(modelo: str) -> float | None:
+    inicio = time.perf_counter()
+    r = _ollama("POST", "/api/generate", json={"model": modelo, "prompt": "ok", "stream": False,
+                                               "options": {"num_ctx": 8192}})
+    return round(time.perf_counter() - inicio, 2) if r else None
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--proveedor", default="falso", choices=["falso", "ollama"])
-    p.add_argument("--corpus", type=Path, default=None)
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    argumentos_comunes(p)
     p.add_argument("--candidatos", default=",".join(CANDIDATOS))
+    p.add_argument("--mallas", type=Path, default=None)
     p.add_argument("--juez", action="store_true")
     p.add_argument("--corridas", type=int, default=1)
     args = p.parse_args(argv)
-    corpus = args.corpus or CORPUS_PRUEBA
-    dir_mallas = mallas(None, "falso")
-    juez = crear_juez(args.juez, "mistral-small3.2:24b", "http://127.0.0.1:11434")
-    casos = [c for c in cargar("casos_producto.json") if c["mutacion"] != "base"]
-    filas = []
+    corpus = corpus_por_defecto(args)
+    dir_mallas = mallas(args.mallas, args.proveedor)
+    juez = crear_juez(args.juez, "mistral-small3.2:24b", OLLAMA)
+    casos = cargar("casos_producto.json")
+    filas, muestra = [], []
+    rng = random.Random(42)
     for modelo in args.candidatos.split(","):
+        frio = None
+        if args.proveedor == "ollama":
+            for otro in CANDIDATOS:
+                liberar(otro)
+            frio = carga_en_frio(modelo)
         chat = chat_para(modelo, args.proveedor)
         sesion = Sesion(proveedor=args.proveedor, cache=False, corpus=corpus,
                         chats={"rapido": chat, "completo": chat})
-        tiempos, s1, s2, s3, sin_norma, explicados, notas = [], 0, 0, 0, 0, 0, []
+        tiempos, tok_s, notas, explicaciones = [], [], [], []
         for _ in range(args.corridas):
             for caso in casos:
                 inf = sesion.auditar(dir_mallas / caso["malla"], caso["perfil"]).json()
                 if inf.get("ruta") in (None, "sin_modelo"):
                     continue
-                tiempos.append(inf["tiempo_ms"])
-                g = inf["guardrails"]
-                s1, s2, s3 = s1 + ("S1" in g), s2 + ("S2" in g), s3 + ("S3" in g)
+                tiempos.append(inf["tiempo_ms"] / 1000)
+                traza = sesion.trazas().get(inf["traza_id"], {})
+                tok_s += [l["tokens_por_s"] for l in traza.get("llamadas", []) if l.get("tokens_por_s")]
                 for h in inf["hallazgos"]:
-                    if h["gravedad"] == "informativo":
+                    if h["gravedad"] == "informativo" or not h.get("fuente"):
                         continue
-                    explicados += 1
-                    sin_norma += h["explicacion"] == "Sin norma aplicable en el corpus"
-                    if h.get("fuente"):
-                        nota = juez.calificar(h["descripcion"], h["explicacion"] + "\n" + "\n".join(h["correccion"]),
-                                              [h["fuente"]["fragmento"]])
-                        if nota:
-                            notas.append(nota)
-        n = len(tiempos) or 1
-        filas.append({"modelo": modelo, "informes": len(tiempos), **{f"latencia_{k}": v for k, v in estadisticos(tiempos).items()},
-                      "tasa_s1": round(s1 / n, 3), "tasa_s2": round(s2 / n, 3), "tasa_s3": round(s3 / n, 3),
-                      "hallazgos": explicados, "sin_norma": sin_norma,
-                      "fidelidad": round(sum(x["fidelidad"] for x in notas) / len(notas), 2) if notas else None,
-                      "relevancia": round(sum(x["relevancia"] for x in notas) / len(notas), 2) if notas else None})
+                    texto = h["explicacion"] + "\n" + "\n".join(h["correccion"])
+                    nota = juez.calificar(f"Explicar el hallazgo {h['verificacion']}: {h['descripcion']}",
+                                          texto, [h["fuente"]["fragmento"]])
+                    explicaciones.append({"modelo": modelo, "caso": caso["id"], "hallazgo": h["id"],
+                                          "explicacion": texto, "fragmento": h["fuente"]["fragmento"],
+                                          **(nota or {})})
+                    if nota:
+                        notas.append(nota)
+        muestra += rng.sample(explicaciones, min(5, len(explicaciones)))
+        lat = estadisticos(tiempos)
+        filas.append({
+            "modelo": modelo, "informes": len(tiempos),
+            "calidad": round(statistics.mean((n["fidelidad"] + n["relevancia"]) / 2 for n in notas), 2) if notas else None,
+            "fidelidad": round(statistics.mean(n["fidelidad"] for n in notas), 2) if notas else None,
+            "relevancia": round(statistics.mean(n["relevancia"] for n in notas), 2) if notas else None,
+            "espanol": round(statistics.mean(n.get("espanol", 0) for n in notas), 2) if notas else None,
+            "latencia_p50_s": lat["mediana"], "latencia_p95_s": lat["p95"],
+            "tok_s": round(statistics.mean(tok_s), 1) if tok_s else None,
+            "memoria_gb": memoria_gb(modelo) if args.proveedor == "ollama" else None,
+            "carga_en_frio_s": frio})
         print(filas[-1])
-    print(escribir_csv(SALIDA / "experimento_llm.csv", filas))
+    print(escribir_csv(args.salida / "tabla08_llm.csv", filas))
+    print(escribir_csv(args.salida / "muestra_revision_manual.csv",
+                       [{**m, "nota_autor_fidelidad": "", "nota_autor_relevancia": ""} for m in muestra]))
     return 0
 
 

@@ -1,26 +1,24 @@
-"""Ciclo de agente (C2): recuperación con reformulación acotada.
+"""Ciclo de agente (C2): recuperación con reformulación acotada (Código 4, ADR-07).
 
 Uso principal: preguntas de seguimiento coloquiales. También se aplica a la
-consulta canónica de un hallazgo que no recupera bien.
+consulta canónica de un hallazgo que no recupera bien entre español e inglés.
 
 - Suficiente si top-1 ≥ 0.55 y hay al menos 2 fragmentos sobre el umbral.
-- Si no, el alias ``rapido`` reformula con sinónimos técnicos ES/EN.
+- Si no, el alias ``rapido`` reformula la consulta con sinónimos técnicos ES/EN.
 - Tope: 3 reformulaciones por consulta y 6 por informe (``presupuesto.consumir()``).
-- Al agotarse: «sin norma aplicable» (lista vacía).
+- Al agotarse, la consulta se declara «sin norma aplicable» (lista vacía).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-from servicio.contexto import prompts
+from servicio.contexto.prompts import prompt_reformular
 from servicio.contexto.recuperador import Recuperador, ResultadoRecuperacion
-from servicio.dominio import ErrorModelo, Recuperado, Reformulacion
+from servicio.dominio import ErrorModelo, Recuperado
 from servicio.modelos.gateway import Gateway
 
-MAX_REFORMULACIONES = 3
+MAX_REFORMULACIONES = 3        # por consulta; el presupuesto admite 6 por informe
 UMBRAL = 0.55
 MAX_POR_INFORME = 6
-MIN_FRAGMENTOS = 2
+MIN_SOBRE_UMBRAL = 2
 
 
 class Presupuesto:
@@ -41,63 +39,45 @@ class Presupuesto:
         return True
 
 
-@dataclass
-class ResultadoAgente:
-    fragmentos: list[Recuperado]          # vacío = sin norma aplicable
-    iteraciones: int
-    consultas: list[str] = field(default_factory=list)
-    top1: float = 0.0
-    suficiente: bool = False
+def es_suficiente(recuperados: ResultadoRecuperacion, umbral: float = UMBRAL) -> bool:
+    """top-1 ≥ umbral y al menos dos fragmentos sobre el umbral."""
+    sobre_umbral = [r for r in recuperados.candidatos if r.puntaje >= umbral]
+    return recuperados.top1 >= umbral and len(sobre_umbral) >= MIN_SOBRE_UMBRAL
 
 
-def suficiente(resultado: ResultadoRecuperacion, umbral: float = UMBRAL) -> bool:
-    sobre_umbral = [r for r in resultado.candidatos if r.puntaje >= umbral]
-    return resultado.top1 >= umbral and len(sobre_umbral) >= MIN_FRAGMENTOS
-
-
-def recuperar_con_agente(consulta, perfil, presupuesto, traza, *,
-                         recuperador: Recuperador, gateway: Gateway | None,
-                         etiqueta: str | None = None,
-                         max_reformulaciones: int = MAX_REFORMULACIONES) -> ResultadoAgente:
-    """Código 4 del informe. ``recuperador`` y ``gateway`` se inyectan."""
-    mejor = recuperador.recuperar(consulta, perfil=perfil)
-    consultas = [consulta]
-    actual = consulta
-    iteraciones = 0
-    while (not suficiente(mejor) and iteraciones < max_reformulaciones
-           and gateway is not None and presupuesto.consumir()):
-        iteraciones += 1
-        try:
-            resultado = gateway.generar("rapido", prompts.construir_reformulacion(actual, iteraciones),
-                                        prompts.ESQUEMA_REFORMULACION, ruta="agente", traza=traza)
-            actual = Reformulacion.model_validate_json(resultado.generacion.texto).consulta
-        except (ErrorModelo, ValueError):
-            break  # sin reformulación posible: se conserva lo mejor que hubo
-        consultas.append(actual)
-        nuevo = recuperador.recuperar(actual, perfil=perfil)
-        if nuevo.top1 > mejor.top1 or suficiente(nuevo):
-            mejor = nuevo
-    es_suficiente = suficiente(mejor)
-    if traza is not None:
-        traza.sumar_iteraciones(iteraciones)
-        traza.registrar_recuperacion(etiqueta or consulta[:60], mejor.top1, len(mejor.fragmentos))
-    return ResultadoAgente(fragmentos=mejor.fragmentos if es_suficiente else [],
-                           iteraciones=iteraciones, consultas=consultas, top1=mejor.top1,
-                           suficiente=es_suficiente)
-
-
-class Agente:
-    """Envoltura con las dependencias ya inyectadas."""
-
-    def __init__(self, recuperador: Recuperador, gateway: Gateway | None,
-                 max_reformulaciones: int = MAX_REFORMULACIONES):
+class CicloAgente:
+    def __init__(self, recuperador: Recuperador, gateway: Gateway | None, k: int = 5,
+                 max_reformulaciones: int = MAX_REFORMULACIONES, umbral: float = UMBRAL):
         self.recuperador = recuperador
         self.gateway = gateway
+        self.k = k
         self.max_reformulaciones = max_reformulaciones
+        self.umbral = umbral
 
-    def recuperar_con_agente(self, consulta, perfil, presupuesto, traza,
-                             etiqueta: str | None = None) -> ResultadoAgente:
-        return recuperar_con_agente(consulta, perfil, presupuesto, traza,
-                                    recuperador=self.recuperador, gateway=self.gateway,
-                                    etiqueta=etiqueta,
-                                    max_reformulaciones=self.max_reformulaciones)
+    def recuperar_con_agente(self, consulta, perfil, presupuesto, traza
+                             ) -> tuple[list[Recuperado], int]:
+        """Código 4 del informe. Devuelve (fragmentos, reformulaciones usadas);
+        una lista vacía significa «sin norma aplicable»."""
+        recuperador, gateway = self.recuperador, self.gateway
+        intento = 0
+        for intento in range(self.max_reformulaciones + 1):
+            recuperados = recuperador.recuperar(consulta, k=self.k, perfil=perfil)
+            if traza is not None:
+                traza.registrar_recuperacion(consulta[:80], recuperados.top1,
+                                             len(recuperados.fragmentos))
+            if es_suficiente(recuperados, self.umbral):
+                return recuperados.fragmentos, intento          # condición de salida
+            if (intento == self.max_reformulaciones or gateway is None
+                    or not presupuesto.consumir()):
+                break                                           # tope por consulta o por informe
+            try:
+                consulta = gateway.generar("rapido", prompt_reformular(consulta),
+                                           ruta="agente", traza=traza).texto.strip()
+            except ErrorModelo:
+                break
+            if not consulta:
+                break
+            if traza is not None:
+                traza.anotar(reformulacion=consulta, intento=intento + 1)
+                traza.sumar_iteraciones(1)
+        return [], intento                                      # se informa «sin norma aplicable»

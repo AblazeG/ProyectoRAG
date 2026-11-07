@@ -16,7 +16,9 @@ from servicio.dominio import (
     PERFILES,
     AlmacenVectorial,
     ArchivoSubido,
+    DocIndexado,
     DocumentoExtraido,
+    Fragmento,
     IndiceIncompatible,
     LectorDocumento,
     ModeloEmbeddings,
@@ -107,17 +109,16 @@ class Indice:
         self.repo_manifiesto.guardar(nuevo)
         return nuevo["version_corpus"]
 
-    # -- documentos --------------------------------------------------------
+    # -- documentos (figura 6) ------------------------------------------------
     def inspeccionar(self, archivo: ArchivoSubido) -> dict:
         return self.lector.inspeccionar(archivo)
 
-    def extraer(self, archivo: ArchivoSubido) -> DocumentoExtraido:
-        return self.lector.extraer(archivo)
-
-    def indexar(self, documento: DocumentoExtraido, archivo: ArchivoSubido, licencia: str,
-                doc_id: str | None = None, perfiles: list[str] | None = None,
-                titulo: str | None = None) -> dict:
-        self.verificar_compatibilidad()
+    def extraer_y_fragmentar(self, archivo: ArchivoSubido, licencia: str,
+                             doc_id: str | None = None, perfiles: list[str] | str | None = None,
+                             titulo: str | None = None
+                             ) -> tuple[DocumentoExtraido, list[Fragmento], dict]:
+        """Lee PDF/HTML/MD con C7 y corta en fragmentos de 800 caracteres (solape 120)."""
+        documento = self.lector.extraer(archivo)
         meta = documento.metadatos or {}
         doc_id = slug(doc_id or meta.get("doc_id") or archivo.nombre.rsplit(".", 1)[0]).replace("-", "_")
         perfiles = perfiles or meta.get("perfiles") or list(PERFILES)
@@ -126,25 +127,36 @@ class Indice:
         perfiles = [p for p in perfiles if p in PERFILES] or list(PERFILES)
         if titulo:
             documento.titulo = titulo
+        fragmentos = fragmentar(documento, doc_id, licencia, perfiles, self.tam, self.solape)
+        registro = {"doc_id": doc_id, "nombre": archivo.nombre, "titulo": documento.titulo,
+                    "formato": documento.formato, "licencia": licencia, "perfiles": perfiles,
+                    "secciones": len(documento.secciones), "fuente": meta.get("fuente")}
+        return documento, fragmentos, registro
+
+    def indexar(self, fragmentos: list[Fragmento], registro: dict) -> DocIndexado:
+        """Embeddings de los fragmentos, alta en el almacén y versión++ en el manifiesto."""
+        self.verificar_compatibilidad()
+        doc_id = registro["doc_id"]
         if self.repo_documentos.obtener(doc_id):
             self.almacen.eliminar_documento(doc_id)  # reemplazo del mismo documento
-        fragmentos = fragmentar(documento, doc_id, licencia, perfiles, self.tam, self.solape)
         if fragmentos:
             vectores = self.embeddings.vectorizar(
                 [texto_para_embedding(f) for f in fragmentos], "documento")
             self.almacen.agregar(fragmentos, vectores)
         version = self._subir_version()
-        registro = {"doc_id": doc_id, "titulo": documento.titulo, "formato": documento.formato,
-                    "licencia": licencia, "perfiles": perfiles, "archivo": archivo.nombre,
-                    "fragmentos": len(fragmentos), "secciones": len(documento.secciones),
-                    "version_corpus": version, "estado": "indexado",
-                    "fuente": meta.get("fuente")}
-        self.repo_documentos.guardar(registro)
-        return registro
+        fecha = time.time()
+        self.repo_documentos.guardar({**registro, "fragmentos": len(fragmentos),
+                                      "version_corpus": version, "fecha": fecha,
+                                      "estado": "indexado"})
+        return DocIndexado(documento_id=doc_id, nombre=registro["nombre"],
+                           formato=registro["formato"], licencia=registro["licencia"],
+                           perfiles=registro["perfiles"], fragmentos=len(fragmentos),
+                           version_corpus=version, fecha=fecha, titulo=registro["titulo"])
 
     def registrar_cuarentena(self, archivo: ArchivoSubido, motivo: str) -> dict:
         registro = {"doc_id": "cuarentena_" + slug(archivo.nombre).replace("-", "_"),
-                    "titulo": archivo.nombre, "archivo": archivo.nombre,
+                    "titulo": archivo.nombre, "nombre": archivo.nombre,
+                    "formato": archivo.extension.lstrip("."), "fecha": time.time(),
                     "estado": "cuarentena", "motivo": motivo, "fragmentos": 0}
         self.repo_documentos.guardar(registro)
         return registro

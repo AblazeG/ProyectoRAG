@@ -58,7 +58,7 @@ def _capa_destino(nombre: str) -> str | None:
     return partes[1]
 
 
-def test_dependencias_entre_capas():
+def test_dependencias_solo_hacia_abajo():
     violaciones = []
     for ruta, capa in _modulos():
         if capa in RAICES_COMPOSICION or capa == "__init__":

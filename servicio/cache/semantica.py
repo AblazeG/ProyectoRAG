@@ -36,7 +36,7 @@ class CacheSemantica:
         n = np.linalg.norm(v)
         return v / n if n else v
 
-    def buscar(self, pregunta: str, archivo_sha: str, perfil: str,
+    def buscar_similar(self, pregunta: str, archivo_sha: str, perfil: str,
                version_corpus: int) -> tuple[dict, float] | None:
         if not self.activa:
             return None

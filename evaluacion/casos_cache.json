@@ -41,56 +41,47 @@
       "caso_producto": "P19"
     }
   ],
+  "informe_preguntas": "P01",
   "preguntas_repetidas": [
     {
       "id": "Q01",
-      "pregunta": "¿Por qué evitar n-gons en una malla que se deforma?",
-      "seccion": "Topología para deformación"
+      "pregunta": "¿Por qué evitar n-gons en una malla que se deforma?"
     },
     {
       "id": "Q02",
-      "pregunta": "¿Cómo selecciono la geometría non-manifold en Blender?",
-      "seccion": "Limpieza de geometría no manifold"
+      "pregunta": "¿Cómo selecciono la geometría non-manifold en Blender?"
     },
     {
       "id": "Q03",
-      "pregunta": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
-      "seccion": "Desenvolvimiento UV"
+      "pregunta": "¿Cómo marco costuras y desenvuelvo el mapa UV?"
     },
     {
       "id": "Q04",
-      "pregunta": "¿Qué hace Degenerate Dissolve?",
-      "seccion": "Disolver geometría degenerada"
+      "pregunta": "¿Qué hace Degenerate Dissolve?"
     },
     {
       "id": "Q05",
-      "pregunta": "¿Cómo recalculo las normales hacia fuera?",
-      "seccion": "Orientación de normales"
+      "pregunta": "¿Cómo recalculo las normales hacia fuera?"
     },
     {
       "id": "Q06",
-      "pregunta": "¿Cómo uso Merge by Distance?",
-      "seccion": "Fusionar vértices por distancia"
+      "pregunta": "¿Cómo uso Merge by Distance?"
     },
     {
       "id": "Q07",
-      "pregunta": "¿Qué unidad de longitud usa glTF?",
-      "seccion": "Unidades y escala"
+      "pregunta": "¿Qué unidad de longitud usa glTF?"
     },
     {
       "id": "Q08",
-      "pregunta": "¿Qué es TEXCOORD_0 en glTF?",
-      "seccion": "Coordenadas de textura"
+      "pregunta": "¿Qué es TEXCOORD_0 en glTF?"
     },
     {
       "id": "Q09",
-      "pregunta": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
-      "seccion": "Presupuesto de polígonos"
+      "pregunta": "¿Cuántos triángulos puede tener un personaje de juego móvil?"
     },
     {
       "id": "Q10",
-      "pregunta": "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
-      "seccion": "Tamaño de archivo para web"
+      "pregunta": "¿Cuál es el tamaño máximo recomendado de un GLB para web?"
     }
   ],
   "parafrasis": [

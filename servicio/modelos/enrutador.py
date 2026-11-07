@@ -19,7 +19,7 @@ RESPALDO = {"rapido": "completo", "completo": "rapido"}
 
 
 @dataclass(frozen=True)
-class DecisionRuta:
+class Ruta:
     ruta: str
     alias: str | None
     graves: int = 0
@@ -27,17 +27,22 @@ class DecisionRuta:
 
 
 class Enrutador:
-    def ruta_auditoria(self, hallazgos: list[Hallazgo]) -> DecisionRuta:
+    def clasificar(self, hallazgos: list[Hallazgo] | None = None,
+                   tipo: str = "auditoria") -> Ruta:
+        """Tabla 10: decide por la salida del analizador determinista (ADR-04).
+
+        Las preguntas de seguimiento siempre van a la ruta rápida.
+        """
+        if tipo == "pregunta":
+            return Ruta(RAPIDA, ALIAS[RAPIDA])
+        hallazgos = hallazgos or []
         graves = sum(h.gravedad == "grave" for h in hallazgos)
         menores = sum(h.gravedad == "menor" for h in hallazgos)  # los informativos no cuentan
         if graves + menores == 0:
-            return DecisionRuta(SIN_MODELO, None, graves, menores)
+            return Ruta(SIN_MODELO, None, graves, menores)
         if graves >= 1 or graves + menores >= 4:
-            return DecisionRuta(COMPLETA, ALIAS[COMPLETA], graves, menores)
-        return DecisionRuta(RAPIDA, ALIAS[RAPIDA], graves, menores)
-
-    def ruta_pregunta(self) -> DecisionRuta:
-        return DecisionRuta(RAPIDA, ALIAS[RAPIDA])
+            return Ruta(COMPLETA, ALIAS[COMPLETA], graves, menores)
+        return Ruta(RAPIDA, ALIAS[RAPIDA], graves, menores)
 
     @staticmethod
     def alias_respaldo(alias: str) -> str:

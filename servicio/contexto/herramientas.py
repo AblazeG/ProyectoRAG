@@ -132,13 +132,13 @@ def medir(malla: MallaCruda, perfil: Perfil) -> dict:
         "tamano_bytes": int(malla.tamano_bytes),
         "vertices": int(len(malla.vertices)),
         "triangulos": int(len(malla.caras)),
-        "caras_originales": len(malla.lados_por_cara) if malla.lados_por_cara is not None else None,
+        "caras": len(malla.lados_por_cara) if malla.lados_por_cara else int(len(malla.caras)),
         "dimensiones": [round(float(x), 6) for x in extension],
         "dimension_max": round(float(extension.max()), 6),
         "unidad": perfil.unidad,
         "aristas_no_manifold": aristas_no_manifold(fusionada),
         "cerrada": cerrada,
-        "tiene_uv": malla.uv is not None,
+        "uv": malla.uv is not None,
         "caras_degeneradas": int(np.count_nonzero(cruda.area_faces < area_min)),
         "normales_consistentes": consistente,
         "volumen_con_signo": None if volumen is None else round(volumen, 9),
@@ -161,37 +161,66 @@ def medir(malla: MallaCruda, perfil: Perfil) -> dict:
 # Reglas -> hallazgos
 # ---------------------------------------------------------------------------
 
+def _n(valor: float) -> str:
+    return f"{round(float(valor), 4):g}"
+
+
+def _plural(n: int, singular: str, plural: str) -> str:
+    return f"{n} {singular if n == 1 else plural}"
+
+
+def _cota(maximo, unidad: str = "") -> str:
+    texto = _n(maximo) if maximo == 0 else f"≤ {_n(maximo)}"
+    return f"{texto} {unidad}".strip()
+
+
 def _evaluar(verificacion: str, p: dict, m: dict, unidad: str):
-    """Devuelve (falla, medido, limite_texto); falla=None si no es medible."""
-    if verificacion == "V1":
-        medido = m["pct_ngons"]
-        limite = f"≤ {p.get('max_pct', 0)} %"
-        return (None if medido == NO_MEDIBLE else medido > p.get("max_pct", 0)), medido, limite
-    if verificacion == "V2":
-        medido = m["pct_triangulos"]
-        limite = f"≤ {p.get('max_pct', 10)} %"
-        return (None if medido == NO_MEDIBLE else medido > p.get("max_pct", 10)), medido, limite
+    """Devuelve (falla, valor, medido, limite); falla=None si no es medible.
+
+    ``medido`` y ``limite`` son texto con unidad, como en el Código 8 del informe.
+    """
+    if verificacion in ("V1", "V2"):
+        clave = "pct_ngons" if verificacion == "V1" else "pct_triangulos"
+        maximo = p.get("max_pct", 0 if verificacion == "V1" else 10)
+        valor = m[clave]
+        if valor == NO_MEDIBLE:
+            return None, None, NO_MEDIBLE, _cota(maximo, "%")
+        return valor > maximo, valor, f"{round(valor, 1):g} %", _cota(maximo, "%")
     if verificacion == "V3":
-        return m["triangulos"] > p["max"], m["triangulos"], f"≤ {p['max']} triángulos"
+        n = m["triangulos"]
+        return n > p["max"], n, _plural(n, "triángulo", "triángulos"), _cota(p["max"], "triángulos")
     if verificacion == "V4":
-        return m["aristas_no_manifold"] > p.get("max", 0), m["aristas_no_manifold"], f"{p.get('max', 0)}"
+        n = m["aristas_no_manifold"]
+        return n > p.get("max", 0), n, _plural(n, "arista", "aristas"), _cota(p.get("max", 0))
     if verificacion == "V5":
-        return not m["cerrada"], m["cerrada"], "cerrada (watertight)"
+        return (not m["cerrada"], m["cerrada"], "cerrada" if m["cerrada"] else "abierta",
+                "cerrada (watertight)")
     if verificacion == "V6":
-        return not m["tiene_uv"], m["tiene_uv"], "UV presentes"
+        return not m["uv"], m["uv"], "con UV" if m["uv"] else "sin UV", "UV por vértice"
     if verificacion == "V7":
         d = m["dimension_max"]
-        return (not p["min"] <= d <= p["max"]), d, f"{p['min']}–{p['max']} {unidad}"
+        return (not p["min"] <= d <= p["max"]), d, f"{_n(d)} {unidad}", \
+            f"{_n(p['min'])}–{_n(p['max'])} {unidad}"
     if verificacion == "V8":
-        return m["caras_degeneradas"] > p.get("max", 0), m["caras_degeneradas"], f"{p.get('max', 0)}"
+        n = m["caras_degeneradas"]
+        return n > p.get("max", 0), n, _plural(n, "cara", "caras"), _cota(p.get("max", 0))
     if verificacion == "V9":
-        return not m["normales_ok"], m["normales_ok"], "normales consistentes y hacia fuera"
+        if m["normales_ok"]:
+            medido = "consistentes"
+        elif not m["normales_consistentes"]:
+            medido = "inconsistentes"
+        else:
+            medido = "invertidas (volumen negativo)"
+        return not m["normales_ok"], m["normales_ok"], medido, "consistentes y hacia fuera"
     if verificacion == "V10":
-        medido = m["vertices_duplicados"]
-        return (None if medido == NO_MEDIBLE else medido > p.get("max", 0)), medido, f"{p.get('max', 0)}"
+        n = m["vertices_duplicados"]
+        if n == NO_MEDIBLE:
+            return None, None, NO_MEDIBLE, _cota(p.get("max", 0))
+        return n > p.get("max", 0), n, _plural(n, "vértice", "vértices"), _cota(p.get("max", 0))
     if verificacion == "V11":
-        mb = round(p["max_bytes"] / (1024 * 1024), 2)
-        return m["tamano_bytes"] > p["max_bytes"], m["tamano_bytes"], f"≤ {mb:g} MB"
+        mb = m["tamano_bytes"] / (1024 * 1024)
+        return (m["tamano_bytes"] > p["max_bytes"], m["tamano_bytes"], f"{mb:.2f} MB",
+                _cota(p["max_bytes"] / (1024 * 1024), "MB"))
     raise ValueError(verificacion)
 
 
@@ -206,27 +235,33 @@ def analizar_malla(malla: MallaCruda, perfil: Perfil,
     for verificacion in sorted(perfil.reglas, key=lambda v: int(v[1:])):
         regla = perfil.reglas[verificacion]
         tipo, descripcion, consulta = VERIFICACIONES[verificacion]
-        falla, medido, limite = _evaluar(verificacion, regla.parametros, metricas, perfil.unidad)
+        falla, valor, medido, limite = _evaluar(verificacion, regla.parametros, metricas,
+                                                perfil.unidad)
         if falla is None:
             no_medibles.append(verificacion)
             hallazgos.append(Hallazgo(
-                id=f"h-{verificacion}", verificacion=verificacion, tipo="no_medible",
+                id="", verificacion=verificacion, tipo="no_medible",
                 gravedad="informativo", medido=NO_MEDIBLE, limite=limite,
                 descripcion=f"{descripcion}: no medible en {malla.formato.upper()}; "
                             "audita el archivo en OBJ para medirlo.",
                 consulta=consulta, norma=regla.norma))
         elif falla:
             hallazgos.append(Hallazgo(
-                id=f"h-{verificacion}", verificacion=verificacion, tipo=tipo,
+                id="", verificacion=verificacion, tipo=tipo,
                 gravedad=regla.gravedad, medido=medido, limite=limite,
-                descripcion=descripcion, consulta=consulta, norma=regla.norma))
+                descripcion=descripcion, consulta=consulta, norma=regla.norma, valor=valor))
+    orden = {"grave": 0, "menor": 1, "informativo": 2}
+    hallazgos.sort(key=lambda h: (orden[h.gravedad], int(h.verificacion[1:])))
+    for numero, h in enumerate(hallazgos, start=1):  # "h1", "h2", … (Código 8)
+        h.id = f"h{numero}"
     reales = [h for h in hallazgos if h.tipo != "no_medible"]
     return ResultadoAnalisis(metricas=metricas, hallazgos=hallazgos,
                              semaforo=calcular_semaforo(reales), no_medibles=no_medibles)
 
 
 class Analizador:
-    """Herramienta ``analizar_malla`` lista para C2: lee con el puerto de C7 y mide."""
+    """Herramienta ``analizar_malla`` de C5: lee con el puerto de C7 (``LectorTrimesh``)
+    y devuelve (métricas, hallazgos)."""
 
     version = VERSION_ANALIZADOR
 
@@ -239,8 +274,8 @@ class Analizador:
     def leer(self, ruta: Path) -> MallaCruda:
         return self.lector.leer(ruta)
 
-    def analizar(self, ruta: Path | None, clave_perfil: str,
-                 malla: MallaCruda | None = None) -> ResultadoAnalisis:
+    def analizar_malla(self, ruta: Path | None, clave_perfil: str,
+                       malla: MallaCruda | None = None) -> ResultadoAnalisis:
         perfil = self.catalogo.obtener(clave_perfil)
         if malla is None:
             malla = self.lector.leer(ruta)

@@ -9,7 +9,7 @@ Los embeddings no pasan por aquí: C3, C4 y C5 usan el puerto directamente.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 from servicio.dominio import (
@@ -26,17 +26,6 @@ REINTENTABLES = (ErrorConexion, ErrorServidorModelo)
 
 
 @dataclass
-class ResultadoGateway:
-    generacion: Generacion
-    alias: str                 # alias que respondió
-    alias_pedido: str
-    modelo: str
-    uso_respaldo: bool
-    intentos: int
-    errores: list[str] = field(default_factory=list)
-
-
-@dataclass
 class RegistroLlamada:
     alias: str
     modelo: str
@@ -47,6 +36,7 @@ class RegistroLlamada:
     uso_respaldo: bool
     ok: bool
     error: str | None = None
+    tokens_por_s: float | None = None
 
 
 class Gateway:
@@ -80,9 +70,14 @@ class Gateway:
                 errores.append(f"{alias}:{type(exc).__name__}")
                 raise
 
-    def generar(self, alias: str, mensajes: list[dict], esquema: dict | None,
+    def generar(self, alias: str, mensajes: list[dict], esquema: dict | None = None,
                 ruta: str | None = None, traza=None,
-                permitir_respaldo: bool = True) -> ResultadoGateway:
+                permitir_respaldo: bool = True) -> Generacion:
+        """Interfaz única hacia los modelos: ``generar(alias, mensajes, esquema)``.
+
+        La ``Generacion`` devuelta indica el alias que respondió, si se usó el
+        respaldo y cuántos intentos hubo.
+        """
         errores: list[str] = []
         candidatos = [alias] + ([RESPALDO[alias]] if permitir_respaldo else [])
         intentos_totales = 0
@@ -96,9 +91,10 @@ class Gateway:
                 continue
             intentos_totales += intentos
             self._registrar(actual, ruta, generacion, inicio, posicion > 0, traza)
-            return ResultadoGateway(generacion, actual, alias, generacion.modelo,
-                                    uso_respaldo=posicion > 0, intentos=intentos_totales,
-                                    errores=errores)
+            generacion.alias = actual
+            generacion.uso_respaldo = posicion > 0
+            generacion.intentos = intentos_totales
+            return generacion
         raise ModeloNoDisponible("Ni la ruta principal ni el respaldo respondieron.")
 
     def _registrar(self, alias, ruta, generacion, inicio, respaldo, traza, error=None):
@@ -107,7 +103,8 @@ class Gateway:
             tokens_entrada=generacion.tokens_entrada if generacion else 0,
             tokens_salida=generacion.tokens_salida if generacion else 0,
             duracion_ms=round((time.perf_counter() - inicio) * 1000, 2),
-            uso_respaldo=respaldo, ok=generacion is not None, error=error)
+            uso_respaldo=respaldo, ok=generacion is not None, error=error,
+            tokens_por_s=generacion.tokens_por_s if generacion else None)
         self.registro.append(registro)
         if len(self.registro) > 1000:
             del self.registro[:500]

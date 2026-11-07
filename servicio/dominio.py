@@ -49,18 +49,19 @@ class MallaCruda:
 class Hallazgo:
     """Resultado de una verificación que no se cumple (C5 lo produce)."""
 
-    id: str                      # "h-V4"
+    id: str                      # "h1", "h2", … en el orden del informe
     verificacion: str            # "V4"
     tipo: str                    # "aristas_no_manifold"
     gravedad: str                # "grave" | "menor" | "informativo"
-    medido: Any
-    limite: str
+    medido: str                  # texto con unidad, p. ej. "12.4 %" (Código 8)
+    limite: str                  # p. ej. "0 %"
     descripcion: str
     consulta: str                # consulta canónica para el RAG
     norma: dict | None = None    # {"documento", "seccion"} esperado (perfiles.yaml)
     explicacion: str | None = None
     correccion: list[str] = field(default_factory=list)
     fuente: dict | None = None
+    valor: Any = None            # valor numérico o lógico sin formato
 
     @property
     def explicable(self) -> bool:
@@ -93,6 +94,38 @@ class Generacion:
     tokens_entrada: int = 0
     tokens_salida: int = 0
     duracion_ms: float = 0.0
+    tokens_por_s: float | None = None    # eval_count / eval_duration × 10⁹
+    alias: str | None = None             # lo completa el gateway
+    uso_respaldo: bool = False
+    intentos: int = 1
+
+
+@dataclass
+class DocIndexado:
+    """Resultado de ``ingerir(doc)`` (C2)."""
+
+    documento_id: str
+    nombre: str
+    formato: str
+    licencia: str
+    perfiles: list[str]
+    fragmentos: int
+    version_corpus: int
+    fecha: float
+    titulo: str = ""
+    entradas_purgadas: int = 0
+
+
+@dataclass
+class Veredicto:
+    """Respuesta de los guardrails (C3)."""
+
+    aprobado: bool
+    motivo: str | None = None
+    texto: str | None = None                  # texto ya enmascarado o corregido
+    activaciones: list[str] = field(default_factory=list)
+    instancia: Any = None                     # salida validada (S1)
+    detalles: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -288,7 +321,9 @@ class AlmacenVectorial(Protocol):
 
 @runtime_checkable
 class LectorMalla(Protocol):
-    def leer(self, ruta: Path) -> MallaCruda: ...
+    def leer(self, ruta: Path) -> MallaCruda: ...   # vértices, caras, UV, normales
+
+    def probar(self, ruta: Path) -> bool: ...       # lectura de prueba de E1 (OBJ y STL)
 
 
 class LectorDocumento(Protocol):

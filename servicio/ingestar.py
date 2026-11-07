@@ -38,12 +38,12 @@ def main(argv: list[str] | None = None) -> int:
     errores = 0
     for archivo, meta in documentos:
         try:
-            registro = contenedor.ingesta.ingestar(
+            indexado = contenedor.ingesta.ingerir(
                 archivo, licencia=meta.get("licencia") or args.licencia,
                 doc_id=meta.get("doc_id"), perfiles=meta.get("perfiles"),
                 titulo=meta.get("titulo"))
-            print(f"✔ {archivo.nombre}: {registro['doc_id']} · {registro['fragmentos']} fragmentos "
-                  f"· version_corpus={registro['version_corpus']}")
+            print(f"✔ {archivo.nombre}: {indexado.documento_id} · {indexado.fragmentos} fragmentos "
+                  f"· version_corpus={indexado.version_corpus}")
         except ErrorDominio as error:
             errores += 1
             print(f"✘ {archivo.nombre}: {error.mensaje}", file=sys.stderr)

@@ -1,52 +1,42 @@
 [
   {
     "id": "F1",
-    "falla": "rapido:timeout",
-    "malla": "M5.obj",
-    "perfil": "animacion",
-    "esperado": {
-      "codigo": 200,
-      "uso_respaldo": true
-    }
+    "falla": {
+      "alias": "rapido",
+      "tipo": "timeout"
+    },
+    "caso_producto": "P02"
   },
   {
     "id": "F2",
-    "falla": "rapido:404",
-    "malla": "M3.obj",
-    "perfil": "web_ar",
-    "esperado": {
-      "codigo": 200,
-      "uso_respaldo": true
-    }
+    "falla": {
+      "alias": "completo",
+      "tipo": "timeout"
+    },
+    "caso_producto": "P01"
   },
   {
     "id": "F3",
-    "falla": "completo:conexion:2",
-    "malla": "M2.obj",
-    "perfil": "impresion_3d",
-    "esperado": {
-      "codigo": 200,
-      "uso_respaldo": false,
-      "reintentos": 2
-    }
+    "falla": {
+      "alias": "rapido",
+      "tipo": "etiqueta_inexistente"
+    },
+    "caso_producto": "P02"
   },
   {
     "id": "F4",
-    "falla": "completo:5xx",
-    "malla": "M1.obj",
-    "perfil": "animacion",
-    "esperado": {
-      "codigo": 200,
-      "uso_respaldo": true
-    }
+    "falla": {
+      "alias": "completo",
+      "tipo": "etiqueta_inexistente"
+    },
+    "caso_producto": "P01"
   },
   {
     "id": "F5",
-    "falla": "*:timeout",
-    "malla": "M1.obj",
-    "perfil": "animacion",
-    "esperado": {
-      "codigo": 503
-    }
+    "falla": {
+      "alias": "completo",
+      "tipo": "conexion"
+    },
+    "caso_producto": "P01"
   }
 ]

@@ -1,9 +1,10 @@
 ---
 doc_id: gltf_spec
 titulo: Notas sobre glTF 2.0 (texto sintético de prueba)
-licencia: CC0-1.0
+licencia: CC-BY-4.0
 perfiles: [animacion, juego_movil, web_ar]
-fuente: Texto redactado para las pruebas de MeshAudit; resume ideas de la especificación glTF 2.0 sin copiarla.
+fuente: Texto redactado para las pruebas de MeshAudit; resume ideas de la especificación glTF 2.0 (Khronos) sin copiarla. Licencia del original pendiente de verificar.
+formato_real: html
 ---
 # Notas sobre glTF 2.0
 

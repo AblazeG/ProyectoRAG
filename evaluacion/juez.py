@@ -7,14 +7,17 @@ from __future__ import annotations
 
 import json
 
-RUBRICA = """Evalúa la respuesta de un auditor de modelos 3D. Devuelve JSON con dos enteros de 0 a 5:
-- fidelidad: 5 si toda afirmación está respaldada por los fragmentos; 0 si inventa.
+RUBRICA = """Evalúa la respuesta de un auditor de modelos 3D. Devuelve JSON con tres enteros de 0 a 5:
+- fidelidad: 5 si toda afirmación está respaldada por los fragmentos entregados; penaliza
+  cualquier afirmación que no esté en ellos (0 si inventa).
 - relevancia: 5 si explica el hallazgo y da pasos útiles para corregirlo; 0 si no responde.
+- espanol: 5 si está en un español correcto y natural; 0 si no está en español.
 No premies la longitud. Responde solo el JSON."""
 
-ESQUEMA = {"type": "object", "properties": {"fidelidad": {"type": "integer", "minimum": 0, "maximum": 5},
-                                            "relevancia": {"type": "integer", "minimum": 0, "maximum": 5}},
-           "required": ["fidelidad", "relevancia"]}
+_ENTERO = {"type": "integer", "minimum": 0, "maximum": 5}
+ESQUEMA = {"type": "object",
+           "properties": {"fidelidad": _ENTERO, "relevancia": _ENTERO, "espanol": _ENTERO},
+           "required": ["fidelidad", "relevancia", "espanol"]}
 
 
 class Juez:

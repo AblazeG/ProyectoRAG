@@ -7,7 +7,6 @@ revela el patrón detectado; C2 aplica S4 al cuerpo antes de responder.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
 from html import escape
 from pathlib import Path
 
@@ -19,12 +18,13 @@ from servicio.dominio import (
     AlmacenVectorial,
     ArchivoSubido,
     ClasificacionInyeccion,
-    ErrorDominio,
     LectorDocumento,
     LectorMalla,
     MallaCruda,
+    MallaDemasiadoCompleja,
     ModeloEmbeddings,
     RechazoSolicitud,
+    Veredicto,
 )
 from servicio.guardrails import patrones
 
@@ -65,20 +65,10 @@ def construir_clasificador(texto: str) -> list[dict]:
     return mensajes
 
 
-@dataclass
-class ResultadoTexto:
-    texto: str                                  # ya enmascarado
-    activaciones: list[str] = field(default_factory=list)
-
-
-@dataclass
-class ResultadoDominio:
-    en_dominio: bool
-    similitud_corpus: float
-    similitud_informe: float
-
-
 class GuardrailsEntrada:
+    """E1–E5. Los rechazos se lanzan como ``RechazoSolicitud`` con mensaje seguro;
+    las verificaciones que no bloquean devuelven un ``Veredicto``."""
+
     def __init__(self, lector_malla: LectorMalla, lector_documentos: LectorDocumento,
                  embeddings: ModeloEmbeddings, almacen: AlmacenVectorial,
                  gateway=None, tam_max_malla_mb: float = 50, tam_max_documento_mb: float = 20,
@@ -97,11 +87,9 @@ class GuardrailsEntrada:
         self.usar_clasificador = usar_clasificador
 
     # -- E1 ----------------------------------------------------------------
-    def verificar_archivo(self, archivo: ArchivoSubido, ruta: Path) -> MallaCruda | None:
-        """Extensión, tamaño, firma (GLB, PLY) y lectura de prueba (OBJ, STL).
-
-        Devuelve la malla leída cuando hubo lectura de prueba, para no leerla dos veces.
-        """
+    def verificar_archivo(self, archivo: ArchivoSubido, ruta: Path) -> Veredicto:
+        """Extensión, tamaño ≤ 50 MB, firma (``glTF`` en GLB, ``ply`` en PLY) y
+        lectura de prueba de OBJ y STL (ligera: la carga completa la hace C5)."""
         if archivo.extension not in FORMATOS_MALLA:
             raise RechazoSolicitud(415, MENSAJE_FORMATO, "E1")
         if archivo.tamano > self.tam_max_malla:
@@ -111,35 +99,43 @@ class GuardrailsEntrada:
             raise RechazoSolicitud(415, MENSAJE_ILEGIBLE, "E1")
         if archivo.extension == ".ply" and not cabeza.lstrip().lower().startswith(b"ply"):
             raise RechazoSolicitud(415, MENSAJE_ILEGIBLE, "E1")
-        if archivo.extension in (".obj", ".stl"):
-            try:
-                return self.lector_malla.leer(ruta)
-            except ErrorDominio as exc:
-                raise RechazoSolicitud(415, MENSAJE_ILEGIBLE, "E1") from exc
-        return None
+        if archivo.extension in (".obj", ".stl") and not self.lector_malla.probar(ruta):
+            raise RechazoSolicitud(415, MENSAJE_ILEGIBLE, "E1")
+        return Veredicto(True)
 
-    # -- E2 + E3 -----------------------------------------------------------
-    def verificar_texto(self, texto: str | None, campo: str = "notas") -> ResultadoTexto:
-        """E2 (patrones + clasificador few-shot) y después E3 (enmascarar)."""
+    # -- E2 + E3 (+ E4 en preguntas) ---------------------------------------
+    def verificar_texto(self, texto: str | None, campo: str = "notas",
+                        texto_informe: str | None = None, perfil: str | None = None) -> Veredicto:
+        """E2 (patrones + clasificador few-shot) y E3 (enmascarar). En las
+        preguntas, además E4 (fuera de dominio): el veredicto sale no aprobado
+        con ``motivo="fuera_de_dominio"`` y C2 responde sin llamar al modelo."""
         texto = (texto or "").strip()
         if not texto:
-            return ResultadoTexto("")
-        activaciones = []
+            return Veredicto(True, texto="")
+        activaciones: list[str] = []
         if patrones.detectar_inyeccion(texto) or self._clasificar(texto, activaciones):
             raise RechazoSolicitud(422, MENSAJE_INYECCION, "E2")
         enmascarado, n = patrones.enmascarar(texto)
         if n:
             activaciones.append("E3")
-        return ResultadoTexto(enmascarado, activaciones)
+        veredicto = Veredicto(True, texto=enmascarado, activaciones=activaciones)
+        if campo == "pregunta" and texto_informe is not None:
+            corpus, informe = self.similitudes(enmascarado, texto_informe, perfil)
+            veredicto.detalles = {"similitud_corpus": corpus, "similitud_informe": informe}
+            if corpus < self.umbral_fuera_dominio and informe < self.umbral_fuera_dominio:
+                veredicto.aprobado = False
+                veredicto.motivo = "fuera_de_dominio"
+                veredicto.activaciones.append("E4")
+        return veredicto
 
     def _clasificar(self, texto: str, activaciones: list[str]) -> bool:
         if not (self.usar_clasificador and self.gateway):
             return False
         try:
-            resultado = self.gateway.generar("rapido", construir_clasificador(texto),
-                                             ClasificacionInyeccion.model_json_schema(),
-                                             ruta="clasificador", permitir_respaldo=False)
-            return ClasificacionInyeccion.model_validate_json(resultado.generacion.texto).inyeccion
+            generacion = self.gateway.generar("rapido", construir_clasificador(texto),
+                                              ClasificacionInyeccion.model_json_schema(),
+                                              ruta="clasificador", permitir_respaldo=False)
+            return ClasificacionInyeccion.model_validate_json(generacion.texto).inyeccion
         except Exception:  # noqa: BLE001 - sin clasificador quedan los patrones
             activaciones.append("E2_sin_clasificador")
             return False
@@ -148,23 +144,22 @@ class GuardrailsEntrada:
         return patrones.enmascarar(texto)
 
     # -- E4 ----------------------------------------------------------------
-    def verificar_dominio(self, pregunta: str, texto_informe: str,
-                          perfil: str | None = None) -> ResultadoDominio:
-        """Fuera de dominio si la similitud es < 0.30 con el corpus **y** con el informe."""
+    def similitudes(self, pregunta: str, texto_informe: str,
+                    perfil: str | None = None) -> tuple[float, float]:
+        """Similitud de la pregunta con el corpus (top-1) y con el texto del informe."""
         v_pregunta, v_informe = self.embeddings.vectorizar([pregunta, texto_informe], "consulta")
         cercanos = self.almacen.buscar(v_pregunta, 1, {"perfil": perfil} if perfil else None)
-        sim_corpus = cercanos[0].puntaje if cercanos else 0.0
+        corpus = cercanos[0].puntaje if cercanos else 0.0
         a, b = np.asarray(v_pregunta), np.asarray(v_informe)
-        sim_informe = float(a @ b / ((np.linalg.norm(a) * np.linalg.norm(b)) or 1.0))
-        en_dominio = not (sim_corpus < self.umbral_fuera_dominio and
-                          sim_informe < self.umbral_fuera_dominio)
-        return ResultadoDominio(en_dominio, round(sim_corpus, 4), round(sim_informe, 4))
+        informe = float(a @ b / ((np.linalg.norm(a) * np.linalg.norm(b)) or 1.0))
+        return round(corpus, 4), round(informe, 4)
 
     # -- E5 ----------------------------------------------------------------
     def verificar_documento(self, archivo: ArchivoSubido | None = None,
-                            texto: str | None = None, licencia: str | None = None) -> dict:
-        """Dos llamadas: con ``archivo`` antes de extraer (formato, tamaño y
-        licencia) y con ``texto`` después de extraer (inyección)."""
+                            texto: str | None = None, licencia: str | None = None) -> Veredicto:
+        """Dos llamadas (figura 6): ``verificar_documento(archivo)`` antes de
+        extraer (formato, tamaño, licencia) y ``verificar_documento(texto)``
+        después de extraer (inyección indirecta → cuarentena)."""
         if archivo is not None:
             if archivo.extension not in FORMATOS_DOCUMENTO:
                 raise RechazoSolicitud(415, MENSAJE_DOC_FORMATO, "E5")
@@ -176,9 +171,11 @@ class GuardrailsEntrada:
             licencia_final = licencia or datos.get("licencia_detectada")
             if licencia_final not in self.licencias:
                 raise RechazoSolicitud(422, MENSAJE_LICENCIA, "E5")
-            return {"formato": datos["formato"], "licencia": licencia_final}
+            return Veredicto(True, detalles={"formato": datos["formato"],
+                                             "licencia": licencia_final})
         if texto is not None:
             if patrones.detectar_inyeccion(texto):
-                return {"cuarentena": True, "motivo": "contenido con instrucciones"}
-            return {"cuarentena": False}
+                return Veredicto(False, motivo="cuarentena", activaciones=["E5"],
+                                 detalles={"cuarentena": True})
+            return Veredicto(True, detalles={"cuarentena": False})
         raise ValueError("verificar_documento necesita archivo o texto")

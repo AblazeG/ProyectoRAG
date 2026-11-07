@@ -2,73 +2,57 @@
   {
     "id": "A01",
     "consulta": "mi personaje se pellizca en el codo al doblarlo, ¿qué hago con esas caras raras?",
-    "documento": "blender_manual",
-    "seccion": "Topología para deformación"
+    "documento": "rubrica_animacion",
+    "seccion": "Topología para deformación",
+    "perfil": "animacion"
   },
   {
     "id": "A02",
     "consulta": "tengo una cara pegada como aleta en una arista, ¿cómo la limpio?",
     "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold"
+    "seccion": "Limpieza de geometría no manifold",
+    "perfil": "animacion"
   },
   {
     "id": "A03",
     "consulta": "no puedo ponerle textura a mi modelo, ¿qué me falta?",
     "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV"
+    "seccion": "Desenvolvimiento UV",
+    "perfil": "animacion"
   },
   {
     "id": "A04",
     "consulta": "hay triangulitos aplastados sin área, ¿cómo los quito?",
     "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada"
+    "seccion": "Disolver geometría degenerada",
+    "perfil": "animacion"
   },
   {
     "id": "A05",
     "consulta": "una parte de mi modelo se ve negra o desaparece en el juego",
     "documento": "blender_manual",
-    "seccion": "Orientación de normales"
+    "seccion": "Orientación de normales",
+    "perfil": "animacion"
   },
   {
     "id": "A06",
     "consulta": "tengo puntos repetidos en el mismo lugar y la malla se abre en piezas",
     "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia"
+    "seccion": "Fusionar vértices por distancia",
+    "perfil": "animacion"
   },
   {
     "id": "A07",
     "consulta": "mi silla se ve gigante en el visor de realidad aumentada",
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala"
+    "seccion": "Unidades y escala",
+    "perfil": "web_ar"
   },
   {
     "id": "A08",
     "consulta": "el visor web muestra mi modelo de un solo color plano",
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura"
-  },
-  {
-    "id": "A09",
-    "consulta": "mi juego va lento en el teléfono con este modelo tan detallado",
-    "documento": "guia_tiempo_real",
-    "seccion": "Presupuesto de polígonos"
-  },
-  {
-    "id": "A10",
-    "consulta": "el modelo tarda mucho en cargar en la página",
-    "documento": "guia_tiempo_real",
-    "seccion": "Tamaño de archivo para web"
-  },
-  {
-    "id": "A11",
-    "consulta": "el laminador dice que mi pieza tiene agujeros",
-    "documento": "guia_impresion3d",
-    "seccion": "Mallas cerradas"
-  },
-  {
-    "id": "A12",
-    "consulta": "la vista previa de capas sale con huecos raros en las paredes",
-    "documento": "guia_impresion3d",
-    "seccion": "Geometría no manifold"
+    "seccion": "Coordenadas de textura",
+    "perfil": "web_ar"
   }
 ]

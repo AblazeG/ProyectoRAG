@@ -1,46 +1,47 @@
-"""Experimento de embeddings: bge-m3, embeddinggemma y nomic-embed-text.
+"""Experimento de embeddings (ADR-02): tabla 9 del informe.
 
-Indexa el corpus con cada modelo (en memoria) y mide acierto@5, MRR y rechazo
-correcto con casos_recuperacion.json, más el tiempo de indexado y de consulta.
+bge-m3, embeddinggemma y nomic-embed-text sobre las 30 consultas con sección
+relevante: acierto@1, acierto@5, MRR y tiempo de indexado (s).
 
-    python -m experimentos.experimento_embeddings --proveedor ollama --corpus corpus/
+    python -m experimentos.experimento_embeddings --proveedor ollama --salida evaluacion/resultados/
 """
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 from pathlib import Path
 
-from evaluacion.comun import (CORPUS_PRUEBA, RAIZ, cargar, embeddings_para, escribir_csv,
-                              evaluar_recuperacion, indice_en_memoria)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from evaluacion.comun import (argumentos_comunes, cargar, corpus_por_defecto, embeddings_para,  # noqa: E402
+                              escribir_csv, evaluar_recuperacion, indice_en_memoria)
 
 CANDIDATOS = ["bge-m3", "embeddinggemma", "nomic-embed-text"]
-SALIDA = RAIZ / "experimentos" / "resultados"
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--proveedor", default="falso", choices=["falso", "ollama"])
-    p.add_argument("--corpus", type=Path, default=None)
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    argumentos_comunes(p)
     p.add_argument("--candidatos", default=",".join(CANDIDATOS))
-    p.add_argument("--k", type=int, default=5)
     p.add_argument("--umbral", type=float, default=0.55)
     args = p.parse_args(argv)
+    corpus = corpus_por_defecto(args)
     casos = cargar("casos_recuperacion.json")
+    relevantes = [c for c in casos if c["relevante"]]
     filas = []
     for modelo in args.candidatos.split(","):
         emb = embeddings_para(modelo, args.proveedor)
         inicio = time.perf_counter()
-        indice, recuperador = indice_en_memoria(emb, args.corpus or CORPUS_PRUEBA)
-        indexado = (time.perf_counter() - inicio) * 1000
-        inicio = time.perf_counter()
-        metricas = evaluar_recuperacion(recuperador, casos, args.k, args.umbral)
-        consulta = (time.perf_counter() - inicio) * 1000 / len(casos)
-        filas.append({"modelo": modelo, "fragmentos": indice.almacen.contar(), "k": args.k,
-                      "umbral": args.umbral, **metricas, "indexado_ms": round(indexado, 1),
-                      "consulta_ms": round(consulta, 2)})
+        indice, recuperador = indice_en_memoria(emb, corpus)
+        indexado_s = time.perf_counter() - inicio
+        m1 = evaluar_recuperacion(recuperador, relevantes, 1, args.umbral)
+        m5 = evaluar_recuperacion(recuperador, casos, 5, args.umbral)
+        filas.append({"modelo": modelo, "fragmentos": indice.almacen.contar(),
+                      "acierto_1": m1["acierto_k"], "acierto_5": m5["acierto_k"], "mrr": m5["mrr"],
+                      "rechazos_de_10": m5["rechazos_correctos"], "indexado_s": round(indexado_s, 2)})
         print(filas[-1])
-    print(escribir_csv(SALIDA / "experimento_embeddings.csv", filas))
+    print(escribir_csv(args.salida / "tabla09_embeddings.csv", filas))
     return 0
 
 

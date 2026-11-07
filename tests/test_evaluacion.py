@@ -1,33 +1,49 @@
-"""La evaluación y los experimentos deben correr en modo falso."""
+"""La evaluación (sección 9) y los experimentos deben correr en modo falso."""
 import csv
 import json
 
 from evaluacion import run_eval
 from evaluacion.comun import DIR_EVAL
-from experimentos import experimento_cache, experimento_embeddings
+from experimentos import experimento_embeddings, experimento_fragmentos
 
 
-def test_plantillas_de_casos():
-    tamanos = {"casos_producto.json": 20, "casos_recuperacion.json": 40,
-               "casos_guardrails.json": 23, "casos_fallas.json": 5}
-    for nombre, n in tamanos.items():
-        assert len(json.loads((DIR_EVAL / nombre).read_text())) == n
-    rec = json.loads((DIR_EVAL / "casos_recuperacion.json").read_text())
-    assert sum(c["relevante"] for c in rec) == 30
-    cache = json.loads((DIR_EVAL / "casos_cache.json").read_text())
-    assert all(len(v) == 10 for v in cache.values())
+def test_conjuntos_de_la_tabla_15():
+    cargar = lambda n: json.loads((DIR_EVAL / n).read_text())  # noqa: E731
+    producto = cargar("casos_producto.json")
+    assert len(producto) == 20                                      # 5 variantes × 4 perfiles
+    assert {c["variante"] for c in producto} == {"M1", "M2", "M3", "M4", "M5"}
+    web_m4 = next(c for c in producto if c["variante"] == "M4" and c["perfil"] == "web_ar")
+    assert web_m4["malla"].endswith("_texturas.glb") and "V11" in web_m4["verificaciones_esperadas"]
+    rec = cargar("casos_recuperacion.json")
+    assert len(rec) == 40 and sum(c["relevante"] for c in rec) == 30
+    guardrails = cargar("casos_guardrails.json")
+    cuenta = {k: sum(c["categoria"] == k for c in guardrails)
+              for k in ("inyeccion", "fuera_de_dominio", "datos_personales", "documento", "normal")}
+    assert cuenta == {"inyeccion": 4, "fuera_de_dominio": 3, "datos_personales": 3,
+                      "documento": 3, "normal": 10}
+    assert sum(c["tipo"] == "pregunta_informe" for c in guardrails) == 3
+    cache = cargar("casos_cache.json")
+    assert all(len(cache[k]) == 10 for k in ("auditorias_repetidas", "preguntas_repetidas",
+                                              "parafrasis", "distractores"))
+    assert len(cargar("casos_enrutador.json")) == 40
+    assert len(cargar("casos_agente.json")) == 8
+    assert len(cargar("casos_fallas.json")) == 5
 
 
 def test_run_eval_modo_falso(tmp_path):
-    assert run_eval.main(["--proveedor", "falso", "--tablas", "17,18,21,22",
+    assert run_eval.main(["--proveedor", "falso", "--tablas", "19,fallas,privacidad",
                           "--salida", str(tmp_path)]) == 0
-    guardrails = list(csv.DictReader(open(tmp_path / "tabla18_guardrails.csv")))
-    assert len(guardrails) == 23 and all(f["correcto"] == "True" for f in guardrails)
-    fallas = list(csv.DictReader(open(tmp_path / "tabla22_fallas.csv")))
-    assert all(f["correcto"] == "True" for f in fallas)
-    assert (tmp_path / "tabla17_recuperacion.csv").exists()
+    resumen = list(csv.DictReader(open(tmp_path / "tabla19_guardrails.csv")))
+    assert resumen[-1]["correctos"] == "100.0 %" and resumen[-1]["falsos_positivos"] == "0.0 %"
+    fallas = list(csv.DictReader(open(tmp_path / "fallas.csv")))
+    assert fallas[-1]["error_500"] == "0" and fallas[-1]["terminada_con_respaldo"] == "5 de 5"
+    assert all(f["datos_personales"] == "0" for f in csv.DictReader(open(tmp_path / "privacidad.csv")))
 
 
-def test_experimentos_modo_falso():
-    assert experimento_cache.main(["--proveedor", "falso"]) == 0
-    assert experimento_embeddings.main(["--proveedor", "falso", "--candidatos", "nomic-embed-text"]) == 0
+def test_experimentos_modo_falso(tmp_path):
+    assert experimento_embeddings.main(["--proveedor", "falso", "--candidatos", "bge-m3",
+                                        "--salida", str(tmp_path)]) == 0
+    assert experimento_fragmentos.main(["--proveedor", "falso", "--salida", str(tmp_path)]) == 0
+    assert len(list(csv.DictReader(open(tmp_path / "tabla17_fragmentos.csv")))) == 3
+    assert len(list(csv.DictReader(open(tmp_path / "tabla18_barrido.csv")))) == 5
+    assert (tmp_path / "tabla09_embeddings.csv").exists()

@@ -65,14 +65,14 @@ def test_pregunta_exacta_normaliza_texto():
 def test_semantica_mismo_archivo_perfil_y_umbral():
     _, sem, reloj = nuevas()
     sem.guardar("¿Cómo corrijo las aristas no manifold?", "sha", "animacion", {"r": 1}, 1, True)
-    acierto = sem.buscar("como corrijo las aristas no manifold", "sha", "animacion", 1)
+    acierto = sem.buscar_similar("como corrijo las aristas no manifold", "sha", "animacion", 1)
     assert acierto and acierto[1] >= 0.92 and acierto[0] == {"r": 1}
-    assert sem.buscar("¿Qué presupuesto de triángulos tiene un juego?", "sha", "animacion", 1) is None
-    assert sem.buscar("como corrijo las aristas no manifold", "otro", "animacion", 1) is None
-    assert sem.buscar("como corrijo las aristas no manifold", "sha", "web_ar", 1) is None
-    assert sem.buscar("como corrijo las aristas no manifold", "sha", "animacion", 2) is None
+    assert sem.buscar_similar("¿Qué presupuesto de triángulos tiene un juego?", "sha", "animacion", 1) is None
+    assert sem.buscar_similar("como corrijo las aristas no manifold", "otro", "animacion", 1) is None
+    assert sem.buscar_similar("como corrijo las aristas no manifold", "sha", "web_ar", 1) is None
+    assert sem.buscar_similar("como corrijo las aristas no manifold", "sha", "animacion", 2) is None
     reloj.t += 24 * 3600 + 1
-    assert sem.buscar("como corrijo las aristas no manifold", "sha", "animacion", 1) is None
+    assert sem.buscar_similar("como corrijo las aristas no manifold", "sha", "animacion", 1) is None
 
 
 def test_semantica_no_guarda_rechazos():
@@ -93,4 +93,4 @@ def test_cache_desactivada():
     exacta, sem, _ = nuevas(activa=False)
     assert not exacta.guardar_informe("k", {"a": 1}, 1, True)
     assert exacta.obtener_informe("k") is None
-    assert sem.buscar("x", "s", "p", 1) is None
+    assert sem.buscar_similar("x", "s", "p", 1) is None

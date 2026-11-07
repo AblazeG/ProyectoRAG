@@ -185,6 +185,9 @@ class ChatFalso:
         prompt = "\n".join(m.get("content", "") for m in mensajes if m.get("role") == "user")
         if falla == "json_invalido":
             texto = "esto no es JSON {"
+        elif not esquema and RE_CONSULTA.search(prompt):
+            # Reformulación del ciclo de agente: texto libre, sin esquema (Código 4).
+            texto = self._responder(prompt, {"title": "Reformulacion"})["consulta"]
         else:
             datos = self._responder(prompt, esquema or {})
             if falla == "cita_falsa":

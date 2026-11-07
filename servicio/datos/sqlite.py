@@ -205,6 +205,11 @@ class RepositorioRetroalimentacionSQLite:
             (registro["traza_id"], registro.get("hallazgo_id"), int(registro["util"]),
              registro.get("comentario"), time.time()))
 
+    def listar(self) -> list[dict]:
+        filas = self.base.consultar("SELECT traza_id, hallazgo_id, util, comentario, creado"
+                                    " FROM retroalimentacion ORDER BY id")
+        return [dict(f) for f in filas]
+
     def resumen(self) -> dict:
         fila = self.base.consultar(
             "SELECT COUNT(*) total, COALESCE(SUM(util),0) utiles FROM retroalimentacion")[0]

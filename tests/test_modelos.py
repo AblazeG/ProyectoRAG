@@ -21,13 +21,13 @@ def h(gravedad, v="V4"):
     (["grave", "menor"], "completa", "completo"),
 ])
 def test_enrutador(gravedades, ruta, alias):
-    d = Enrutador().ruta_auditoria([h(g) for g in gravedades])
+    d = Enrutador().clasificar([h(g) for g in gravedades])
     assert (d.ruta, d.alias) == (ruta, alias)
 
 
 def test_enrutador_devuelve_alias_y_preguntas_van_a_rapida():
     e = Enrutador()
-    assert e.ruta_pregunta().alias == "rapido"
+    assert e.clasificar(tipo="pregunta").alias == "rapido"
     assert e.alias_respaldo("rapido") == "completo" and e.alias_respaldo("completo") == "rapido"
 
 

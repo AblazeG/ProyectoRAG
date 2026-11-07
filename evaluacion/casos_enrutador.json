@@ -1,114 +1,322 @@
 [
   {
-    "id": "E02",
-    "caso_producto": "P02",
+    "id": "E01",
+    "origen": "P01",
+    "perfil": "animacion",
+    "malla": "base1_M1.obj",
     "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E02",
+    "origen": "P02",
+    "perfil": "juego_movil",
+    "malla": "base1_M1.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E03",
-    "caso_producto": "P03",
-    "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P03",
+    "perfil": "impresion_3d",
+    "malla": "base1_M1.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E04",
-    "caso_producto": "P04",
-    "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P04",
+    "perfil": "web_ar",
+    "malla": "base1_M1.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E05",
-    "caso_producto": "P05",
-    "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P05",
+    "perfil": "animacion",
+    "malla": "base2_M2.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E06",
+    "origen": "P06",
+    "perfil": "juego_movil",
+    "malla": "base2_M2.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E07",
-    "caso_producto": "P07",
-    "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P07",
+    "perfil": "impresion_3d",
+    "malla": "base2_M2.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E08",
-    "caso_producto": "P08",
+    "origen": "P08",
+    "perfil": "web_ar",
+    "malla": "base2_M2.obj",
     "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E09",
-    "caso_producto": "P09",
-    "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P09",
+    "perfil": "animacion",
+    "malla": "base3_M3.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E10",
-    "caso_producto": "P10",
+    "origen": "P10",
+    "perfil": "juego_movil",
+    "malla": "base3_M3.obj",
     "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E11",
+    "origen": "P11",
+    "perfil": "impresion_3d",
+    "malla": "base3_M3.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E12",
-    "caso_producto": "P12",
+    "origen": "P12",
+    "perfil": "web_ar",
+    "malla": "base3_M3.obj",
     "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E13",
-    "caso_producto": "P13",
-    "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P13",
+    "perfil": "animacion",
+    "malla": "base4_M4.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E14",
-    "caso_producto": "P14",
+    "origen": "P14",
+    "perfil": "juego_movil",
+    "malla": "base4_M4.obj",
     "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E15",
-    "caso_producto": "P15",
+    "origen": "P15",
+    "perfil": "impresion_3d",
+    "malla": "base4_M4.obj",
     "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E16",
+    "origen": "P16",
+    "perfil": "web_ar",
+    "malla": "base4_M4_texturas.glb",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E17",
-    "caso_producto": "P17",
-    "ruta_esperada_regla": "completa",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P17",
+    "perfil": "animacion",
+    "malla": "base5_M5.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E18",
-    "caso_producto": "P18",
+    "origen": "P18",
+    "perfil": "juego_movil",
+    "malla": "base5_M5.obj",
     "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E19",
-    "caso_producto": "P19",
-    "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "origen": "P19",
+    "perfil": "impresion_3d",
+    "malla": "base5_M5.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
   },
   {
     "id": "E20",
-    "caso_producto": "P20",
+    "origen": "P20",
+    "perfil": "web_ar",
+    "malla": "base5_M5.obj",
     "ruta_esperada_regla": "rapida",
-    "ruta_esperada_calidad": null,
-    "nota": "Se etiqueta «rapida» si gemma4:e2b obtiene ≥ 4 de 5 con el juez."
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E21",
+    "origen": "L01",
+    "perfil": "animacion",
+    "malla": "base1_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E22",
+    "origen": "L02",
+    "perfil": "juego_movil",
+    "malla": "base1_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E23",
+    "origen": "L03",
+    "perfil": "impresion_3d",
+    "malla": "base1_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E24",
+    "origen": "L04",
+    "perfil": "web_ar",
+    "malla": "base1_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E25",
+    "origen": "L05",
+    "perfil": "animacion",
+    "malla": "base2_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E26",
+    "origen": "L06",
+    "perfil": "juego_movil",
+    "malla": "base2_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E27",
+    "origen": "L07",
+    "perfil": "impresion_3d",
+    "malla": "base2_base.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E28",
+    "origen": "L08",
+    "perfil": "web_ar",
+    "malla": "base2_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E29",
+    "origen": "L09",
+    "perfil": "animacion",
+    "malla": "base3_base.obj",
+    "ruta_esperada_regla": "rapida",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E30",
+    "origen": "L10",
+    "perfil": "juego_movil",
+    "malla": "base3_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E31",
+    "origen": "L11",
+    "perfil": "impresion_3d",
+    "malla": "base3_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E32",
+    "origen": "L12",
+    "perfil": "web_ar",
+    "malla": "base3_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E33",
+    "origen": "L13",
+    "perfil": "animacion",
+    "malla": "base4_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E34",
+    "origen": "L14",
+    "perfil": "juego_movil",
+    "malla": "base4_base.obj",
+    "ruta_esperada_regla": "completa",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E35",
+    "origen": "L15",
+    "perfil": "impresion_3d",
+    "malla": "base4_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E36",
+    "origen": "L16",
+    "perfil": "web_ar",
+    "malla": "base4_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E37",
+    "origen": "L17",
+    "perfil": "animacion",
+    "malla": "base5_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E38",
+    "origen": "L18",
+    "perfil": "juego_movil",
+    "malla": "base5_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E39",
+    "origen": "L19",
+    "perfil": "impresion_3d",
+    "malla": "base5_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
+  },
+  {
+    "id": "E40",
+    "origen": "L20",
+    "perfil": "web_ar",
+    "malla": "base5_base.obj",
+    "ruta_esperada_regla": "sin_modelo",
+    "ruta_esperada_calidad": null
   }
 ]

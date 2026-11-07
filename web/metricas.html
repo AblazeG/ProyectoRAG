@@ -70,7 +70,9 @@ async function cargar() {
               `${m.retroalimentacion.utiles || 0} útiles de ${m.retroalimentacion.total || 0}`),
     ].join("");
     $("#capas").innerHTML = tablaLatencia(m.latencia_ms.por_capa, NOMBRES_CAPA);
-    $("#etapas").innerHTML = tablaLatencia(m.latencia_ms.por_etapa);
+    $("#etapas").innerHTML = tablaLatencia({...m.latencia_ms.por_etapa,
+      ...Object.fromEntries(Object.entries(m.latencia_ms.gateway_por_ruta || {})
+        .map(([r, v]) => [`gateway (ruta ${r})`, v]))});
     $("#rutas").innerHTML = tablaConteo(m.rutas);
     $("#modelos").innerHTML = tablaConteo(m.modelos);
     $("#guardrails").innerHTML = tablaConteo(m.guardrails);

@@ -3,260 +3,300 @@
     "id": "R01",
     "consulta": "¿Por qué evitar n-gons en una malla que se deforma?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Topología para deformación"
+    "documento": "rubrica_animacion",
+    "seccion": "Topología para deformación",
+    "perfil": "animacion"
   },
   {
     "id": "R02",
     "consulta": "mi personaje se pellizca en el codo al doblarlo, ¿qué hago con esas caras raras?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Topología para deformación"
+    "documento": "rubrica_animacion",
+    "seccion": "Topología para deformación",
+    "perfil": "animacion"
   },
   {
     "id": "R03",
     "consulta": "¿Cómo selecciono la geometría non-manifold en Blender?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold"
+    "seccion": "Limpieza de geometría no manifold",
+    "perfil": "animacion"
   },
   {
     "id": "R04",
     "consulta": "tengo una cara pegada como aleta en una arista, ¿cómo la limpio?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold"
+    "seccion": "Limpieza de geometría no manifold",
+    "perfil": "animacion"
   },
   {
     "id": "R05",
     "consulta": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV"
+    "seccion": "Desenvolvimiento UV",
+    "perfil": "animacion"
   },
   {
     "id": "R06",
     "consulta": "no puedo ponerle textura a mi modelo, ¿qué me falta?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV"
+    "seccion": "Desenvolvimiento UV",
+    "perfil": "animacion"
   },
   {
     "id": "R07",
     "consulta": "¿Qué hace Degenerate Dissolve?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada"
+    "seccion": "Disolver geometría degenerada",
+    "perfil": "animacion"
   },
   {
     "id": "R08",
     "consulta": "hay triangulitos aplastados sin área, ¿cómo los quito?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada"
+    "seccion": "Disolver geometría degenerada",
+    "perfil": "animacion"
   },
   {
     "id": "R09",
     "consulta": "¿Cómo recalculo las normales hacia fuera?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Orientación de normales"
+    "seccion": "Orientación de normales",
+    "perfil": "animacion"
   },
   {
     "id": "R10",
     "consulta": "una parte de mi modelo se ve negra o desaparece en el juego",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Orientación de normales"
+    "seccion": "Orientación de normales",
+    "perfil": "animacion"
   },
   {
     "id": "R11",
     "consulta": "¿Cómo uso Merge by Distance?",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia"
+    "seccion": "Fusionar vértices por distancia",
+    "perfil": "animacion"
   },
   {
     "id": "R12",
     "consulta": "tengo puntos repetidos en el mismo lugar y la malla se abre en piezas",
     "relevante": true,
     "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia"
+    "seccion": "Fusionar vértices por distancia",
+    "perfil": "animacion"
   },
   {
     "id": "R13",
     "consulta": "¿Qué unidad de longitud usa glTF?",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala"
+    "seccion": "Unidades y escala",
+    "perfil": "web_ar"
   },
   {
     "id": "R14",
     "consulta": "mi silla se ve gigante en el visor de realidad aumentada",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala"
+    "seccion": "Unidades y escala",
+    "perfil": "web_ar"
   },
   {
     "id": "R15",
     "consulta": "¿Qué es TEXCOORD_0 en glTF?",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura"
+    "seccion": "Coordenadas de textura",
+    "perfil": "web_ar"
   },
   {
     "id": "R16",
     "consulta": "el visor web muestra mi modelo de un solo color plano",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura"
+    "seccion": "Coordenadas de textura",
+    "perfil": "web_ar"
   },
   {
     "id": "R17",
     "consulta": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
     "relevante": true,
-    "documento": "guia_tiempo_real",
-    "seccion": "Presupuesto de polígonos"
+    "documento": "godot_docs",
+    "seccion": "Presupuesto de polígonos",
+    "perfil": "juego_movil"
   },
   {
     "id": "R18",
     "consulta": "mi juego va lento en el teléfono con este modelo tan detallado",
     "relevante": true,
-    "documento": "guia_tiempo_real",
-    "seccion": "Presupuesto de polígonos"
+    "documento": "godot_docs",
+    "seccion": "Presupuesto de polígonos",
+    "perfil": "juego_movil"
   },
   {
     "id": "R19",
     "consulta": "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
     "relevante": true,
-    "documento": "guia_tiempo_real",
-    "seccion": "Tamaño de archivo para web"
+    "documento": "guia_entrega",
+    "seccion": "Tamaño de archivo para web",
+    "perfil": "web_ar"
   },
   {
     "id": "R20",
     "consulta": "el modelo tarda mucho en cargar en la página",
     "relevante": true,
-    "documento": "guia_tiempo_real",
-    "seccion": "Tamaño de archivo para web"
+    "documento": "guia_entrega",
+    "seccion": "Tamaño de archivo para web",
+    "perfil": "web_ar"
   },
   {
     "id": "R21",
     "consulta": "¿Por qué una malla para imprimir debe ser watertight?",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Mallas cerradas"
+    "documento": "guia_entrega",
+    "seccion": "Mallas cerradas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R22",
     "consulta": "el laminador dice que mi pieza tiene agujeros",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Mallas cerradas"
+    "documento": "guia_entrega",
+    "seccion": "Mallas cerradas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R23",
     "consulta": "¿Cómo afecta la geometría no manifold a la impresión 3D?",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Geometría no manifold"
+    "documento": "guia_entrega",
+    "seccion": "Geometría no manifold",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R24",
     "consulta": "la vista previa de capas sale con huecos raros en las paredes",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Geometría no manifold"
+    "documento": "guia_entrega",
+    "seccion": "Geometría no manifold",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R25",
     "consulta": "¿En qué unidades interpretan los laminadores un STL?",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Escala y volumen de impresión"
+    "documento": "guia_entrega",
+    "seccion": "Escala y volumen de impresión",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R26",
     "consulta": "mi figura salió diminuta en la impresora",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Escala y volumen de impresión"
+    "documento": "guia_entrega",
+    "seccion": "Escala y volumen de impresión",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R27",
     "consulta": "¿Cómo encuentro caras degeneradas con 3D Print Toolbox?",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Caras degeneradas"
+    "documento": "guia_entrega",
+    "seccion": "Caras degeneradas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R28",
     "consulta": "el laminador da errores por caras de área cero",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Caras degeneradas"
+    "documento": "guia_entrega",
+    "seccion": "Caras degeneradas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R29",
     "consulta": "¿Qué pasa si las normales apuntan hacia dentro al imprimir?",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Normales invertidas"
+    "documento": "guia_entrega",
+    "seccion": "Normales invertidas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R30",
     "consulta": "el laminador no pone relleno dentro de mi pieza",
     "relevante": true,
-    "documento": "guia_impresion3d",
-    "seccion": "Normales invertidas"
+    "documento": "guia_entrega",
+    "seccion": "Normales invertidas",
+    "perfil": "impresion_3d"
   },
   {
     "id": "R31",
     "consulta": "¿Cómo pinto pesos de deformación para un rig facial?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R32",
     "consulta": "¿Qué valores de rugosidad uso en un material PBR de metal?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R33",
     "consulta": "¿Cuántas muestras de render necesito en Cycles?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R34",
     "consulta": "¿Cómo configuro la iluminación HDRI de una escena?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R35",
     "consulta": "¿Qué licencia necesito para vender un modelo en una tienda?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R36",
-    "consulta": "¿Cómo anima un ciclo de caminata con claves?",
-    "relevante": false
+    "consulta": "¿Cómo animo un ciclo de caminata con claves?",
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R37",
     "consulta": "¿Qué temperatura de boquilla uso para PETG?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R38",
     "consulta": "¿Cómo hago una retopología automática con QuadriFlow?",
-    "relevante": false
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R39",
-    "consulta": "¿Cuál es la capital de Francia?",
-    "relevante": false
+    "consulta": "¿Cómo exporto una animación de esqueleto a FBX?",
+    "relevante": false,
+    "perfil": "animacion"
   },
   {
     "id": "R40",
-    "consulta": "Receta de pastel de chocolate",
-    "relevante": false
+    "consulta": "¿Qué resolución de render conviene para un portafolio?",
+    "relevante": false,
+    "perfil": "animacion"
   }
 ]

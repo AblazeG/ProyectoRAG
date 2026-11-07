@@ -1,49 +1,63 @@
-"""Experimento de fragmentación: 500/k=8, 800/k=5 y 1000/k=4 (solape 120), más un
-barrido de k ∈ {3, 5, 8} y umbral 0.40–0.70 con la configuración de 800.
+"""Experimento de fragmentación (ADR-06): tablas 17 y 18 del informe.
 
-    python -m experimentos.experimento_fragmentos --proveedor ollama --modelo nomic-embed-text --corpus corpus/
+- Tabla 17: tamaño de fragmento con el mismo presupuesto de ~4 000 caracteres
+  (500 car./solape 75/k=8, 800/120/k=5 y 1000/150/k=4; solape del 15 %).
+- Tabla 18: barrido de k ∈ {3, 5, 8} y umbral ∈ {0.40, 0.50, 0.55, 0.60, 0.70}
+  con 800/120; un acierto exige la sección relevante entre los k primeros y sobre
+  el umbral; rechazos correctos de las 10 consultas sin respaldo.
+
+    python -m experimentos.experimento_fragmentos --proveedor ollama --salida evaluacion/resultados/
 """
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from evaluacion.comun import (CORPUS_PRUEBA, RAIZ, cargar, embeddings_para, escribir_csv,
-                              evaluar_recuperacion, indice_en_memoria)
+from evaluacion.comun import (argumentos_comunes, cargar, corpus_por_defecto, embeddings_para,  # noqa: E402
+                              escribir_csv, evaluar_recuperacion, indice_en_memoria)
 
-CONFIGURACIONES = [(500, 8), (800, 5), (1000, 4)]
-SALIDA = RAIZ / "experimentos" / "resultados"
+CONFIGURACIONES = [(500, 75, 8), (800, 120, 5), (1000, 150, 4)]
+KS = (3, 5, 8)
+UMBRALES = (0.40, 0.50, 0.55, 0.60, 0.70)
+
+
+def tabla17(embeddings, corpus: Path, casos: list[dict]) -> list[dict]:
+    filas = []
+    for tam, solape, k in CONFIGURACIONES:
+        indice, recuperador = indice_en_memoria(embeddings, corpus, tam, solape)
+        m = evaluar_recuperacion(recuperador, casos, k, 0.55)
+        filas.append({"fragmento": f"{tam} car., solape {solape}", "k": k,
+                      "fragmentos": indice.almacen.contar(), "acierto_k": m["acierto_k"],
+                      "mrr": m["mrr"], "acierto_1": m["acierto_1"]})
+    return filas
+
+
+def tabla18(embeddings, corpus: Path, casos: list[dict]) -> list[dict]:
+    _, recuperador = indice_en_memoria(embeddings, corpus, 800, 120)
+    filas = []
+    for umbral in UMBRALES:
+        fila = {"umbral": umbral}
+        for k in KS:
+            m = evaluar_recuperacion(recuperador, casos, k, umbral)
+            fila[f"acierto_{k}"] = m["acierto_k"]
+        fila["rechazos_de_10"] = m["rechazos_correctos"]
+        filas.append(fila)
+    return filas
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--proveedor", default="falso", choices=["falso", "ollama"])
-    p.add_argument("--modelo", default="nomic-embed-text")
-    p.add_argument("--corpus", type=Path, default=None)
-    p.add_argument("--solape", type=int, default=120)
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    argumentos_comunes(p)
+    p.add_argument("--modelo", default="bge-m3", help="modelo de embeddings (ADR-02)")
     args = p.parse_args(argv)
-    corpus = args.corpus or CORPUS_PRUEBA
+    corpus = corpus_por_defecto(args)
     casos = cargar("casos_recuperacion.json")
     emb = embeddings_para(args.modelo, args.proveedor)
-    filas = []
-    recuperador_800 = None
-    for tam, k in CONFIGURACIONES:
-        indice, recuperador = indice_en_memoria(emb, corpus, tam, args.solape)
-        if tam == 800:
-            recuperador_800 = recuperador
-        filas.append({"experimento": "configuracion", "tam": tam, "solape": args.solape, "k": k,
-                      "umbral": 0.55, "fragmentos": indice.almacen.contar(),
-                      **evaluar_recuperacion(recuperador, casos, k, 0.55)})
-    for k in (3, 5, 8):
-        for umbral in np.round(np.arange(0.40, 0.701, 0.05), 2):
-            filas.append({"experimento": "barrido", "tam": 800, "solape": args.solape, "k": k,
-                          "umbral": float(umbral),
-                          **evaluar_recuperacion(recuperador_800, casos, k, float(umbral))})
-    for f in filas[:3]:
-        print(f)
-    print(escribir_csv(SALIDA / "experimento_fragmentos.csv", filas))
+    print(escribir_csv(args.salida / "tabla17_fragmentos.csv", tabla17(emb, corpus, casos)))
+    print(escribir_csv(args.salida / "tabla18_barrido.csv", tabla18(emb, corpus, casos)))
     return 0
 
 

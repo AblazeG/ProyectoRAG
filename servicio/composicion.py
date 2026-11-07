@@ -39,9 +39,10 @@ from servicio.guardrails.entrada import GuardrailsEntrada
 from servicio.guardrails.salida import GuardrailsSalida
 from servicio.modelos.enrutador import Enrutador
 from servicio.modelos.gateway import Gateway
+from servicio.observabilidad.metricas import Metricas
 from servicio.observabilidad.traza import RegistroTrazas
-from servicio.orquestacion.agente import Agente
-from servicio.orquestacion.auditor import Auditor
+from servicio.orquestacion.agente import CicloAgente
+from servicio.orquestacion.auditor import OrquestadorAuditoria
 from servicio.orquestacion.ingesta import ServicioIngesta
 from servicio.orquestacion.preguntas import ServicioPreguntas
 from servicio.retroalimentacion.almacen import AlmacenRetroalimentacion
@@ -62,6 +63,9 @@ def cargar_config(ruta: Path | str | None = None) -> dict:
         config["datos"]["directorio"] = entorno["MESHAUDIT_DATOS"]
     if entorno.get("MESHAUDIT_CACHE") is not None and entorno.get("MESHAUDIT_CACHE") != "":
         config["cache"]["activa"] = entorno["MESHAUDIT_CACHE"].lower() not in ("0", "false", "no")
+    for alias in ("rapido", "completo", "embeddings"):  # p. ej. un alias hacia una etiqueta inexistente
+        if entorno.get(f"MESHAUDIT_MODELO_{alias.upper()}"):
+            config["modelos"][alias] = entorno[f"MESHAUDIT_MODELO_{alias.upper()}"]
     if entorno.get("MESHAUDIT_OLLAMA_URL"):
         config["ollama"]["url"] = entorno["MESHAUDIT_OLLAMA_URL"]
     if config["proveedor"] not in ("ollama", "falso"):
@@ -73,11 +77,12 @@ def cargar_config(ruta: Path | str | None = None) -> dict:
 class Contenedor:
     config: dict
     catalogo: CatalogoPerfiles
-    auditor: Auditor
+    auditor: OrquestadorAuditoria
     preguntas: ServicioPreguntas
     ingesta: ServicioIngesta
     retroalimentacion: AlmacenRetroalimentacion
     trazas: RegistroTrazas
+    metricas: Metricas | None = None
     sondas: list = field(default_factory=list)
     indice: Indice | None = None
     gateway: Gateway | None = None
@@ -93,7 +98,10 @@ class Contenedor:
                         "completo": self.gateway.nombre_modelo("completo"),
                         "embeddings": self.extras["embeddings"].nombre,
                         "juez": c["modelos"].get("juez")},
-            "rag": c["rag"],
+            "rag": {**c["rag"], "lote_efectivo": __import__(
+                "servicio.contexto.prompts", fromlist=["tamano_lote"]).tamano_lote(
+                c["rag"]["k"], c["rag"]["tam_fragmento"], c["rag"]["num_ctx"],
+                c["rag"]["reserva_prompt_tokens"], c["rag"]["lote_hallazgos"])},
             "agente": c["agente"],
             "umbrales": {"recuperacion": c["rag"]["umbral"],
                          "fuera_de_dominio": c["guardrails"]["umbral_fuera_dominio"],
@@ -175,7 +183,7 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                     rag["tam_fragmento"], rag["solape"])
     recuperador = Recuperador(embeddings, almacen, rag["k"], rag["umbral"])
     g = config["guardrails"]
-    analizador = Analizador(LectorTrimesh(), catalogo, g["max_caras"])
+    analizador = Analizador(LectorTrimesh(g["max_caras"]), catalogo, g["max_caras"])
     # C4
     c = config["cache"]
     almacen_cache = AlmacenCacheSQLite(base)
@@ -183,17 +191,18 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
     cache_semantica = CacheSemantica(almacen_cache, embeddings, c["umbral_semantico"],
                                      c["expiracion_semantica_h"], c["activa"])
     # C3
-    entrada = GuardrailsEntrada(LectorTrimesh(), LectorDocumentos(), embeddings, almacen,
+    entrada = GuardrailsEntrada(LectorTrimesh(g["max_caras"]), LectorDocumentos(), embeddings, almacen,
                                 gateway, g["tam_max_malla_mb"], g["tam_max_documento_mb"],
                                 g["umbral_fuera_dominio"], g["licencias_permitidas"])
     salida = GuardrailsSalida()
     # C2
-    agente = Agente(recuperador, gateway, config["agente"]["max_reformulaciones"])
+    agente = CicloAgente(recuperador, gateway, rag["k"], config["agente"]["max_reformulaciones"],
+                         rag["umbral"])
     comunes = dict(entrada=entrada, salida=salida, cache=cache, analizador=analizador,
                    enrutador=enrutador, gateway=gateway, agente=agente, indice=indice,
                    informes=informes, trazas=trazas, embeddings_nombre=embeddings.nombre,
                    num_ctx=rag["num_ctx"])
-    auditor = Auditor(temporales=temporales, lote=rag["lote_hallazgos"],
+    auditor = OrquestadorAuditoria(temporales=temporales, lote=rag["lote_hallazgos"],
                       max_reformulaciones_informe=config["agente"]["max_por_informe"], **comunes)
     preguntas = ServicioPreguntas(cache_semantica=cache_semantica,
                                   max_reformulaciones=config["agente"]["max_por_informe"],
@@ -207,7 +216,8 @@ def construir(config: dict | None = None, *, proveedor: str | None = None,
                                       else "vectorial", almacen),
               _Sonda("sqlite", base)]
     return Contenedor(config=config, catalogo=catalogo, auditor=auditor, preguntas=preguntas,
-                      ingesta=ingesta, retroalimentacion=retro, trazas=trazas, sondas=sondas,
+                      ingesta=ingesta, retroalimentacion=retro, trazas=trazas,
+                      metricas=Metricas(trazas, retro), sondas=sondas,
                       indice=indice, gateway=gateway, cache=cache,
                       extras={"embeddings": embeddings, "almacen": almacen, "base": base,
                               "chats": modelos_chat, "cache_semantica": cache_semantica})
