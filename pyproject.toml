@@ -1,0 +1,28 @@
+[project]
+name = "meshaudit"
+version = "1.0.0"
+description = "Servicio local de auditoría de mallas 3D con RAG sobre normas técnicas"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "pydantic>=2.6",
+  "httpx>=0.27",
+  "chromadb>=0.5",
+  "trimesh>=4.0",
+  "numpy>=1.26",
+  "pypdf>=4.0",
+  "beautifulsoup4>=4.12",
+  "pyyaml>=6.0",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+pruebas = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+include = ["servicio*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

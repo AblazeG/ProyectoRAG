@@ -1,0 +1,56 @@
+# Límites por perfil de destino. G = grave, M = menor, I = informativo.
+# Una verificación ausente en un perfil equivale a «--» (no aplica).
+# «norma» apunta al documento y la sección del corpus que justifican la regla;
+# es la fuente esperada en la evaluación.
+version: "1.0.0"
+
+perfiles:
+  animacion:
+    nombre: Animación
+    unidad: m
+    reglas:
+      V1:  {gravedad: G, max_pct: 0,    norma: {documento: blender_manual, seccion: Topología para deformación}}
+      V2:  {gravedad: M, max_pct: 10,   norma: {documento: blender_manual, seccion: Topología para deformación}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: blender_manual, seccion: Desenvolvimiento UV}}
+      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+
+  juego_movil:
+    nombre: Juego móvil
+    unidad: m
+    reglas:
+      V1:  {gravedad: I, max_pct: 0,    norma: {documento: blender_manual, seccion: Topología para deformación}}
+      V3:  {gravedad: G, max: 20000,    norma: {documento: guia_tiempo_real, seccion: Presupuesto de polígonos}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: Coordenadas de textura}}
+      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+
+  impresion_3d:
+    nombre: Impresión 3D
+    unidad: mm
+    reglas:
+      V4:  {gravedad: G, max: 0,        norma: {documento: guia_impresion3d, seccion: Geometría no manifold}}
+      V5:  {gravedad: G, requerido: true, norma: {documento: guia_impresion3d, seccion: Mallas cerradas}}
+      V7:  {gravedad: M, min: 1, max: 300, norma: {documento: guia_impresion3d, seccion: Escala y volumen de impresión}}
+      V8:  {gravedad: G, max: 0, area_min: 1.0e-10, norma: {documento: guia_impresion3d, seccion: Caras degeneradas}}
+      V9:  {gravedad: G, requerido: true, norma: {documento: guia_impresion3d, seccion: Normales invertidas}}
+      V10: {gravedad: M, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+
+  web_ar:
+    nombre: Web/AR
+    unidad: m
+    reglas:
+      V3:  {gravedad: M, max: 100000,   norma: {documento: guia_tiempo_real, seccion: Presupuesto de polígonos}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: Coordenadas de textura}}
+      V7:  {gravedad: G, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+      V11: {gravedad: M, max_bytes: 10485760, norma: {documento: guia_tiempo_real, seccion: Tamaño de archivo para web}}

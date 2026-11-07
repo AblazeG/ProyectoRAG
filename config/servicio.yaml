@@ -1,0 +1,74 @@
+# Configuración del servicio MeshAudit.
+# Las variables de entorno MESHAUDIT_* sobrescriben algunos valores (ver composicion.py).
+version_analizador: "1.0.0"
+proveedor: ollama            # ollama | falso   (MESHAUDIT_PROVEEDOR)
+vectorial: chroma            # chroma | memoria (MESHAUDIT_VECTORIAL)
+
+servidor:
+  host: 127.0.0.1
+  puerto: 8000
+  cors_origenes:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+
+ollama:
+  url: http://127.0.0.1:11434
+  keep_alive: 30m
+  opciones:
+    temperature: 0.1
+    seed: 42
+    num_ctx: 8192            # fijo: cambiarlo recarga el modelo en Ollama
+
+modelos:                     # el enrutador solo conoce los alias
+  rapido: gemma4:e2b
+  completo: gpt-oss:20b
+  embeddings: nomic-embed-text
+  juez: mistral-small3.2:24b
+
+tiempos_limite_s:
+  rapido: 45
+  completo: 90
+  embeddings: 30
+
+reintentos:
+  maximo: 2
+  esperas_s: [1, 2]
+
+rag:
+  tam_fragmento: 800
+  solape: 120
+  k: 5
+  umbral: 0.55
+  num_ctx: 8192
+  reserva_salida_tokens: 1500
+  lote_hallazgos: 4
+
+agente:
+  max_reformulaciones: 3
+  max_por_informe: 6
+
+guardrails:
+  tam_max_malla_mb: 50
+  tam_max_documento_mb: 20
+  max_caras: 2000000
+  umbral_fuera_dominio: 0.30
+  licencias_permitidas:
+    - CC-BY-4.0
+    - CC-BY-SA-4.0
+    - CC0-1.0
+    - MIT
+    - Apache-2.0
+    - dominio-publico
+
+cache:
+  activa: true               # MESHAUDIT_CACHE=0 la desactiva (evaluación de latencias)
+  umbral_semantico: 0.92
+  expiracion_exacta_h: 168   # 7 días
+  expiracion_semantica_h: 24
+
+datos:
+  directorio: data           # MESHAUDIT_DATOS
+  chroma: chroma
+  sqlite: meshaudit.sqlite
+  trazas: trazas.jsonl
+  mallas: mallas
