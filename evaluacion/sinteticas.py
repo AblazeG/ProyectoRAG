@@ -150,18 +150,18 @@ def generar(destino: Path = DESTINO, con_glb_texturas: bool = True) -> dict[str,
         v5m[c - 1] = [(v5m[a - 1][i] + v5m[b - 1][i]) / 2 for i in range(3)]
     rutas["base5_M5"] = escribir(destino / "base5_M5.obj", v5m, tri + f5[zona:])
 
-    # Exportaciones extra cuando el defecto sobrevive (GLB, STL y PLY)
-    try:
-        import trimesh
-        for nombre in ("base2_M2", "base3_M3", "base5_M5"):
-            m = trimesh.load(rutas[nombre], process=False, force="mesh")
-            for ext in ("glb", "stl", "ply"):
-                m.export(destino / f"{nombre}.{ext}")
-        if con_glb_texturas:
-            rutas["base4_M4_texturas"] = _glb_con_textura(rutas["base4_M4"],
-                                                          destino / "base4_M4_texturas.glb")
-    except Exception as exc:  # noqa: BLE001
-        print(f"aviso: exportaciones extra omitidas ({exc})")
+    # Exportaciones extra cuando el defecto sobrevive (GLB, STL y PLY). Sin «try»:
+    # si falta una dependencia (Pillow) los casos que usan estos archivos fallarían
+    # después con un mensaje confuso, así que el error se muestra aquí.
+    import trimesh
+    for nombre in ("base2_M2", "base3_M3", "base5_M5"):
+        m = trimesh.load(rutas[nombre], process=False, force="mesh")
+        for ext in ("glb", "stl", "ply"):
+            rutas[f"{nombre}.{ext}"] = destino / f"{nombre}.{ext}"
+            m.export(rutas[f"{nombre}.{ext}"])
+    if con_glb_texturas:
+        rutas["base4_M4_texturas"] = _glb_con_textura(rutas["base4_M4"],
+                                                      destino / "base4_M4_texturas.glb")
     return rutas
 
 

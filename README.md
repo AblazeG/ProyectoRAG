@@ -84,7 +84,7 @@ ollama pull mistral-small3.2:24b        # solo para la evaluación (juez)
 
 # 2. Entorno de Python
 python3.11 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -c restricciones.txt   # versiones con las que pasó la suite
 
 # 3. Ingesta del corpus (ver corpus/README.md)
 python -m servicio.ingestar corpus/
@@ -94,15 +94,19 @@ uvicorn servicio.composicion:app --host 127.0.0.1 --port 8000
 python -m http.server 5173 --bind 127.0.0.1 -d web
 # Web: http://localhost:5173   API: http://localhost:8000/docs
 
-# 5. Pruebas y evaluación
+# 5. Pruebas
 MESHAUDIT_PROVEEDOR=falso pytest -q
-python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
 
-# 6. Experimentos de selección (modelos, embeddings, fragmentos y caché)
-for e in llm embeddings fragmentos cache; do
+# 6. Experimentos de selección (tablas 8, 9, 17/18 y 22). experimento_llm va antes de
+#    run_eval: escribe muestra_revision_manual.csv, que se califica a mano para la
+#    validación del juez (fila juez–autor de la tabla 16).
+python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/
+for e in embeddings fragmentos cache; do
   python -m experimentos.experimento_$e --salida evaluacion/resultados/
 done
-python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/   # tabla 8 con calidad
+
+# 7. Evaluación (tablas 16–23, fallas, privacidad y retroalimentación)
+python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
 ```
 
 La web solo habla con la API (nunca con Ollama ni ChromaDB). Si la API está en otra dirección:
@@ -166,12 +170,18 @@ La respuesta sigue el Código 8: `auditoria_id`, `resumen`, `semaforo`, `metrica
 blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas
 # Conjuntos de prueba (tabla 15) con la línea base de tus mallas; revísala a mano
 python -m evaluacion.plantillas --bases silla,personaje,engrane,escaneo,lampara
+# Tabla 8 y muestra para validar al juez (califica a mano las columnas nota_autor_*)
+python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/
 # Tablas 16–23, fallas, privacidad y retroalimentación
 python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
 ```
 
-Sin Ollama, `python evaluacion/run_eval.py --proveedor falso` usa mallas sintéticas equivalentes
-(`evaluacion/sinteticas.py`) y el corpus de prueba. `docs/DESVIACIONES.md` (sección C) indica qué
+Con Ollama, `run_eval.py` se detiene si faltan las mallas de Blender que piden los casos;
+`--mallas-sinteticas` las sustituye por las de `evaluacion/sinteticas.py` (requiere Pillow),
+pero esas cifras no son las del informe. Sin Ollama, `python evaluacion/run_eval.py
+--proveedor falso` usa siempre las mallas sintéticas y el corpus de prueba. Cada sesión de la
+evaluación tiene su propia base SQLite y sus trazas (solo comparte el índice de Chroma) y sus
+directorios temporales se borran al terminar. `docs/DESVIACIONES.md` (sección C) indica qué
 archivo llena cada «[Pendiente]» del informe.
 
 ## Pruebas

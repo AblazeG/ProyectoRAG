@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import argparse
 import statistics
+
+import numpy as np
 import sys
 from pathlib import Path
 
@@ -51,31 +53,52 @@ def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -
     # Exacta: 10 auditorías repetidas sin notas + 10 preguntas repetidas
     sesion = Sesion(proveedor=proveedor, cache=True, corpus=corpus)
     sesion.vaciar_cache()
-    primeras, segundas = [], []
+    primeras, segundas, tipos = [], [], []
     for c in casos["auditorias_repetidas"]:
         p = producto[c["caso_producto"]]
         primeras.append(sesion.auditar(dir_mallas / p["malla"], p["perfil"]).json())
         segundas.append(sesion.auditar(dir_mallas / p["malla"], p["perfil"]).json())
+        tipos.append("auditoria")
     auditoria = segundas[0]["auditoria_id"]
     for c in casos["preguntas_repetidas"]:
         primeras.append(sesion.preguntar(auditoria, c["pregunta"]).json())
         segundas.append(sesion.preguntar(auditoria, c["pregunta"]).json())
+        tipos.append("pregunta")
     aciertos = [s for s in segundas if s["cache"] == "exacta"]
+    # Precisión real: un acierto es correcto si devuelve lo mismo que la primera
+    # respuesta (mismos hallazgos o la misma respuesta), no se supone 1.0.
+    correctos = sum(1 for p, s in zip(primeras, segundas)
+                    if s["cache"] == "exacta" and _contenido(p) == _contenido(s))
+    auditorias_ms = [s["tiempo_ms"] for s, t in zip(segundas, tipos)
+                     if t == "auditoria" and s["cache"] == "exacta"]
     filas.append({"umbral": "Exacta (20 repetidas)", "recall": round(len(aciertos) / len(segundas), 3),
-                  "precision": 1.0, "falsos_positivos": 0,
+                  "precision": round(correctos / len(aciertos), 3) if aciertos else None,
+                  "falsos_positivos": len(aciertos) - correctos,
                   "ahorro_ms": round(_media([p["tiempo_ms"] for p in primeras])
                                      - _media([s["tiempo_ms"] for s in aciertos]), 1) if aciertos else None,
-                  "acierto_exacto_p95_ms": round(sorted(s["tiempo_ms"] for s in aciertos)[
-                      int(0.95 * (len(aciertos) - 1))], 1) if aciertos else None})
+                  # p95 de las auditorías servidas por la caché exacta (sección 9.6: < 50 ms)
+                  "auditoria_exacta_p95_ms": round(float(np.percentile(auditorias_ms, 95)), 1)
+                  if auditorias_ms else None})
     return filas
+
+
+def _contenido(respuesta: dict):
+    """Lo que debe coincidir entre la respuesta original y la servida desde la caché."""
+    if "hallazgos" in respuesta:
+        return [(h["verificacion"], h["gravedad"], h.get("explicacion"), tuple(h.get("correccion") or []))
+                for h in respuesta["hallazgos"]] + [respuesta.get("semaforo")]
+    return respuesta.get("respuesta")
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     argumentos_comunes(p)
     p.add_argument("--mallas", type=Path, default=None)
+    p.add_argument("--mallas-sinteticas", action="store_true",
+                   help="genera mallas sintéticas si faltan (sin Blender)")
     args = p.parse_args(argv)
-    filas = tabla22(args.proveedor, corpus_por_defecto(args), mallas(args.mallas, args.proveedor))
+    filas = tabla22(args.proveedor, corpus_por_defecto(args),
+                    mallas(args.mallas, args.proveedor, args.mallas_sinteticas))
     for f in filas:
         print(f)
     print(escribir_csv(args.salida / "tabla22_cache.csv", filas))

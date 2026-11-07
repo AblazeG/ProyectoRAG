@@ -32,8 +32,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from evaluacion.comun import (OLLAMA, RAIZ, RESULTADOS, Sesion, cargar, corpus_por_defecto,  # noqa: E402
-                              embeddings_para, escribir_csv, estadisticos, mallas)
+from evaluacion.comun import (OLLAMA, RAIZ, RESULTADOS, SESIONES, Sesion, cargar,  # noqa: E402
+                              corpus_por_defecto, embeddings_para, escribir_csv, estadisticos,
+                              mallas)
 from evaluacion.juez import crear_juez  # noqa: E402
 
 SIN_NORMA = "Sin norma aplicable en el corpus"
@@ -68,10 +69,22 @@ def _sin_rag(sesion: Sesion, informe: dict, hallazgo: dict, juez):
                                             "Explica el hallazgo y da los pasos de corrección."}]
     try:
         g = c.gateway.generar(alias, mensajes, RespuestaExplicaciones.model_json_schema())
-        e = RespuestaExplicaciones.model_validate_json(g.texto).hallazgos[0]
     except Exception:  # noqa: BLE001
         return None
-    return juez.calificar(hallazgo["descripcion"], e.explicacion + "\n" + "\n".join(e.correccion),
+    # Mismos guardrails de salida que la ruta con RAG (S1–S3): sin fragmentos entregados,
+    # S2 quita toda cita y S3 elimina las cifras sin respaldo. Así la comparación mide
+    # el aporte del contexto y no la ausencia de guardrails.
+    veredicto = c.auditor.salida.verificar_generacion(g.texto, RespuestaExplicaciones,
+                                              {hallazgo["id"]: set()}, {})
+    if veredicto.motivo == "formato":
+        return None
+    if veredicto.motivo == "cifras":
+        veredicto = c.auditor.salida.eliminar_cifras(veredicto)
+    item = veredicto.detalles.get(hallazgo["id"])
+    if not item or item["sin_norma"] or not item["texto"]:
+        return None
+    return juez.calificar(f"Explicar el hallazgo {hallazgo['verificacion']}: {hallazgo['descripcion']}",
+                          item["texto"] + "\n" + "\n".join(item["correccion"]),
                           [hallazgo["fuente"]["fragmento"]] if hallazgo.get("fuente") else [])
 
 
@@ -141,7 +154,9 @@ def tabla16(sesion: Sesion, dir_mallas: Path, juez, salida: Path = RESULTADOS
         {"metrica": "Citas inventadas detectadas por S2 (% de las citas)", "con_rag": _pct(citas_s2, citas_gen), "sin_rag": "–"},
         {"metrica": "Cifras sin respaldo eliminadas por S3", "con_rag": frases_s3, "sin_rag": ""},
         {"metrica": "Diferencia media juez–autor (15 casos)", "con_rag": juez_autor.get("diferencia_media"),
-         "sin_rag": juez_autor.get("acuerdo_1_punto_pct")},
+         "sin_rag": "–"},
+        {"metrica": "Acuerdo juez–autor, diferencia ≤ 1 punto (%)",
+         "con_rag": juez_autor.get("acuerdo_1_punto_pct"), "sin_rag": "–"},
         {"metrica": "Hallazgos servidos desde la caché de hallazgos", "con_rag": desde_cache, "sin_rag": "–"},
     ]
     return resumen, casos_det
@@ -167,6 +182,7 @@ def _juez_autor(salida: Path = RESULTADOS) -> dict:
 
 
 # -- Tabla 19: guardrails --------------------------------------------------------
+
 def tabla19(sesion: Sesion, dir_mallas: Path) -> tuple[list[dict], list[dict]]:
     referencia = _referencia(sesion, dir_mallas, "animacion")
     malla_normal = dir_mallas / next(c for c in cargar("casos_producto.json")
@@ -185,7 +201,8 @@ def tabla19(sesion: Sesion, dir_mallas: Path) -> tuple[list[dict], list[dict]]:
         activaciones = g.get("activaciones", []) if isinstance(g, dict) else g
         correcto = r.status_code == esperado["codigo"]
         if "guardrail" in esperado:
-            correcto = correcto and (esperado["guardrail"] in activaciones or r.status_code == 422)
+            # Debe actuar el guardrail esperado, no basta cualquier 422 (p. ej. un E1).
+            correcto = correcto and esperado["guardrail"] in activaciones
         if "no_contiene" in esperado:
             correcto = correcto and esperado["no_contiene"] not in r.text
         falso_positivo = esperado.get("sin_rechazo") and (r.status_code != 200 or "E4" in activaciones)
@@ -224,6 +241,13 @@ def tabla20(sesion: Sesion, dir_mallas: Path) -> tuple[list[dict], list[dict]]:
             if c["relevante"] and not es_suficiente(recuperador.recuperar(c["consulta"], k=5, perfil=c["perfil"])):
                 casos.append({"id": c["id"], "consulta": c["consulta"], "documento": c["documento"],
                               "seccion": c["seccion"], "perfil": c["perfil"]})
+    umbral = (sesion.contenedor.config.get("rag", {}).get("umbral", 0.55)
+              if sesion.contenedor else 0.55)
+
+    def suficiente(r: dict) -> bool:   # misma condición que es_suficiente (top-1 y ≥ 2 fragmentos)
+        from servicio.orquestacion.agente import MIN_SOBRE_UMBRAL
+        return r.get("top1", 0) >= umbral and r.get("fragmentos", 0) >= MIN_SOBRE_UMBRAL
+
     referencias, detalle = {}, []
     for c in casos:
         if c["perfil"] not in referencias:
@@ -231,13 +255,14 @@ def tabla20(sesion: Sesion, dir_mallas: Path) -> tuple[list[dict], list[dict]]:
         r = sesion.preguntar(referencias[c["perfil"]], c["consulta"]).json()
         traza = sesion.trazas().get(r.get("traza_id"), {})
         rec = traza.get("recuperaciones") or [{}]
-        inicial_ok = rec[0].get("top1", 0) >= 0.55 and rec[0].get("fragmentos", 0) >= 2
+        inicial_ok = suficiente(rec[0])
+        final_ok = suficiente(rec[-1])     # la última recuperación del ciclo (Código 4)
         normas = _normas(r)
         agente_ms = sum(l["duracion_ms"] for l in traza.get("llamadas", []) if l.get("ruta") == "agente")
         detalle.append({"caso": c["id"], "inicial_suficiente": inicial_ok,
                         "top1_inicial": rec[0].get("top1"), "top1_final": rec[-1].get("top1"),
                         "reformulaciones": r.get("iteraciones_agente", 0),
-                        "supera_tras_reformular": (not inicial_ok) and bool(normas),
+                        "supera_tras_reformular": (not inicial_ok) and final_ok and len(rec) > 1,
                         "sin_norma": not normas,
                         "fuente_correcta": any(f.get("documento") == c["documento"] and f.get("seccion") == c["seccion"]
                                                for f in normas),
@@ -272,17 +297,23 @@ def tabla21(sesion: Sesion, dir_mallas: Path, juez, args) -> tuple[list[dict], l
             esperada = "sin_modelo"
         if esperada is None and solo_rapido is not None:
             r = solo_rapido.auditar(dir_mallas / c["malla"], c["perfil"]).json()
-            notas = [juez.calificar(h["descripcion"], h["explicacion"] or "",
-                                    [h["fuente"]["fragmento"]] if h.get("fuente") else [])
-                     for h in r["hallazgos"] if h["gravedad"] != "informativo"]
+            # Solo se califican explicaciones generadas con norma: «sin norma» y los
+            # hallazgos sin fuente no dicen nada de la calidad de gemma4:e2b.
+            notas = [juez.calificar(h["descripcion"], h["explicacion"],
+                                    [h["fuente"]["fragmento"]])
+                     for h in r.get("hallazgos", []) if h["gravedad"] != "informativo"
+                     and h.get("fuente") and h.get("explicacion") and h["explicacion"] != SIN_NORMA]
             notas = [min(n["fidelidad"], n["relevancia"]) for n in notas if n]
             if notas:
                 nota = round(statistics.mean(notas), 2)
                 esperada = "rapida" if nota >= 4 else "completa"
+            else:
+                esperada = "sin_etiqueta"   # con juez pero nada que calificar: no se inventa
         esperada = esperada or c["ruta_esperada_regla"]   # sin juez: se usa la regla (ver DESVIACIONES)
         detalle.append({"caso": c["id"], "origen": c["origen"], "perfil": c["perfil"],
                         "ruta_esperada": esperada, "nota_gemma": nota,
-                        "etiquetada_por": "calidad" if nota is not None or esperada == "sin_modelo" else "regla",
+                        "etiquetada_por": ("calidad" if nota is not None or esperada == "sin_modelo"
+                                           else "ninguna" if esperada == "sin_etiqueta" else "regla"),
                         "ruta": inf["ruta"], "adecuada": inf["ruta"] == esperada,
                         "completa_sin_necesidad": inf["ruta"] == "completa" and esperada != "completa",
                         "latencia_s": round(latencia, 3)})
@@ -293,8 +324,13 @@ def tabla21(sesion: Sesion, dir_mallas: Path, juez, args) -> tuple[list[dict], l
         resumen.append({"ruta_esperada": nombre, "casos": len(filas),
                         "adecuados": sum(d["adecuada"] for d in filas),
                         "latencia_p50_s": lat["mediana"], "latencia_p95_s": lat["p95"]})
+    sin_etiqueta = [d for d in detalle if d["ruta_esperada"] == "sin_etiqueta"]
+    if sin_etiqueta:
+        resumen.append({"ruta_esperada": "Sin etiqueta (excluidos)", "casos": len(sin_etiqueta),
+                        "adecuados": "–"})
     resumen.append({"ruta_esperada": "A la completa sin necesidad", "casos": "",
-                    "adecuados": sum(d["completa_sin_necesidad"] for d in detalle)})
+                    "adecuados": sum(d["completa_sin_necesidad"] for d in detalle
+                                     if d["ruta_esperada"] != "sin_etiqueta")})
     return resumen, detalle
 
 
@@ -353,20 +389,26 @@ def fallas(args, dir_mallas: Path) -> list[dict]:
 
 
 # -- Privacidad: 0 datos personales en trazas, caché y retroalimentación --------------
-def privacidad(sesion: Sesion) -> list[dict]:
+def privacidad(sesiones: list[Sesion]) -> list[dict]:
+    """Se mide al final de la corrida sobre los almacenes de todas las sesiones."""
     from servicio.guardrails.patrones import DATOS_PERSONALES
     literales = ["ana.perez@uni.mx", "55 1234 5678", "GOPA850101HDFRRN09"]
-    textos = {}
-    if sesion.ruta_trazas and Path(sesion.ruta_trazas).exists():
-        textos["trazas.jsonl"] = Path(sesion.ruta_trazas).read_text(encoding="utf-8")
-    base = Path(sesion.ruta_trazas).parent / "meshaudit.sqlite" if sesion.ruta_trazas else None
-    if base and base.exists():
-        con = sqlite3.connect(base)
-        for tabla, columnas in (("cache", "clave, valor"), ("cache_semantica", "valor"),
-                                ("retroalimentacion", "comentario"), ("informes", "informe")):
-            filas = con.execute(f"SELECT {columnas} FROM {tabla}").fetchall()
-            textos[tabla] = "\n".join(" ".join(str(x) for x in f) for f in filas)
-        con.close()
+    textos: dict[str, str] = {}
+
+    def sumar(nombre: str, texto: str) -> None:
+        textos[nombre] = textos.get(nombre, "") + "\n" + texto
+
+    for sesion in sesiones:
+        if sesion.ruta_trazas and Path(sesion.ruta_trazas).exists():
+            sumar("trazas.jsonl", Path(sesion.ruta_trazas).read_text(encoding="utf-8"))
+        base = getattr(sesion, "ruta_sqlite", None)
+        if base and Path(base).exists():
+            con = sqlite3.connect(base)
+            for tabla, columnas in (("cache", "clave, valor"), ("cache_semantica", "valor"),
+                                    ("retroalimentacion", "comentario"), ("informes", "informe")):
+                filas = con.execute(f"SELECT {columnas} FROM {tabla}").fetchall()
+                sumar(tabla, "\n".join(" ".join(str(x) for x in f) for f in filas))
+            con.close()
     resultado = []
     for almacen, texto in textos.items():
         n = sum(texto.count(l) for l in literales)
@@ -394,6 +436,8 @@ def main(argv=None) -> int:
     p.add_argument("--proveedor", default="ollama", choices=["falso", "ollama"])
     p.add_argument("--corpus", type=Path, default=None)
     p.add_argument("--mallas", type=Path, default=None, help="directorio con <base>_base.obj y <base>_M1.obj…")
+    p.add_argument("--mallas-sinteticas", action="store_true",
+                   help="genera mallas sintéticas si faltan (sin Blender; no son las del informe)")
     p.add_argument("--juez", action="store_true", help="usa mistral-small3.2:24b como juez")
     p.add_argument("--corridas", type=int, default=5)
     p.add_argument("--datos", type=Path, default=RAIZ / "data", help="data/ con la retroalimentación real")
@@ -402,7 +446,7 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     args.corpus = corpus_por_defecto(args)
     tablas = set(args.tablas.split(","))
-    dir_mallas = mallas(args.mallas, args.proveedor)
+    dir_mallas = mallas(args.mallas, args.proveedor, args.mallas_sinteticas)
     juez = crear_juez(args.juez, "mistral-small3.2:24b", OLLAMA)
 
     def sesion(cache: bool) -> Sesion:
@@ -435,8 +479,6 @@ def main(argv=None) -> int:
         resumen, detalle = tabla19(con_cache, dir_mallas)
         guardar("tabla19_guardrails.csv", resumen)
         guardar("tabla19_casos.csv", detalle)
-        if "privacidad" in tablas:
-            guardar("privacidad.csv", privacidad(con_cache))
     if "20" in tablas:
         resumen, detalle = tabla20(sin_cache, dir_mallas)
         guardar("tabla20_agente.csv", resumen)
@@ -454,6 +496,8 @@ def main(argv=None) -> int:
         guardar("fallas.csv", fallas(args, dir_mallas))
     if "retro" in tablas:
         guardar("retroalimentacion.csv", retroalimentacion(args.datos))
+    if "privacidad" in tablas:   # al final: revisa lo que dejaron todas las tablas
+        guardar("privacidad.csv", privacidad([con_cache] if args.url else list(SESIONES)))
     juez_autor = _juez_autor(salida)
     if juez_autor:
         guardar("juez_autor.csv", [juez_autor])

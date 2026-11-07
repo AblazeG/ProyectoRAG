@@ -263,6 +263,8 @@ def listar_corpus(directorio: Path | str) -> list[tuple[ArchivoSubido, dict]]:
         fuentes = (yaml.safe_load(fuentes_yaml.read_text(encoding="utf-8")) or {}).get("documentos") or {}
     salida = []
     for ruta in sorted(directorio.rglob("*")):
+        if ruta.name.lower() == "readme.md" and ruta.name not in fuentes:
+            continue   # corpus/README.md describe el corpus (tabla 2), no es una norma
         if ruta.is_file() and ruta.suffix.lower() in FORMATOS:
             meta = fuentes.get(ruta.name) or fuentes.get(str(ruta.relative_to(directorio))) or {}
             salida.append((ArchivoSubido(ruta.name, ruta.read_bytes()), dict(meta)))

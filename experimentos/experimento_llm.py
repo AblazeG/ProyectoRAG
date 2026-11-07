@@ -63,11 +63,13 @@ def main(argv=None) -> int:
     argumentos_comunes(p)
     p.add_argument("--candidatos", default=",".join(CANDIDATOS))
     p.add_argument("--mallas", type=Path, default=None)
+    p.add_argument("--mallas-sinteticas", action="store_true",
+                   help="genera mallas sintéticas si faltan (sin Blender)")
     p.add_argument("--juez", action="store_true")
     p.add_argument("--corridas", type=int, default=1)
     args = p.parse_args(argv)
     corpus = corpus_por_defecto(args)
-    dir_mallas = mallas(args.mallas, args.proveedor)
+    dir_mallas = mallas(args.mallas, args.proveedor, args.mallas_sinteticas)
     juez = crear_juez(args.juez, "mistral-small3.2:24b", OLLAMA)
     casos = cargar("casos_producto.json")
     filas, muestra = [], []

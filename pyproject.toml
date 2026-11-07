@@ -19,6 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pruebas = ["pytest>=8.0"]
+evaluacion = ["pillow>=10.0"]   # textura del GLB de V11 (evaluacion/sinteticas.py)
 
 [tool.setuptools.packages.find]
 include = ["servicio*"]

@@ -15,7 +15,10 @@ dimensión máxima supere 0.3 unidades) y calcula la línea base:
 - M3: invertir las normales de una región y duplicar vértices (split).
 - M4: subdividir hasta superar 100 000 triángulos y crear una arista no
   manifold (aleta); exportación extra en GLB con texturas.
-- M5: triangular una zona y crear caras degeneradas (vértice colapsado).
+- M5: triangular una zona y crear caras degeneradas (vértice colapsado sobre una
+  arista paralela a un eje, para que el área sea exactamente cero).
+
+Tras cada mutación se comprueba que el defecto existe; si no, el script se detiene.
 
 Sin argumentos usa ``evaluacion/mallas_base`` y ``evaluacion/mallas_generadas``.
 """
@@ -62,7 +65,10 @@ def importar(ruta: Path):
     return obj
 
 
-def exportar(obj, ruta_sin_ext: Path, formatos: tuple[str, ...]) -> None:
+def exportar(obj, ruta_sin_ext: Path, formatos: tuple[str, ...], normales: bool = True) -> None:
+    """``normales=False`` en M3: con normales suavizadas, los vértices separados por
+    «split» llevan normales distintas y C5 los trata como costuras de normales (no
+    como duplicados), así que el defecto no se vería."""
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -70,14 +76,16 @@ def exportar(obj, ruta_sin_ext: Path, formatos: tuple[str, ...]) -> None:
         ruta = str(ruta_sin_ext.with_suffix(f".{formato}"))
         if formato == "obj":
             bpy.ops.wm.obj_export(filepath=ruta, export_selected_objects=True, export_uv=True,
-                                  export_normals=True, export_triangulated_mesh=False,
+                                  export_normals=normales, export_triangulated_mesh=False,
                                   export_materials=False, apply_modifiers=True)
         elif formato == "glb":
-            bpy.ops.export_scene.gltf(filepath=ruta, export_format="GLB", use_selection=True)
+            bpy.ops.export_scene.gltf(filepath=ruta, export_format="GLB", use_selection=True,
+                                      export_normals=normales)
         elif formato == "stl":
             bpy.ops.wm.stl_export(filepath=ruta, export_selected_objects=True)
         elif formato == "ply":
-            bpy.ops.wm.ply_export(filepath=ruta, export_selected_objects=True, export_uv=True)
+            bpy.ops.wm.ply_export(filepath=ruta, export_selected_objects=True, export_uv=True,
+                                  export_normals=normales)
 
 
 def con_bmesh(obj, funcion) -> None:
@@ -155,6 +163,7 @@ def m4(obj, rng) -> None:
         while triangulos(bm) <= 100_000:
             bmesh.ops.subdivide_edges(bm, edges=list(bm.edges), cuts=1, use_grid_fill=True)
         bm.edges.ensure_lookup_table()
+        bm.normal_update()   # tras subdividir, las normales de cara no están recalculadas
         arista = rng.choice([e for e in bm.edges if len(e.link_faces) == 2])
         a, b = arista.verts
         normal = arista.link_faces[0].normal
@@ -184,23 +193,68 @@ def textura_de_prueba(obj, lado_px: int = 2048) -> None:
     obj.data.materials.append(material)
 
 
+def _arista_alineada(a, b) -> bool:
+    """Arista paralela a un eje: dos coordenadas idénticas en float32."""
+    return sum(a.co[i] == b.co[i] for i in range(3)) >= 2
+
+
 def m5(obj, rng) -> None:
+    """El punto medio de una arista cualquiera no es exactamente colineal en float32 y
+    el área queda en ~1e-8, por encima del umbral absoluto de V8 (1e-10). Se colapsa
+    sobre aristas paralelas a un eje, donde el punto medio sí es colineal (área 0
+    exacta) sin crear vértices coincidentes, que contarían como duplicados."""
     def mutar(bm):
         region = _region(bm, rng, 0.08)
         resultado = bmesh.ops.triangulate(bm, faces=region)
-        nuevas = resultado["faces"]
+        nuevas = list(resultado["faces"])
+        rng.shuffle(nuevas)
         usados = set()
         colapsadas = 0
         for cara in nuevas:
-            a, b, c = cara.verts
-            if {a, b, c} & usados:
+            vs = list(cara.verts)
+            giros = [(vs[i], vs[(i + 1) % 3], vs[(i + 2) % 3]) for i in range(3)]
+            elegido = next((g for g in giros if _arista_alineada(g[0], g[1])), None)
+            if elegido is None or set(vs) & usados:
                 continue
-            c.co = (a.co + b.co) / 2  # el triángulo queda con área cero
-            usados |= {a, b, c}
+            a, b, c = elegido
+            c.co = (a.co + b.co) / 2  # colineal con a y b: área cero
+            usados |= set(vs)
             colapsadas += 1
             if colapsadas >= 3:
                 break
     con_bmesh(obj, mutar)
+
+
+# -- Comprobaciones: cada variante debe tener su defecto antes de exportarse -----------
+def _area(cara) -> float:
+    a, b, c = (cara.verts[i].co for i in range(3))
+    return (b - a).cross(c - a).length / 2
+
+
+def comprobar(nombre: str, obj) -> None:
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    try:
+        dimension = max(obj.dimensions)
+        if nombre == "M1":
+            ok = any(len(f.verts) > 4 for f in bm.faces) and dimension > 300
+        elif nombre == "M2":
+            ok = any(e.is_boundary for e in bm.edges) and not obj.data.uv_layers
+        elif nombre == "M3":
+            posiciones = {tuple(round(x, 6) for x in v.co) for v in bm.verts}
+            ok = len(posiciones) < len(bm.verts)          # hay vértices duplicados
+        elif nombre == "M4":
+            ok = (triangulos(bm) > 100_000
+                  and any(len(e.link_faces) > 2 for e in bm.edges))
+        elif nombre == "M5":
+            ok = any(len(f.verts) == 3 and _area(f) < 1e-10 for f in bm.faces)
+        else:
+            ok = True
+    finally:
+        bm.free()
+    if not ok:
+        raise SystemExit(f"{obj.name}: la mutación {nombre} no produjo el defecto esperado "
+                         "(revisa la malla base; tabla 3).")
 
 
 MUTACIONES = {"M1": m1, "M2": m2, "M3": m3, "M4": m4, "M5": m5}
@@ -218,7 +272,9 @@ def main() -> None:
             escena_vacia()
             obj = importar(ruta)
             mutacion(obj, random.Random(f"{SEMILLA}-{ruta.stem}-{nombre}"))
-            exportar(obj, salida / f"{ruta.stem}_{nombre}", FORMATOS[nombre])
+            comprobar(nombre, obj)
+            exportar(obj, salida / f"{ruta.stem}_{nombre}", FORMATOS[nombre],
+                     normales=nombre != "M3")
             if nombre == "M4":
                 textura_de_prueba(obj)
                 exportar(obj, salida / f"{ruta.stem}_M4_texturas", ("glb",))

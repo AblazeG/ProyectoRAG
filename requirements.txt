@@ -9,4 +9,5 @@ pypdf>=4.0
 beautifulsoup4>=4.12
 pyyaml>=6.0
 python-multipart>=0.0.9
+pillow>=10.0
 pytest>=8.0

@@ -1,9 +1,12 @@
 """Utilidades de evaluación y experimentos: clientes de la API, trazas, CSV y estadísticos."""
 from __future__ import annotations
 
+import atexit
 import csv
 import json
 import os
+import shutil
+import sqlite3
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -78,11 +81,53 @@ def entorno(**variables):
                 os.environ[k] = v
 
 
-_INDICES: dict[tuple, Path] = {}
+_INDICES: dict[tuple, Path] = {}     # clave del corpus -> directorio con chroma/ e indice.sqlite
+_TEMPORALES: list[Path] = []
+SESIONES: list["Sesion"] = []        # sesiones en proceso (privacidad las revisa al final)
+TABLAS_DEL_INDICE = ("documentos", "manifiesto")
+
+
+def _temporal(prefijo: str = "meshaudit_eval_") -> Path:
+    ruta = Path(tempfile.mkdtemp(prefix=prefijo))
+    _TEMPORALES.append(ruta)
+    return ruta
+
+
+def limpiar_temporales() -> None:
+    """Borra los directorios temporales de las sesiones (también al salir)."""
+    for ruta in _TEMPORALES:
+        shutil.rmtree(ruta, ignore_errors=True)
+    _TEMPORALES.clear()
+    _INDICES.clear()
+    SESIONES.clear()
+
+
+atexit.register(limpiar_temporales)
+
+
+def _guardar_indice(origen: Path, destino: Path) -> None:
+    """Copia de la base SQLite con solo el registro del índice (documentos y manifiesto):
+    caché, informes, trazas y votos no pasan de una sesión a otra."""
+    fuente, copia = sqlite3.connect(origen), sqlite3.connect(destino)
+    try:
+        fuente.backup(copia)
+        tablas = [f[0] for f in copia.execute("SELECT name FROM sqlite_master WHERE type='table'"
+                                              " AND name NOT LIKE 'sqlite_%'")]
+        for tabla in tablas:
+            if tabla not in TABLAS_DEL_INDICE:
+                copia.execute(f"DELETE FROM {tabla}")
+        copia.commit()
+    finally:
+        fuente.close()
+        copia.close()
 
 
 class Sesion:
-    """Cliente HTTP de la API: externo (``--url``) o en proceso (TestClient)."""
+    """Cliente HTTP de la API: externo (``--url``) o en proceso (TestClient).
+
+    Cada sesión en proceso tiene su propia base SQLite y sus trazas; las sesiones
+    con el mismo corpus y modelo de embeddings comparten solo el índice (Chroma y
+    el registro de documentos), para no recalcular los embeddings en cada una."""
 
     def __init__(self, url: str | None = None, proveedor: str = "falso", cache: bool = True,
                  corpus: Path | None = None, falla: str | None = None, dir_datos: Path | None = None,
@@ -93,30 +138,37 @@ class Sesion:
             import httpx
             self.http = httpx.Client(base_url=url.rstrip("/"), timeout=600, trust_env=False)
             self.ruta_trazas = trazas
+            self.ruta_sqlite = Path(trazas).parent / "meshaudit.sqlite" if trazas else None
             return
         from fastapi.testclient import TestClient
-        from servicio.composicion import construir, crear_aplicacion
-        # Las sesiones con el mismo corpus comparten el índice (Chroma persistente) para
-        # no volver a generar los embeddings de todo el corpus en cada sesión.
+        from servicio.composicion import cargar_config, construir, crear_aplicacion
         clave = None
         if corpus and dir_datos is None:
             clave = (proveedor, str(Path(corpus).resolve()),
                      (variables or {}).get("MESHAUDIT_MODELO_EMBEDDINGS",
                                            os.environ.get("MESHAUDIT_MODELO_EMBEDDINGS", "")))
             vectorial = "chroma"
-        reutiliza = clave in _INDICES
-        self.dir_datos = Path(dir_datos or _INDICES.get(clave)
-                              or tempfile.mkdtemp(prefix="meshaudit_eval_"))
+        compartido = _INDICES.get(clave) if clave else None
+        self.dir_datos = Path(dir_datos) if dir_datos else _temporal()
         with entorno(MESHAUDIT_FALLA=falla, **(variables or {})):
-            self.contenedor = construir(proveedor=proveedor, dir_datos=self.dir_datos,
+            config = cargar_config()
+            self.ruta_sqlite = self.dir_datos / config["datos"]["sqlite"]
+            if clave:
+                indice = compartido or _temporal("meshaudit_indice_")
+                config["datos"]["chroma"] = str(indice / "chroma")   # ruta absoluta compartida
+                if compartido:
+                    shutil.copyfile(compartido / "indice.sqlite", self.ruta_sqlite)
+            self.contenedor = construir(config, proveedor=proveedor, dir_datos=self.dir_datos,
                                         cache_activa=cache, vectorial=vectorial, chats=chats,
                                         dormir=(lambda s: None) if proveedor == "falso" else None)
         self.http = TestClient(crear_aplicacion(self.contenedor))
-        self.ruta_trazas = self.dir_datos / "trazas.jsonl"
-        if corpus and not reutiliza:
+        self.ruta_trazas = self.dir_datos / config["datos"]["trazas"]
+        if corpus and not compartido:
             self.ingestar(corpus)
             if clave:
-                _INDICES[clave] = self.dir_datos
+                _guardar_indice(self.ruta_sqlite, indice / "indice.sqlite")
+                _INDICES[clave] = indice
+        SESIONES.append(self)
 
     def ingestar(self, directorio: Path):
         from servicio.datos.documentos import listar_corpus
@@ -133,7 +185,7 @@ class Sesion:
                       f"{r.json().get('detalle', r.text)}", file=sys.stderr)
 
     def vaciar_cache(self) -> None:
-        """Borra la caché exacta y semántica (las sesiones comparten la base de datos)."""
+        """Borra la caché exacta y semántica de esta sesión."""
         if self.contenedor is not None:
             self.contenedor.cache.purgar(10 ** 9)
 
@@ -157,15 +209,42 @@ class Sesion:
         return salida
 
 
-def mallas(directorio: Path | None, proveedor: str) -> Path:
-    """Directorio con ``<base>_base.obj`` y ``<base>_M1.obj``…; en modo falso se
-    generan las mallas sintéticas si faltan."""
+def mallas_requeridas() -> set[str]:
+    """Archivos de malla que usan los casos de evaluacion/*.json."""
+    nombres = set()
+    for archivo in ("casos_producto.json", "casos_enrutador.json", "casos_cache.json"):
+        ruta = DIR_EVAL / archivo
+        if not ruta.exists():
+            continue
+        texto = json.loads(ruta.read_text(encoding="utf-8"))
+        pila = [texto]
+        while pila:
+            x = pila.pop()
+            if isinstance(x, dict):
+                if isinstance(x.get("malla"), str):
+                    nombres.add(x["malla"])
+                pila.extend(x.values())
+            elif isinstance(x, list):
+                pila.extend(x)
+    return nombres
+
+
+def mallas(directorio: Path | None, proveedor: str, sinteticas: bool = False) -> Path:
+    """Directorio con ``<base>_base.obj``, ``<base>_M1.obj``… y las exportaciones que
+    piden los casos. Las mallas sintéticas solo se generan con el proveedor falso (o
+    con ``--mallas-sinteticas``): con Ollama la evaluación usa las de Blender
+    (mutar_blender.py), y mezclar ambas daría resultados que no son los del informe."""
     directorio = Path(directorio or MALLAS_GENERADAS)
-    if not any(directorio.glob("*_base.obj")):
-        if proveedor != "falso" and directorio != MALLAS_GENERADAS:
-            raise SystemExit(f"Faltan mallas en {directorio}: ejecuta mutar_blender.py primero.")
+    faltantes = sorted(n for n in mallas_requeridas() if not (directorio / n).exists())
+    if faltantes:
+        if proveedor != "falso" and not sinteticas:
+            raise SystemExit(f"Faltan mallas en {directorio} ({', '.join(faltantes[:5])}…): "
+                             "ejecuta evaluacion/mutar_blender.py o usa --mallas-sinteticas.")
         from evaluacion.sinteticas import generar
         generar(directorio)
+        faltantes = sorted(n for n in mallas_requeridas() if not (directorio / n).exists())
+        if faltantes:
+            raise SystemExit(f"Los casos piden mallas que no se generaron: {', '.join(faltantes)}")
     return directorio
 
 
@@ -203,16 +282,20 @@ def indice_en_memoria(embeddings, corpus: Path, tam: int = 800, solape: int = 12
     return indice, Recuperador(embeddings, almacen)
 
 
-def evaluar_recuperacion(recuperador, casos: list[dict], k: int, umbral: float) -> dict:
+def evaluar_recuperacion(recuperador, casos: list[dict], k: int, umbral: float,
+                         con_perfil: bool = True) -> dict:
     """Acierto@1, acierto@k, MRR y rechazos correctos sobre casos_recuperacion.json.
 
     La relevancia se define por documento y sección, no por id de fragmento,
     para comparar tamaños de fragmento (sección 9.1). Un acierto exige la
-    sección entre los k primeros y sobre el umbral.
+    sección entre los k primeros y sobre el umbral (con ``umbral=0`` se mide solo
+    el orden). Como en el servicio, la búsqueda se filtra por el perfil del caso
+    (``con_perfil``); los rechazos se cuentan con el umbral dado.
     """
     aciertos1, aciertos, reciprocos, rechazos, n_rel, n_neg = 0, 0, 0.0, 0, 0, 0
     for caso in casos:
-        r = recuperador.recuperar(caso["consulta"], k=k, umbral=umbral)
+        perfil = caso.get("perfil") if con_perfil else None
+        r = recuperador.recuperar(caso["consulta"], k=k, perfil=perfil, umbral=umbral)
         if caso["relevante"]:
             n_rel += 1
             rango = next((i + 1 for i, x in enumerate(r.fragmentos)
