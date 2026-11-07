@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshAudit · Métricas</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header><div class="barra">
+  <h1>MeshAudit</h1>
+  <nav><a href="index.html">Auditoría</a><a href="documentos.html">Normas</a><a href="metricas.html" class="activo">Métricas</a></nav>
+  <span id="salud">…</span>
+</div></header>
+<main>
+  <div id="error" class="error oculto"></div>
+  <section class="panel">
+    <div class="fila" style="align-items:center"><h2 style="margin:0">Resumen</h2>
+      <div style="flex:0 0 auto"><button class="secundario" id="actualizar">Actualizar</button></div></div>
+    <div class="tarjetas" id="tarjetas" style="margin-top:12px"></div>
+  </section>
+  <section class="panel">
+    <h2>Latencia por capa (ms)</h2>
+    <table id="capas"></table>
+    <details><summary>Por etapa</summary><table id="etapas"></table></details>
+  </section>
+  <section class="panel">
+    <div class="fila">
+      <div><h2>Rutas</h2><table id="rutas"></table></div>
+      <div><h2>Modelos</h2><table id="modelos"></table></div>
+      <div><h2>Guardrails</h2><table id="guardrails"></table></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Configuración activa</h2>
+    <pre class="json" id="configuracion"></pre>
+  </section>
+</main>
+<script src="js/api.js"></script>
+<script>
+const NOMBRES_CAPA = {C2: "C2 Orquestación", C3: "C3 Guardrails", C4: "C4 Caché", C5: "C5 Contexto",
+                      C6: "C6 Modelos", C7: "C7 Datos"};
+function tablaLatencia(datos, nombres = {}) {
+  const filas = Object.entries(datos).map(([k, v]) =>
+    `<tr><td>${esc(nombres[k] || k)}</td><td>${esc(v.n)}</td><td>${esc(v.media)}</td>
+     <td>${esc(v.p50)}</td><td>${esc(v.p95)}</td></tr>`).join("");
+  return `<thead><tr><th>Capa</th><th>n</th><th>media</th><th>p50</th><th>p95</th></tr></thead><tbody>${filas
+    || '<tr><td colspan="5">Sin datos todavía.</td></tr>'}</tbody>`;
+}
+function tablaConteo(datos) {
+  const filas = Object.entries(datos || {}).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
+  return filas || "<tr><td>Sin datos</td></tr>";
+}
+function tarjeta(titulo, valor, detalle = "") {
+  return `<div class="tarjeta"><div class="meta">${esc(titulo)}</div><div class="valor">${esc(valor ?? "—")}</div>
+          <div class="meta">${esc(detalle)}</div></div>`;
+}
+async function cargar() {
+  try {
+    const [m, c] = await Promise.all([API.metricas(), API.configuracion()]);
+    const pct = (x) => x === null || x === undefined ? "—" : `${(x * 100).toFixed(1)} %`;
+    $("#tarjetas").innerHTML = [
+      tarjeta("Auditorías", m.trazas.auditoria || 0),
+      tarjeta("Preguntas", m.trazas.pregunta || 0),
+      tarjeta("Aciertos de caché", pct(m.cache.tasa_acierto),
+              `exacta ${m.cache.exacta} · semántica ${m.cache.semantica} · hallazgos ${m.cache.hallazgos}`),
+      tarjeta("Uso del respaldo", m.respaldo.usos, `tasa ${pct(m.respaldo.tasa)}`),
+      tarjeta("Iteraciones del agente", m.agente.iteraciones_totales, `media ${m.agente.media ?? "—"} · máx. ${m.agente.maximo}`),
+      tarjeta("Utilidad (T2)", pct(m.retroalimentacion.tasa_utilidad),
+              `${m.retroalimentacion.utiles || 0} útiles de ${m.retroalimentacion.total || 0}`),
+    ].join("");
+    $("#capas").innerHTML = tablaLatencia(m.latencia_ms.por_capa, NOMBRES_CAPA);
+    $("#etapas").innerHTML = tablaLatencia(m.latencia_ms.por_etapa);
+    $("#rutas").innerHTML = tablaConteo(m.rutas);
+    $("#modelos").innerHTML = tablaConteo(m.modelos);
+    $("#guardrails").innerHTML = tablaConteo(m.guardrails);
+    $("#configuracion").textContent = JSON.stringify(c, null, 2);
+  } catch (e) {
+    $("#error").textContent = e.message;
+    $("#error").classList.remove("oculto");
+  }
+}
+$("#actualizar").addEventListener("click", cargar);
+cargar();
+</script>
+</body>
+</html>

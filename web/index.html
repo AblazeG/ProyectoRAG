@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshAudit · Auditoría</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script type="module" src="vendor/model-viewer.min.js"></script>
+</head>
+<body>
+<header><div class="barra">
+  <h1>MeshAudit</h1>
+  <nav><a href="index.html" class="activo">Auditoría</a><a href="documentos.html">Normas</a><a href="metricas.html">Métricas</a></nav>
+  <span id="salud">…</span>
+</div></header>
+<main>
+  <section class="panel">
+    <h2>Auditar una malla</h2>
+    <form id="formulario">
+      <div class="fila">
+        <div><label for="archivo">Malla (.obj, .glb, .stl, .ply · máx. 50 MB)</label>
+          <input id="archivo" name="archivo" type="file" accept=".obj,.glb,.stl,.ply" required></div>
+        <div><label for="perfil">Perfil de destino</label>
+          <select id="perfil" name="perfil" required></select></div>
+      </div>
+      <label for="notas">Notas (opcional; se tratan como datos, no como instrucciones)</label>
+      <textarea id="notas" name="notas" maxlength="4000" placeholder="Ej.: personaje para animar exportado desde Blender en metros"></textarea>
+      <div class="acciones"><button id="enviar" type="submit">Auditar</button>
+        <span class="meta" id="estado"></span></div>
+    </form>
+    <div id="visor" class="oculto" style="margin-top:14px">
+      <p class="meta">Vista previa local del GLB (el archivo no sale de tu equipo para esta vista).</p>
+      <model-viewer id="modelo" camera-controls auto-rotate shadow-intensity="0.6"></model-viewer>
+    </div>
+  </section>
+
+  <div id="error" class="error oculto"></div>
+
+  <section class="panel oculto" id="informe">
+    <div class="fila" style="align-items:center">
+      <div><h2 style="margin:0">Informe <span id="semaforo" class="semaforo"></span></h2>
+        <p id="resumen" style="margin:6px 0 0"></p>
+        <p class="meta" id="detalles"></p></div>
+      <div style="flex:0 0 auto" class="acciones"><button class="secundario" id="exportar">Exportar a Markdown</button></div>
+    </div>
+    <h3 style="margin-top:14px">Métricas de la malla</h3>
+    <table id="metricas"></table>
+    <h3 style="margin-top:16px">Hallazgos</h3>
+    <div id="hallazgos"></div>
+    <p class="aviso" id="aviso"></p>
+    <div class="retro" data-hallazgo="">
+      <strong>¿Te sirvió el informe?</strong>
+      <input type="text" maxlength="2000" placeholder="Comentario (opcional)">
+      <button class="secundario" data-util="true">👍 Útil</button>
+      <button class="secundario" data-util="false">👎 No útil</button>
+      <span class="meta"></span>
+    </div>
+  </section>
+
+  <section class="panel oculto" id="preguntas">
+    <h2>Preguntas de seguimiento</h2>
+    <form id="form-pregunta" class="fila">
+      <div><input id="pregunta" type="text" maxlength="1000" required
+                  placeholder="Ej.: ¿Cómo encuentro las aristas no manifold en Blender?"></div>
+      <div style="flex:0 0 auto"><button type="submit">Preguntar</button></div>
+    </form>
+    <div id="respuestas"></div>
+  </section>
+</main>
+<script src="js/api.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>

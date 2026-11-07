@@ -297,6 +297,9 @@ class Auditor:
                                                              notas, self.num_ctx)
         instancia, resultado = llamar_con_s1(self.gateway, self.salida, decision.alias, mensajes,
                                              RespuestaExplicaciones, decision.ruta, traza)
+        traza.datos["modelo_explicacion"] = resultado.modelo
+        traza.datos["respaldo_explicacion"] = (traza.datos.get("respaldo_explicacion", False)
+                                               or resultado.uso_respaldo)
         if instancia is None:  # S1 falló dos veces: mensaje seguro
             for h in lote:
                 h.explicacion, h.correccion, h.fuente = MENSAJE_SEGURO_FORMATO, [], None
@@ -369,9 +372,11 @@ class Auditor:
         if resultado.no_medibles:
             resumen += (f" {', '.join(resultado.no_medibles)} no se pueden medir en "
                         f"{resultado.metricas['formato'].upper()}: audita el archivo en OBJ.")
-        modelo = traza.datos.get("modelo") if decision.ruta != SIN_MODELO else None
-        if decision.ruta != SIN_MODELO and modelo is None and cache_hallazgos:
-            modelo = self.gateway.nombre_modelo(decision.alias)
+        modelo = None
+        if decision.ruta != SIN_MODELO:  # el modelo que explicó, no el que reformuló
+            modelo = (traza.datos.get("modelo_explicacion")
+                      or self.gateway.nombre_modelo(decision.alias))
+            traza.anotar(modelo=modelo)
         return {
             "auditoria_id": uuid.uuid4().hex,
             "archivo": archivo.nombre,

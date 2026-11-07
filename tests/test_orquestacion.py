@@ -51,6 +51,7 @@ def test_todos_los_caminos_aplican_s4(tmp_path):
     # 1. normal (con modelo): n-gons graves en animación -> ruta completa
     normal = c.auditor.auditar(malla("prisma_ngon"), "animacion")
     assert normal["ruta"] == "completa" and normal["cache"] == "ninguna"
+    assert normal["modelo"] == "falso-gpt-oss:20b"  # el que explicó, no el que reformuló
     con_s4(normal, con_modelo=True)
     # 2. caché exacta
     repetida = c.auditor.auditar(malla("prisma_ngon"), "animacion")

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshAudit · Normas</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header><div class="barra">
+  <h1>MeshAudit</h1>
+  <nav><a href="index.html">Auditoría</a><a href="documentos.html" class="activo">Normas</a><a href="metricas.html">Métricas</a></nav>
+  <span id="salud">…</span>
+</div></header>
+<main>
+  <section class="panel">
+    <h2>Subir una norma al corpus</h2>
+    <form id="formulario">
+      <div class="fila">
+        <div><label for="archivo">Documento (PDF, HTML o Markdown)</label>
+          <input id="archivo" name="archivo" type="file" accept=".pdf,.html,.htm,.md,.markdown" required></div>
+        <div><label for="licencia">Licencia</label>
+          <select id="licencia" name="licencia">
+            <option value="">Detectar en el documento</option>
+            <option>CC-BY-4.0</option><option>CC-BY-SA-4.0</option><option>CC0-1.0</option>
+            <option>MIT</option><option>Apache-2.0</option><option>dominio-publico</option>
+          </select></div>
+      </div>
+      <div class="fila">
+        <div><label for="doc_id">Identificador (opcional)</label>
+          <input id="doc_id" name="doc_id" type="text" placeholder="blender_manual"></div>
+        <div><label for="titulo">Título (opcional)</label>
+          <input id="titulo" name="titulo" type="text"></div>
+        <div><label for="perfiles">Perfiles (opcional, separados por coma)</label>
+          <input id="perfiles" name="perfiles" type="text" placeholder="animacion,juego_movil"></div>
+      </div>
+      <div class="acciones"><button id="enviar" type="submit">Subir e indexar</button>
+        <span class="meta" id="estado"></span></div>
+    </form>
+  </section>
+  <div id="error" class="error oculto"></div>
+  <section class="panel">
+    <h2>Documentos del corpus</h2>
+    <p class="meta" id="manifiesto"></p>
+    <table>
+      <thead><tr><th>Identificador</th><th>Título</th><th>Licencia</th><th>Perfiles</th>
+        <th>Fragmentos</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="lista"></tbody>
+    </table>
+  </section>
+</main>
+<script src="js/api.js"></script>
+<script>
+async function cargar() {
+  try {
+    const datos = await API.documentos();
+    const m = datos.manifiesto;
+    $("#manifiesto").textContent = `version_corpus ${m.version_corpus} · modelo de embeddings ` +
+      `${m.modelo_embeddings || "—"} · ${m.fragmentos} fragmentos indexados`;
+    $("#lista").innerHTML = datos.documentos.map(d => `<tr>
+      <td>${esc(d.doc_id)}</td><td>${esc(d.titulo)}</td><td>${esc(d.licencia || "—")}</td>
+      <td>${esc((d.perfiles || []).join(", "))}</td><td>${esc(d.fragmentos)}</td>
+      <td>${esc(d.estado)}</td>
+      <td><button class="secundario" data-borrar="${esc(d.doc_id)}">Borrar</button></td></tr>`).join("")
+      || `<tr><td colspan="7">El corpus está vacío.</td></tr>`;
+  } catch (e) {
+    $("#error").textContent = e.message;
+    $("#error").classList.remove("oculto");
+  }
+}
+$("#formulario").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  $("#error").classList.add("oculto");
+  $("#enviar").disabled = true;
+  $("#estado").textContent = "Indexando…";
+  try {
+    const r = await API.subirDocumento(new FormData(evento.target));
+    $("#estado").textContent = `Indexado ${r.documento_id}: ${r.fragmentos} fragmentos (version_corpus ${r.version_corpus}).`;
+    evento.target.reset();
+    cargar();
+  } catch (e) {
+    $("#estado").textContent = "";
+    $("#error").textContent = e.message;
+    $("#error").classList.remove("oculto");
+  } finally {
+    $("#enviar").disabled = false;
+  }
+});
+document.addEventListener("click", async (evento) => {
+  const id = evento.target.dataset && evento.target.dataset.borrar;
+  if (!id || !confirm(`¿Borrar ${id} y sus fragmentos del índice?`)) return;
+  try { await API.borrarDocumento(id); cargar(); }
+  catch (e) { $("#error").textContent = e.message; $("#error").classList.remove("oculto"); }
+});
+cargar();
+</script>
+</body>
+</html>
