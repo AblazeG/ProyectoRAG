@@ -1,0 +1,81 @@
+umbral,tipo,pregunta,original,cache,similitud
+0.85,parafrasis,¿Por qué no conviene tener n-gons si la malla se va a deformar?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.85,parafrasis,¿Cómo selecciono la geometría no manifold en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.85,parafrasis,¿Cómo marco las costuras y desenvuelvo el UV?,¿Cómo marco costuras y desenvuelvo el mapa UV?,semantica,0.9183
+0.85,parafrasis,¿Para qué sirve Degenerate Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.85,parafrasis,¿Cómo recalculo las normales hacia afuera?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.85,parafrasis,¿Cómo se usa Merge by Distance?,¿Cómo uso Merge by Distance?,semantica,0.8669
+0.85,parafrasis,¿Qué unidad de longitud utiliza glTF?,¿Qué unidad de longitud usa glTF?,semantica,0.89
+0.85,parafrasis,¿Qué significa TEXCOORD_0 en glTF?,¿Qué es TEXCOORD_0 en glTF?,ninguna,
+0.85,parafrasis,¿Cuántos triángulos debe tener un personaje para juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,semantica,1.0
+0.85,parafrasis,¿Cuál es el tamaño máximo recomendado para un GLB web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,semantica,1.0
+0.85,distractor,¿Por qué evitar triángulos en una malla que se deforma?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.85,distractor,¿Cómo selecciono los vértices sueltos en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.85,distractor,¿Cómo exporto el mapa UV como imagen?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.85,distractor,¿Qué hace Limited Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.85,distractor,¿Cómo invierto las normales de una sola cara?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.85,distractor,¿Cómo uso Merge at Center?,¿Cómo uso Merge by Distance?,ninguna,
+0.85,distractor,¿Qué sistema de ejes usa glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.85,distractor,¿Qué es TEXCOORD_1 en glTF?,¿Qué es TEXCOORD_0 en glTF?,semantica,1.0
+0.85,distractor,¿Cuántos triángulos puede tener un escenario de juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,semantica,0.8645
+0.85,distractor,¿Cuál es la resolución máxima recomendada de una textura web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,ninguna,
+0.9,parafrasis,¿Por qué no conviene tener n-gons si la malla se va a deformar?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.9,parafrasis,¿Cómo selecciono la geometría no manifold en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.9,parafrasis,¿Cómo marco las costuras y desenvuelvo el UV?,¿Cómo marco costuras y desenvuelvo el mapa UV?,semantica,0.9183
+0.9,parafrasis,¿Para qué sirve Degenerate Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.9,parafrasis,¿Cómo recalculo las normales hacia afuera?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.9,parafrasis,¿Cómo se usa Merge by Distance?,¿Cómo uso Merge by Distance?,ninguna,
+0.9,parafrasis,¿Qué unidad de longitud utiliza glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.9,parafrasis,¿Qué significa TEXCOORD_0 en glTF?,¿Qué es TEXCOORD_0 en glTF?,ninguna,
+0.9,parafrasis,¿Cuántos triángulos debe tener un personaje para juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,semantica,1.0
+0.9,parafrasis,¿Cuál es el tamaño máximo recomendado para un GLB web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,semantica,1.0
+0.9,distractor,¿Por qué evitar triángulos en una malla que se deforma?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.9,distractor,¿Cómo selecciono los vértices sueltos en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.9,distractor,¿Cómo exporto el mapa UV como imagen?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.9,distractor,¿Qué hace Limited Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.9,distractor,¿Cómo invierto las normales de una sola cara?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.9,distractor,¿Cómo uso Merge at Center?,¿Cómo uso Merge by Distance?,ninguna,
+0.9,distractor,¿Qué sistema de ejes usa glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.9,distractor,¿Qué es TEXCOORD_1 en glTF?,¿Qué es TEXCOORD_0 en glTF?,semantica,1.0
+0.9,distractor,¿Cuántos triángulos puede tener un escenario de juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,ninguna,
+0.9,distractor,¿Cuál es la resolución máxima recomendada de una textura web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,ninguna,
+0.92,parafrasis,¿Por qué no conviene tener n-gons si la malla se va a deformar?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.92,parafrasis,¿Cómo selecciono la geometría no manifold en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.92,parafrasis,¿Cómo marco las costuras y desenvuelvo el UV?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.92,parafrasis,¿Para qué sirve Degenerate Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.92,parafrasis,¿Cómo recalculo las normales hacia afuera?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.92,parafrasis,¿Cómo se usa Merge by Distance?,¿Cómo uso Merge by Distance?,ninguna,
+0.92,parafrasis,¿Qué unidad de longitud utiliza glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.92,parafrasis,¿Qué significa TEXCOORD_0 en glTF?,¿Qué es TEXCOORD_0 en glTF?,ninguna,
+0.92,parafrasis,¿Cuántos triángulos debe tener un personaje para juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,semantica,1.0
+0.92,parafrasis,¿Cuál es el tamaño máximo recomendado para un GLB web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,semantica,1.0
+0.92,distractor,¿Por qué evitar triángulos en una malla que se deforma?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.92,distractor,¿Cómo selecciono los vértices sueltos en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.92,distractor,¿Cómo exporto el mapa UV como imagen?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.92,distractor,¿Qué hace Limited Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.92,distractor,¿Cómo invierto las normales de una sola cara?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.92,distractor,¿Cómo uso Merge at Center?,¿Cómo uso Merge by Distance?,ninguna,
+0.92,distractor,¿Qué sistema de ejes usa glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.92,distractor,¿Qué es TEXCOORD_1 en glTF?,¿Qué es TEXCOORD_0 en glTF?,semantica,1.0
+0.92,distractor,¿Cuántos triángulos puede tener un escenario de juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,ninguna,
+0.92,distractor,¿Cuál es la resolución máxima recomendada de una textura web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,ninguna,
+0.95,parafrasis,¿Por qué no conviene tener n-gons si la malla se va a deformar?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.95,parafrasis,¿Cómo selecciono la geometría no manifold en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.95,parafrasis,¿Cómo marco las costuras y desenvuelvo el UV?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.95,parafrasis,¿Para qué sirve Degenerate Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.95,parafrasis,¿Cómo recalculo las normales hacia afuera?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.95,parafrasis,¿Cómo se usa Merge by Distance?,¿Cómo uso Merge by Distance?,ninguna,
+0.95,parafrasis,¿Qué unidad de longitud utiliza glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.95,parafrasis,¿Qué significa TEXCOORD_0 en glTF?,¿Qué es TEXCOORD_0 en glTF?,ninguna,
+0.95,parafrasis,¿Cuántos triángulos debe tener un personaje para juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,semantica,1.0
+0.95,parafrasis,¿Cuál es el tamaño máximo recomendado para un GLB web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,semantica,1.0
+0.95,distractor,¿Por qué evitar triángulos en una malla que se deforma?,¿Por qué evitar n-gons en una malla que se deforma?,ninguna,
+0.95,distractor,¿Cómo selecciono los vértices sueltos en Blender?,¿Cómo selecciono la geometría non-manifold en Blender?,ninguna,
+0.95,distractor,¿Cómo exporto el mapa UV como imagen?,¿Cómo marco costuras y desenvuelvo el mapa UV?,ninguna,
+0.95,distractor,¿Qué hace Limited Dissolve?,¿Qué hace Degenerate Dissolve?,ninguna,
+0.95,distractor,¿Cómo invierto las normales de una sola cara?,¿Cómo recalculo las normales hacia fuera?,ninguna,
+0.95,distractor,¿Cómo uso Merge at Center?,¿Cómo uso Merge by Distance?,ninguna,
+0.95,distractor,¿Qué sistema de ejes usa glTF?,¿Qué unidad de longitud usa glTF?,ninguna,
+0.95,distractor,¿Qué es TEXCOORD_1 en glTF?,¿Qué es TEXCOORD_0 en glTF?,semantica,1.0
+0.95,distractor,¿Cuántos triángulos puede tener un escenario de juego móvil?,¿Cuántos triángulos puede tener un personaje de juego móvil?,ninguna,
+0.95,distractor,¿Cuál es la resolución máxima recomendada de una textura web?,¿Cuál es el tamaño máximo recomendado de un GLB para web?,ninguna,

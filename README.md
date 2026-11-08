@@ -174,6 +174,8 @@ python -m evaluacion.plantillas --bases silla,personaje,engrane,escaneo,lampara
 python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/
 # Tablas 16–23, fallas, privacidad y retroalimentación
 python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
+# Texto y tablas para cada «[Pendiente]» del informe (docs/REVISION_INFORME.md)
+python -m evaluacion.insumos_informe --resultados evaluacion/resultados/ --corpus corpus/
 ```
 
 Con Ollama, `run_eval.py` se detiene si faltan las mallas de Blender que piden los casos;

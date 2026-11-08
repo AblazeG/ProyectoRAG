@@ -13,9 +13,16 @@ patrones de inyección en el texto extraído). Ningún documento debe contener d
 |---|---|---|---|
 | `blender_manual` | Blender Manual: modelado de mallas, limpieza, 3D-Print Toolbox, mapeo UV, normales y exportador glTF 2.0 (docs.blender.org/manual) | HTML | CC BY-SA 4.0 |
 | `godot_docs` | Documentación de Godot Engine: importación de escenas 3D, mallas, LOD y rendimiento 3D (docs.godotengine.org) | HTML | CC BY 3.0 |
-| `gltf_spec` | Especificación glTF 2.0 (registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) | HTML | **Pendiente: verificar** |
+| `gltf_spec` | Especificación glTF 2.0 (registry.khronos.org/glTF/specs/2.0/glTF-2.0.html) | HTML | Khronos Specification License (ver nota) |
 | `guia_entrega` | Guía de entrega de modelos 3D con los límites de cada perfil (documento del autor) | Markdown | Propio |
 | `rubrica_animacion` | Rúbrica de modelado para un curso de animación 3D (documento del autor) | PDF | Propio |
+
+**Licencia de glTF 2.0.** El HTML y el PDF que publica Khronos en su registro están bajo la
+*Khronos Specification License*, que permite usar y reproducir la especificación sin modificarla, sin
+costo, y no concede derechos de patente ni de marca (prólogo de la especificación). Las fuentes AsciiDoc
+del repositorio de GitHub de Khronos están bajo CC BY 4.0. Declara `Khronos-Specification` si
+descargas el HTML del registro, o `CC-BY-4.0` si construyes el documento desde las fuentes AsciiDoc.
+Confirma el texto vigente en el registro antes de entregar.
 
 Mínimo sugerido: 20 documentos o 50 páginas. Si una fuente se divide en varios archivos HTML, dale
 a cada uno su propio `doc_id` (por ejemplo `blender_manual_cleanup`) y actualiza los punteros
@@ -46,7 +53,7 @@ documentos:
 
 En Markdown, los mismos campos pueden ir en el front matter (ver `tests/corpus/*.md`).
 Licencias aceptadas por defecto (`config/servicio.yaml`): CC-BY-4.0, CC-BY-SA-4.0, CC-BY-3.0,
-CC0-1.0, propio, MIT, Apache-2.0 y dominio-publico.
+Khronos-Specification, CC0-1.0, propio, MIT, Apache-2.0 y dominio-publico.
 
 ## Punteros `norma` de `config/perfiles.yaml`
 

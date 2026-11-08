@@ -29,7 +29,10 @@ def _media(valores):
     return statistics.mean(valores) if valores else None
 
 
-def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -> list[dict]:
+def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES,
+            detalle: list | None = None) -> list[dict]:
+    """``detalle`` (opcional) recibe una fila por pregunta parafraseada o distractora, con la
+    similitud del acierto según la traza, para el análisis de errores (sección 9.3)."""
     casos = cargar("casos_cache.json")
     producto = {c["id"]: c for c in cargar("casos_producto.json")}
     referencia = producto[casos["informe_preguntas"]]
@@ -43,6 +46,14 @@ def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -
                      for c in casos["parafrasis"]]
         par = [sesion.preguntar(auditoria["auditoria_id"], c["pregunta"]).json() for c in casos["parafrasis"]]
         dis = [sesion.preguntar(auditoria["auditoria_id"], c["pregunta"]).json() for c in casos["distractores"]]
+        if detalle is not None:
+            trazas = sesion.trazas()
+            for tipo, lista, respuestas in (("parafrasis", casos["parafrasis"], par),
+                                            ("distractor", casos["distractores"], dis)):
+                for c, r in zip(lista, respuestas):
+                    detalle.append({"umbral": umbral, "tipo": tipo, "pregunta": c["pregunta"],
+                                    "original": c.get("original"), "cache": r.get("cache"),
+                                    "similitud": trazas.get(r.get("traza_id"), {}).get("similitud_cache")})
         vp = sum(r["cache"] == "semantica" for r in par)
         fp = sum(r["cache"] == "semantica" for r in dis)
         aciertos_ms = [r["tiempo_ms"] for r in par + dis if r["cache"] == "semantica"]
@@ -97,11 +108,13 @@ def main(argv=None) -> int:
     p.add_argument("--mallas-sinteticas", action="store_true",
                    help="genera mallas sintéticas si faltan (sin Blender)")
     args = p.parse_args(argv)
+    detalle: list[dict] = []
     filas = tabla22(args.proveedor, corpus_por_defecto(args),
-                    mallas(args.mallas, args.proveedor, args.mallas_sinteticas))
+                    mallas(args.mallas, args.proveedor, args.mallas_sinteticas), detalle=detalle)
     for f in filas:
         print(f)
     print(escribir_csv(args.salida / "tabla22_cache.csv", filas))
+    print(escribir_csv(args.salida / "tabla22_casos.csv", detalle))
     return 0
 
 

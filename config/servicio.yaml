@@ -58,6 +58,7 @@ guardrails:
     - CC-BY-4.0
     - CC-BY-SA-4.0
     - CC-BY-3.0          # documentación de Godot
+    - Khronos-Specification   # HTML/PDF de glTF 2.0 publicado en el registro de Khronos
     - CC0-1.0
     - propio             # documentos elaborados por el autor
     - MIT

@@ -47,3 +47,18 @@ def test_experimentos_modo_falso(tmp_path):
     assert len(list(csv.DictReader(open(tmp_path / "tabla17_fragmentos.csv")))) == 3
     assert len(list(csv.DictReader(open(tmp_path / "tabla18_barrido.csv")))) == 5
     assert (tmp_path / "tabla09_embeddings.csv").exists()
+
+
+def test_insumos_del_informe_llenan_las_tablas(tmp_path):
+    """El generador de insumos lee los CSV de una corrida y no deja «?» en las tablas."""
+    from evaluacion import insumos_informe
+    from tests.utiles import CORPUS
+    resultados = DIR_EVAL / "resultados" / "provisional_nube"
+    assert insumos_informe.main(["--resultados", str(resultados), "--corpus", str(CORPUS),
+                                 "--salida", str(tmp_path)]) == 0
+    md = (tmp_path / "INSUMOS_INFORME.md").read_text(encoding="utf-8")
+    assert "PROVISIONAL" in md and "**31** fragmentos" in md
+    for seccion in ("Tabla 2", "Tabla 8", "Tabla 9", "6.4.1", "Tabla 16", "Tabla 19", "Tabla 23", "9.3"):
+        assert seccion in md
+    assert "| ? " not in md
+    assert "\\\\" in (tmp_path / "tablas_informe.tex").read_text(encoding="utf-8")

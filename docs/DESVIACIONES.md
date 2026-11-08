@@ -100,7 +100,7 @@ Lo que no aparece aquí se implementó tal como lo describe el informe.
 - **Implementado:** siempre se borran. No hay opción para conservarlas (no figura en la API del anexo B).
 
 ### B12. Corpus y licencias
-- `licencias_permitidas` incluye `CC-BY-3.0` (Godot) y `propio` (guía y rúbrica del autor). La licencia de la especificación glTF está «Pendiente: verificar» en la tabla 2; `gltf_spec` se acepta con la que se declare en `corpus/fuentes.yaml`.
+- `licencias_permitidas` incluye `CC-BY-3.0` (Godot) y `propio` (guía y rúbrica del autor). Para la especificación glTF (tabla 2, «Pendiente: verificar») se añadió `Khronos-Specification`: el HTML del registro de Khronos está bajo la Khronos Specification License, y sus fuentes AsciiDoc, bajo CC BY 4.0 (ver `corpus/README.md`).
 - `tests/corpus/` contiene textos **sintéticos**, redactados para las pruebas, con los `doc_id` y la licencia de las fuentes reales; la rúbrica real es PDF y aquí es Markdown.
 - Los títulos de sección de `config/perfiles.yaml` coinciden con esos textos en español. Tras ingerir el corpus real (en inglés) hay que ajustarlos a las secciones reales (por ejemplo, «Mesh cleanup», como en el Código 8).
 

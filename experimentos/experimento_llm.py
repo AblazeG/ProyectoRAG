@@ -51,6 +51,16 @@ def memoria_gb(modelo: str) -> float | None:
     return None
 
 
+def ficha(modelo: str) -> dict:
+    """Cuantización y contexto según ``ollama show`` (columnas de la tabla 8)."""
+    datos = _ollama("POST", "/api/show", json={"model": modelo}) or {}
+    detalles = datos.get("details") or {}
+    info = datos.get("model_info") or {}
+    contexto = next((v for k, v in info.items() if k.endswith(".context_length")), None)
+    return {"cuantizacion": detalles.get("quantization_level"), "contexto": contexto,
+            "parametros": detalles.get("parameter_size")}
+
+
 def carga_en_frio(modelo: str) -> float | None:
     inicio = time.perf_counter()
     r = _ollama("POST", "/api/generate", json={"model": modelo, "prompt": "ok", "stream": False,
@@ -114,7 +124,9 @@ def main(argv=None) -> int:
             "latencia_p50_s": lat["mediana"], "latencia_p95_s": lat["p95"],
             "tok_s": round(statistics.mean(tok_s), 1) if tok_s else None,
             "memoria_gb": memoria_gb(modelo) if args.proveedor == "ollama" else None,
-            "carga_en_frio_s": frio})
+            "carga_en_frio_s": frio,
+            **(ficha(modelo) if args.proveedor == "ollama"
+               else {"cuantizacion": None, "contexto": None, "parametros": None})})
         print(filas[-1])
     print(escribir_csv(args.salida / "tabla08_llm.csv", filas))
     print(escribir_csv(args.salida / "muestra_revision_manual.csv",

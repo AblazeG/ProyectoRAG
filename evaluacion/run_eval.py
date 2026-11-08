@@ -489,7 +489,9 @@ def main(argv=None) -> int:
         guardar("tabla21_casos.csv", detalle)
     if "22" in tablas and not args.url:
         from experimentos.experimento_cache import tabla22
-        guardar("tabla22_cache.csv", tabla22(args.proveedor, args.corpus, dir_mallas))
+        detalle22: list[dict] = []
+        guardar("tabla22_cache.csv", tabla22(args.proveedor, args.corpus, dir_mallas, detalle=detalle22))
+        guardar("tabla22_casos.csv", detalle22)
     if "23" in tablas:
         guardar("tabla23_latencias.csv", tabla23(sin_cache, dir_mallas, args.corridas))
     if "fallas" in tablas and not args.url:
