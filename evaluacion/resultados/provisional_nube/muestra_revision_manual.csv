@@ -1,0 +1,76 @@
+modelo,caso,hallazgo,explicacion,fragmento,nota_autor_fidelidad,nota_autor_relevancia
+gemma4:e2b,P15,h1,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+gemma4:e2b,P01,h2,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+gemma4:e2b,P16,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+gemma4:e2b,P04,h1,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+gemma4:e2b,P14,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+qwen3:8b,P02,h1,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+qwen3:8b,P16,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+qwen3:8b,P01,h2,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+qwen3:8b,P14,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+qwen3:8b,P04,h1,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+gpt-oss:20b,P13,h1,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+gpt-oss:20b,P01,h2,"una escala equivocada hace que el objeto se vea gigante o diminuto. [gltf_spec:unidades-y-escala#2]
+Comprueba la escala en el visor antes de publicar. [gltf_spec:unidades-y-escala#2]
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. [gltf_spec:unidades-y-escala#2]","una escala equivocada hace que el objeto se vea gigante o diminuto. Comprueba la escala en el visor antes de publicar.
+
+Configura la escena con el sistema métrico y la escala de unidades en uno antes de modelar. Si el modelo ya existe en otra escala, ajústalo con la herramienta de escala y aplica la transformación. Los exportadores de glTF convierten la orientación de los ejes, pero no corrigen una escala equivocada, por lo que la comprobación de dimensiones debe hacerse antes de exportar el modelo.",,
+gpt-oss:20b,P15,h1,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+gpt-oss:20b,P14,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,
+gpt-oss:20b,P16,h2,"Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación. [blender_manual:limpieza-de-geometria-no-manifold#1]
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. [blender_manual:limpieza-de-geometria-no-manifold#1]","Una arista no manifold es una arista compartida por más de dos caras, o una arista suelta sin caras. Este tipo de geometría no puede existir en un objeto sólido real y causa errores en modificadores, en el cálculo de normales y en los programas de exportación.
+
+Para encontrarla entra en modo edición, deselecciona todo y usa Select > Select All by Trait > Non Manifold. Blender resalta las aristas problemáticas. Las aletas de caras pegadas a una arista existente se eliminan borrando las caras sobrantes. Las caras internas se borran con Delete Faces.",,

@@ -1,0 +1,7 @@
+caso,alias,falla,codigo,error_500,terminada_con_respaldo,llamadas_fallidas,ruta,modelo
+F1,rapido,timeout,200,False,True,1,rapida,falso-gpt-oss:20b
+F2,completo,timeout,200,False,True,1,completa,falso-gemma4:e2b
+F3,rapido,etiqueta_inexistente,200,False,True,1,rapida,falso-gpt-oss:20b
+F4,completo,etiqueta_inexistente,200,False,True,1,completa,falso-gemma4:e2b
+F5,completo,conexion,200,False,True,3,completa,falso-gemma4:e2b
+RESUMEN,,,,0,5 de 5,,,

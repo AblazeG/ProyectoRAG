@@ -1,0 +1,9 @@
+etapa,mediana,p95,maximo
+Guardrails de entrada,0.26,14.29,14.64
+Caché (consultas),0.04,0.1,0.12
+Análisis de malla,5.4,2071.08,2164.0
+Recuperación (incluye agente),9.87,23.45,28.36
+"Gateway, ruta rápida",0.16,0.22,0.23
+"Gateway, ruta completa",0.16,0.2,0.21
+Guardrails de salida,0.29,1.14,1.67
+Total por auditoría,19.54,2105.87,2203.65

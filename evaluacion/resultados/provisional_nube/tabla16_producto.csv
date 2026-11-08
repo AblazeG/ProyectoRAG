@@ -1,0 +1,11 @@
+metrica,con_rag,sin_rag
+Recall de hallazgos,1.0,
+Precisión de hallazgos,1.0,
+Acierto@5 de la sección esperada,0.517,–
+Fidelidad al contexto (0–5),,
+Relevancia de la corrección (0–5),,
+Citas inventadas detectadas por S2 (% de las citas),0.0,–
+Cifras sin respaldo eliminadas por S3,0,
+Diferencia media juez–autor (15 casos),,–
+"Acuerdo juez–autor, diferencia ≤ 1 punto (%)",,–
+Hallazgos servidos desde la caché de hallazgos,0,–

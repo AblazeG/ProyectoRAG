@@ -76,7 +76,7 @@ def tabla22(proveedor: str, corpus: Path, dir_mallas: Path, umbrales=UMBRALES) -
                   "falsos_positivos": len(aciertos) - correctos,
                   "ahorro_ms": round(_media([p["tiempo_ms"] for p in primeras])
                                      - _media([s["tiempo_ms"] for s in aciertos]), 1) if aciertos else None,
-                  # p95 de las auditorías servidas por la caché exacta (sección 9.6: < 50 ms)
+                  # p95 de las auditorías servidas por la caché exacta (tabla 5: ≤ 300 ms)
                   "auditoria_exacta_p95_ms": round(float(np.percentile(auditorias_ms, 95)), 1)
                   if auditorias_ms else None})
     return filas

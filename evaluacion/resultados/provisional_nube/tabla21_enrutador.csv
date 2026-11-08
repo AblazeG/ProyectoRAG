@@ -1,0 +1,5 @@
+ruta_esperada,casos,adecuados,latencia_p50_s,latencia_p95_s
+Sin modelo,17,17,0.01,0.38
+Rápida,12,12,0.02,1.82
+Completa,11,11,0.02,2.11
+A la completa sin necesidad,,0,,
