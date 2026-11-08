@@ -10,3 +10,8 @@ evaluacion/mallas_generadas/
 experimentos/resultados/
 node_modules/
 .DS_Store
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/

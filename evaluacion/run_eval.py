@@ -429,6 +429,15 @@ def retroalimentacion(datos: Path) -> list[dict]:
             for t, h, u, c, f in filas]
 
 
+def _relativa(ruta) -> str:
+    """Ruta relativa al repositorio cuando está dentro de él (sin rutas de la máquina)."""
+    ruta = Path(ruta).resolve()
+    try:
+        return str(ruta.relative_to(RAIZ))
+    except ValueError:
+        return str(ruta)
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--url", help="servicio ya levantado (si no, la API corre en proceso)")
@@ -505,7 +514,7 @@ def main(argv=None) -> int:
         guardar("juez_autor.csv", [juez_autor])
     (salida / "ultima_corrida.json").write_text(json.dumps(
         {"proveedor": args.proveedor, "juez": bool(args.juez), "corridas": args.corridas,
-         "corpus": str(args.corpus), "mallas": str(dir_mallas)}, indent=2), encoding="utf-8")
+         "corpus": _relativa(args.corpus), "mallas": _relativa(dir_mallas)}, indent=2), encoding="utf-8")
     return 0
 
 

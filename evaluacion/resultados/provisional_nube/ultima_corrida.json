@@ -2,6 +2,6 @@
   "proveedor": "falso",
   "juez": false,
   "corridas": 5,
-  "corpus": "/home/user/ProyectoRAG/tests/corpus",
-  "mallas": "/home/user/ProyectoRAG/evaluacion/mallas_generadas"
+  "corpus": "tests/corpus",
+  "mallas": "evaluacion/mallas_generadas"
 }
