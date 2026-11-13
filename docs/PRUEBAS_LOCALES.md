@@ -214,7 +214,7 @@ Los umbrales del informe son valores iniciales para bge-m3:
   python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
   ```
 - [x] *(2026-11-13: 0 errores 500, 5 de 5)* **Fallas con Ollama real:** F3 y F4 configuran un alias hacia una etiqueta que no existe. Revisa en `fallas.csv` que respondieron 404 de Ollama, terminaron con el respaldo y no hubo errores 500.
-- [ ] **Punto único de falla:** con el servicio levantado, cierra Ollama y audita una malla con hallazgos → debe responder 503 (no 500).
+- [x] *(2026-11-13: con `MESHAUDIT_OLLAMA_URL` hacia un puerto sin Ollama: `/health` 503 «degradado», auditoría con hallazgos 503, malla sana 200 por la ruta sin modelo)* **Punto único de falla:** con el servicio levantado, cierra Ollama y audita una malla con hallazgos → debe responder 503 (no 500).
 - [x] **Privacidad:** `privacidad.csv` todo en 0.
 - [x] *(2026-11-13: las 2 calificaciones son de prueba)* **Retroalimentación:** la tabla sale de `data/`. Si quieres contar las calificaciones de la fase 4, pasa `--datos data/`.
 - [x] *(2026-11-13: V10 en P07, efecto de M2; ver ACTUALIZACION_INFORME.md)* Revisa `tabla16_casos.csv`: cada hallazgo no detectado o falso tiene que poder explicarse (o es un error del analizador, o de la línea base).
@@ -277,3 +277,5 @@ Anota aquí lo que no funcione, para corregirlo después:
 | 8 | E2: el clasificador (gemma4:e2b) marcaba como inyección las notas con correo y con CURP (G08, G10 → 422) | `tabla19_casos.csv` | El clasificador recibe el texto enmascarado por E3 y tiene un ejemplo negativo con datos de contacto (ADR-05) |
 | 8 | Recall 0.945: V6 no detectado en `base2_M2.obj` (animación, móvil y web). La mutación M2 borraba las UV, pero en modo `-b` el exportador leía la malla evaluada anterior y las volvía a escribir (21 `vt`) | `tabla16_casos.csv` P05, P06, P08 | `obj.data.update()` y `view_layer.update()` en `m2`; mallas regeneradas y evaluación repetida |
 | 8 | Enrutador etiquetado por calidad: con la regla del juez (mín. de fidelidad y relevancia ≥ 4 para que baste la rápida), gemma4:e2b casi nunca alcanza 4, así que la mayoría de los casos quedan como «completa» y la ruta rápida sale «inadecuada» | `tabla21_casos.csv` | Evidencia para ADR-01/ADR-04 (decisión del autor) |
+| 8 | Un GLB comprimido con Draco (`KHR_draco_mesh_compression`) se lee sin error pero con coordenadas en cero: trimesh necesita `DracoPy` para decodificarlo y solo avisa en el registro. La auditoría daría hallazgos sin sentido | — | Pendiente: rechazarlo en E1 (422, «GLB con compresión Draco: exporta sin comprimir») o instalar `DracoPy` |
+| 9 | Demostración sin red: la web y la API solo usan `localhost`; `OLLAMA_NO_CLOUD=1`. La única descarga externa posible es la de model-viewer (decodificadores Draco/KTX2 de gstatic.com) y solo con GLB comprimidos | — | Sin cambios; falta la prueba con el Wi-Fi apagado |

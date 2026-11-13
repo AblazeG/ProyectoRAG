@@ -1,0 +1,17 @@
+{
+ "c01": "gemma4:e2b|P16|h2",
+ "c02": "gpt-oss:20b|P02|h1",
+ "c03": "gpt-oss:20b|P10|h2",
+ "c04": "qwen3:8b|P03|h3",
+ "c05": "gpt-oss:20b|P14|h2",
+ "c06": "gemma4:e2b|P05|h1",
+ "c07": "gpt-oss:20b|P16|h3",
+ "c08": "qwen3:8b|P19|h4",
+ "c09": "qwen3:8b|P02|h3",
+ "c10": "gemma4:e2b|P02|h1",
+ "c11": "gemma4:e2b|P13|h2",
+ "c12": "gpt-oss:20b|P20|h2",
+ "c13": "qwen3:8b|P06|h1",
+ "c14": "gemma4:e2b|P01|h1",
+ "c15": "qwen3:8b|P06|h2"
+}

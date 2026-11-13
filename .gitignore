@@ -18,3 +18,7 @@ htmlcov/
 
 # App para Mac generada por app_mac/crear_app.sh
 app_mac/MeshAudit.app/
+
+# Mallas y registro de la prueba con el revisor (se regeneran desde evaluacion/mallas_generadas)
+prueba_revisor/*.obj
+prueba_revisor/*.glb

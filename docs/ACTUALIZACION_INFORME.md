@@ -318,13 +318,13 @@ El ADR-05 ya tiene anotada la calibración del 13 de noviembre. Los demás ADR t
 | Dónde | Qué falta | Cómo |
 |---|---|---|
 | Portada | Nombre del docente | — |
-| Tabla 16 y 9.1, juez–autor | Calificar 15 explicaciones | Abre `evaluacion/resultados/muestra_revision_manual.csv` y llena `nota_autor_fidelidad` y `nota_autor_relevancia` (0–5). **Las columnas `fidelidad` y `relevancia` traen la nota del juez: tápalas antes de calificar.** Luego corre `python evaluacion/run_eval.py --proveedor ollama --tablas 16 --juez --salida evaluacion/resultados/` y `python -m evaluacion.insumos_informe --resultados evaluacion/resultados/ --corpus corpus/` |
-| 9.2, valor | Prueba del revisor independiente: 5 mallas, tiempo manual frente a MeshAudit y hallazgos | Plantilla en `INSUMOS_INFORME.md`, sección 9.2 |
+| Tabla 16 y 9.1, juez–autor | Calificar 15 explicaciones a ciegas | Abre `evaluacion/resultados/hoja_ciega.html` en el navegador: muestra las 15 en orden aleatorio, sin el modelo ni la nota del juez. Califica y pulsa «Descargar notas». Luego corre `python -m evaluacion.hoja_ciega juntar ~/Downloads/notas_autor.csv`, después `python evaluacion/run_eval.py --proveedor ollama --tablas 16 --juez --salida evaluacion/resultados/` y por último `python -m evaluacion.insumos_informe --resultados evaluacion/resultados/ --corpus corpus/` |
+| 9.2, valor | Prueba del revisor independiente: 5 mallas, tiempo manual frente a MeshAudit y hallazgos | Las mallas y la hoja de registro ya están en `prueba_revisor/`; los pasos, en `docs/PROTOCOLO_PRUEBAS_PERSONAS.md` |
 | Tabla 5, reproducibilidad | Un compañero instala el sistema siguiendo solo el README (≤ 30 min) | Cronometra sin contar las descargas |
 | 9.2 / 4.5, sin red | Demostración con Wi‑Fi apagado: una auditoría y una pregunta | — |
-| Prueba de disponibilidad | Cierra Ollama a mano con el servicio levantado y audita una malla con hallazgos: debe responder 503, no 500 | No se pudo hacer en esta sesión: la app de Ollama canceló el cierre |
+| Prueba de disponibilidad | ~~Ollama caído → 503~~ **Hecha:** con el servicio apuntando a un puerto sin Ollama, `/health` respondió 503 «degradado», una auditoría con hallazgos 503 (no 500) y una malla sana 200 por la ruta sin modelo | Texto para 9.2: «Con Ollama caído, el servicio responde 503 con un mensaje claro y las mallas sin hallazgos se siguen auditando sin modelo.» |
 | Línea base | Revisión manual de cada `baseN_base.obj` en los 4 perfiles | Ver el punto 4.6 |
-| Corpus | Agregar `guia_entrega` y `rubrica_animacion` y repetir las fases 6–8 | Mejora 1 |
+| Corpus | Agregar `guia_entrega` y `rubrica_animacion` y repetir las fases 6–8 | Hay borradores en `docs/borradores/`: revísalos y reescríbelos con tus palabras (ver su README). Con ellos, el acierto@5 sube de 0.23 a 0.60, una cifra optimista |
 | 10.3 | Ajustar la declaración de uso de IA | Texto en ENTREGA, sección 4. Añade que las pruebas locales, la calibración y las correcciones de este documento también las hizo Claude Code en el Mac del autor, bajo su supervisión |
 
 ### Versiones para las referencias
