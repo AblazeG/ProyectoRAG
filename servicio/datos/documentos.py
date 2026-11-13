@@ -39,7 +39,7 @@ SELECTORES_RUIDO = ("nav", "header", "footer", "aside", "script", "style", "nosc
 CLASES_RUIDO = re.compile(
     r"^(?:nav|navbar|navigation|menu|menubar|sidebar|side-bar|sidenav|sphinxsidebar|wy-nav-side|"
     r"footer|site-footer|header|site-header|page-header|breadcrumbs?|toc|cookies?|cookie-banner|"
-    r"related|skip-link)$", re.I)
+    r"related|skip-link|headerlink)$", re.I)   # headerlink: ancla «¶» de Sphinx en los títulos
 CONTENEDORES = ("html", "body", "main", "article")
 
 

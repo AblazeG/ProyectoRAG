@@ -1,0 +1,82 @@
+# Metadatos del corpus normativo (tabla 2 del informe). Descargado el 2026-11-13.
+# Blender Manual (es/latest) y Godot (es/4.x) en español; glTF 2.0 desde el registro de Khronos.
+# Faltan guia_entrega (Markdown propio) y rubrica_animacion (PDF propio).
+documentos:
+  blender_limpieza.html:
+    doc_id: blender_manual_limpieza
+    titulo: Blender Manual — Limpieza de mallas
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+  blender_fusionar.html:
+    doc_id: blender_manual_fusionar
+    titulo: Blender Manual — Fusionar
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+  blender_normales.html:
+    doc_id: blender_manual_normales
+    titulo: Blender Manual — Normales
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+  blender_seleccion_rasgos.html:
+    doc_id: blender_manual_seleccion
+    titulo: Blender Manual — Seleccionar todo por rasgo (no manifold)
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+  blender_uv_desenvolver.html:
+    doc_id: blender_manual_uv
+    titulo: Blender Manual — Desenvolvimiento UV
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, web_ar]
+  blender_uv_introduccion.html:
+    doc_id: blender_manual_uv_intro
+    titulo: Blender Manual — Introducción al mapeo UV
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, web_ar]
+  blender_estructura_malla.html:
+    doc_id: blender_manual_estructura
+    titulo: Blender Manual — Estructura de las mallas
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, impresion_3d, web_ar]
+  blender_gltf.html:
+    doc_id: blender_manual_gltf
+    titulo: Blender Manual — glTF 2.0 (importar y exportar)
+    licencia: CC-BY-SA-4.0
+    version: Blender 5.3 Manual
+    perfiles: [animacion, juego_movil, web_ar]
+  godot_rendimiento_3d.html:
+    doc_id: godot_docs_rendimiento
+    titulo: Godot Engine — Optimización del rendimiento 3D
+    licencia: CC-BY-3.0
+    version: Godot Engine 4.x
+    perfiles: [juego_movil, web_ar]
+  godot_lod.html:
+    doc_id: godot_docs_lod
+    titulo: Godot Engine — Nivel de detalle de mallas (LOD)
+    licencia: CC-BY-3.0
+    version: Godot Engine 4.x
+    perfiles: [juego_movil, web_ar]
+  godot_exportar_modelos.html:
+    doc_id: godot_docs_exportar
+    titulo: Godot Engine — Consideraciones al exportar modelos 3D
+    licencia: CC-BY-3.0
+    version: Godot Engine 4.x
+    perfiles: [juego_movil, web_ar]
+  godot_formatos.html:
+    doc_id: godot_docs_formatos
+    titulo: Godot Engine — Formatos 3D disponibles
+    licencia: CC-BY-3.0
+    version: Godot Engine 4.x
+    perfiles: [juego_movil, web_ar]
+  gltf_spec.html:
+    doc_id: gltf_spec
+    titulo: Especificación glTF 2.0 (Khronos)
+    licencia: Khronos-Specification
+    version: glTF 2.0
+    perfiles: [animacion, juego_movil, web_ar]

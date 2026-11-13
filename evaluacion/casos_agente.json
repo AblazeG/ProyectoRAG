@@ -9,50 +9,50 @@
   {
     "id": "A02",
     "consulta": "tengo una cara pegada como aleta en una arista, ¿cómo la limpio?",
-    "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold",
+    "documento": "blender_manual_seleccion",
+    "seccion": "Non Manifold",
     "perfil": "animacion"
   },
   {
     "id": "A03",
     "consulta": "no puedo ponerle textura a mi modelo, ¿qué me falta?",
-    "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV",
+    "documento": "blender_manual_uv",
+    "seccion": "Desplegar",
     "perfil": "animacion"
   },
   {
     "id": "A04",
     "consulta": "hay triangulitos aplastados sin área, ¿cómo los quito?",
-    "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Disolver malformaciones",
     "perfil": "animacion"
   },
   {
     "id": "A05",
     "consulta": "una parte de mi modelo se ve negra o desaparece en el juego",
-    "documento": "blender_manual",
-    "seccion": "Orientación de normales",
+    "documento": "blender_manual_normales",
+    "seccion": "Recalcular",
     "perfil": "animacion"
   },
   {
     "id": "A06",
     "consulta": "tengo puntos repetidos en el mismo lugar y la malla se abre en piezas",
-    "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Fusionar por distancia",
     "perfil": "animacion"
   },
   {
     "id": "A07",
     "consulta": "mi silla se ve gigante en el visor de realidad aumentada",
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala",
+    "seccion": "3.4. Coordinate System and Units",
     "perfil": "web_ar"
   },
   {
     "id": "A08",
     "consulta": "el visor web muestra mi modelo de un solo color plano",
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura",
+    "seccion": "3.7. Geometry",
     "perfil": "web_ar"
   }
 ]

@@ -14,25 +14,25 @@ perfiles:
     reglas:
       V1:  {gravedad: G, max_pct: 0,    norma: {documento: rubrica_animacion, seccion: Topología para deformación}}
       V2:  {gravedad: M, max_pct: 10,   norma: {documento: rubrica_animacion, seccion: Topología para deformación}}
-      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
-      V6:  {gravedad: G, requerido: true, norma: {documento: blender_manual, seccion: Desenvolvimiento UV}}
-      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
-      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
-      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
-      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual_seleccion, seccion: Non Manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: blender_manual_uv, seccion: Desplegar}}
+      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: 3.4. Coordinate System and Units}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual_limpieza, seccion: Disolver malformaciones}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual_normales, seccion: Recalcular}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual_limpieza, seccion: Fusionar por distancia}}
 
   juego_movil:
     nombre: Juego móvil
     unidad: m
     reglas:
       V1:  {gravedad: I, max_pct: 0,    norma: {documento: rubrica_animacion, seccion: Topología para deformación}}
-      V3:  {gravedad: G, max: 20000,    norma: {documento: godot_docs, seccion: Presupuesto de polígonos}}
-      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
-      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: Coordenadas de textura}}
-      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
-      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
-      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
-      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+      V3:  {gravedad: G, max: 20000,    norma: {documento: godot_docs_rendimiento, seccion: Nivel de detalle (LOD)}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual_seleccion, seccion: Non Manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: 3.7. Geometry}}
+      V7:  {gravedad: M, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: 3.4. Coordinate System and Units}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual_limpieza, seccion: Disolver malformaciones}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual_normales, seccion: Recalcular}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual_limpieza, seccion: Fusionar por distancia}}
 
   impresion_3d:
     nombre: Impresión 3D
@@ -43,17 +43,17 @@ perfiles:
       V7:  {gravedad: M, min: 1, max: 300, norma: {documento: guia_entrega, seccion: Escala y volumen de impresión}}
       V8:  {gravedad: G, max: 0, area_min: 1.0e-10, norma: {documento: guia_entrega, seccion: Caras degeneradas}}
       V9:  {gravedad: G, requerido: true, norma: {documento: guia_entrega, seccion: Normales invertidas}}
-      V10: {gravedad: M, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+      V10: {gravedad: M, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual_limpieza, seccion: Fusionar por distancia}}
 
   web_ar:
     nombre: Web/AR
     unidad: m
     reglas:
-      V3:  {gravedad: M, max: 100000,   norma: {documento: godot_docs, seccion: Presupuesto de polígonos}}
-      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual, seccion: Limpieza de geometría no manifold}}
-      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: Coordenadas de textura}}
-      V7:  {gravedad: G, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: Unidades y escala}}
-      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual, seccion: Disolver geometría degenerada}}
-      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual, seccion: Orientación de normales}}
-      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual, seccion: Fusionar vértices por distancia}}
+      V3:  {gravedad: M, max: 100000,   norma: {documento: godot_docs_rendimiento, seccion: Nivel de detalle (LOD)}}
+      V4:  {gravedad: M, max: 0,        norma: {documento: blender_manual_seleccion, seccion: Non Manifold}}
+      V6:  {gravedad: G, requerido: true, norma: {documento: gltf_spec, seccion: 3.7. Geometry}}
+      V7:  {gravedad: G, min: 0.01, max: 100, norma: {documento: gltf_spec, seccion: 3.4. Coordinate System and Units}}
+      V8:  {gravedad: M, max: 0, area_min: 1.0e-10, norma: {documento: blender_manual_limpieza, seccion: Disolver malformaciones}}
+      V9:  {gravedad: M, requerido: true, norma: {documento: blender_manual_normales, seccion: Recalcular}}
+      V10: {gravedad: I, max: 0, distancia: 1.0e-6, norma: {documento: blender_manual_limpieza, seccion: Fusionar por distancia}}
       V11: {gravedad: M, max_bytes: 10485760, norma: {documento: guia_entrega, seccion: Tamaño de archivo para web}}

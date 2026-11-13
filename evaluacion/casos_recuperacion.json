@@ -19,80 +19,80 @@
     "id": "R03",
     "consulta": "¿Cómo selecciono la geometría non-manifold en Blender?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold",
+    "documento": "blender_manual_seleccion",
+    "seccion": "Non Manifold",
     "perfil": "animacion"
   },
   {
     "id": "R04",
     "consulta": "tengo una cara pegada como aleta en una arista, ¿cómo la limpio?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Limpieza de geometría no manifold",
+    "documento": "blender_manual_seleccion",
+    "seccion": "Non Manifold",
     "perfil": "animacion"
   },
   {
     "id": "R05",
     "consulta": "¿Cómo marco costuras y desenvuelvo el mapa UV?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV",
+    "documento": "blender_manual_uv",
+    "seccion": "Desplegar",
     "perfil": "animacion"
   },
   {
     "id": "R06",
     "consulta": "no puedo ponerle textura a mi modelo, ¿qué me falta?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Desenvolvimiento UV",
+    "documento": "blender_manual_uv",
+    "seccion": "Desplegar",
     "perfil": "animacion"
   },
   {
     "id": "R07",
     "consulta": "¿Qué hace Degenerate Dissolve?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Disolver malformaciones",
     "perfil": "animacion"
   },
   {
     "id": "R08",
     "consulta": "hay triangulitos aplastados sin área, ¿cómo los quito?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Disolver geometría degenerada",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Disolver malformaciones",
     "perfil": "animacion"
   },
   {
     "id": "R09",
     "consulta": "¿Cómo recalculo las normales hacia fuera?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Orientación de normales",
+    "documento": "blender_manual_normales",
+    "seccion": "Recalcular",
     "perfil": "animacion"
   },
   {
     "id": "R10",
     "consulta": "una parte de mi modelo se ve negra o desaparece en el juego",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Orientación de normales",
+    "documento": "blender_manual_normales",
+    "seccion": "Recalcular",
     "perfil": "animacion"
   },
   {
     "id": "R11",
     "consulta": "¿Cómo uso Merge by Distance?",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Fusionar por distancia",
     "perfil": "animacion"
   },
   {
     "id": "R12",
     "consulta": "tengo puntos repetidos en el mismo lugar y la malla se abre en piezas",
     "relevante": true,
-    "documento": "blender_manual",
-    "seccion": "Fusionar vértices por distancia",
+    "documento": "blender_manual_limpieza",
+    "seccion": "Fusionar por distancia",
     "perfil": "animacion"
   },
   {
@@ -100,7 +100,7 @@
     "consulta": "¿Qué unidad de longitud usa glTF?",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala",
+    "seccion": "3.4. Coordinate System and Units",
     "perfil": "web_ar"
   },
   {
@@ -108,7 +108,7 @@
     "consulta": "mi silla se ve gigante en el visor de realidad aumentada",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Unidades y escala",
+    "seccion": "3.4. Coordinate System and Units",
     "perfil": "web_ar"
   },
   {
@@ -116,7 +116,7 @@
     "consulta": "¿Qué es TEXCOORD_0 en glTF?",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura",
+    "seccion": "3.7. Geometry",
     "perfil": "web_ar"
   },
   {
@@ -124,23 +124,23 @@
     "consulta": "el visor web muestra mi modelo de un solo color plano",
     "relevante": true,
     "documento": "gltf_spec",
-    "seccion": "Coordenadas de textura",
+    "seccion": "3.7. Geometry",
     "perfil": "web_ar"
   },
   {
     "id": "R17",
     "consulta": "¿Cuántos triángulos puede tener un personaje de juego móvil?",
     "relevante": true,
-    "documento": "godot_docs",
-    "seccion": "Presupuesto de polígonos",
+    "documento": "godot_docs_rendimiento",
+    "seccion": "Nivel de detalle (LOD)",
     "perfil": "juego_movil"
   },
   {
     "id": "R18",
     "consulta": "mi juego va lento en el teléfono con este modelo tan detallado",
     "relevante": true,
-    "documento": "godot_docs",
-    "seccion": "Presupuesto de polígonos",
+    "documento": "godot_docs_rendimiento",
+    "seccion": "Nivel de detalle (LOD)",
     "perfil": "juego_movil"
   },
   {
