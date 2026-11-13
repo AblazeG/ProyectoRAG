@@ -137,6 +137,9 @@ def m2(obj, rng) -> None:
     con_bmesh(obj, mutar)
     while obj.data.uv_layers:
         obj.data.uv_layers.remove(obj.data.uv_layers[0])
+    # Sin esto, en modo -b el exportador lee la malla evaluada anterior y escribe las UV borradas.
+    obj.data.update()
+    bpy.context.view_layer.update()
 
 
 def _region(bm, rng, proporcion=0.1):

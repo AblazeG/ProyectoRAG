@@ -1,0 +1,6 @@
+umbral,recall,precision,falsos_positivos,ahorro_ms,auditoria_exacta_p95_ms
+0.85,1.0,0.833,2,716.3,
+0.9,0.9,1.0,0,692.1,
+0.92,0.8,1.0,0,718.4,
+0.95,0.6,1.0,0,593.6,
+Exacta (20 repetidas),0.95,1.0,0,2530.0,18.9

@@ -177,14 +177,14 @@ En la web, `http://localhost:5173`:
 
 En este orden. `experimento_llm` va primero porque genera la muestra para validar al juez.
 
-- [ ] Tabla 8 (tarda: 3 modelos × 20 casos, más el juez):
+- [x] Tabla 8 *(2026-11-13: dos corridas; calidad 2.85 / 3.48 / 4.14)* (tarda: 3 modelos × 20 casos, más el juez):
   ```bash
   python -m experimentos.experimento_llm --juez --salida evaluacion/resultados/
   ```
-  - [ ] Revisa que `tabla08_llm.csv` tenga calidad, español, p50/p95, tok/s, memoria, carga en frío, cuantización y contexto.
-  - [ ] Durante la corrida, anota la memoria pico con `ollama ps` y el Monitor de Actividad (meta: ≤ 40 GB con gemma4:e2b y gpt-oss:20b cargados).
+  - [x] Revisa que `tabla08_llm.csv` tenga calidad, español, p50/p95, tok/s, memoria, carga en frío, cuantización y contexto.
+  - [x] *(2026-11-13: 20.8 GB con gemma4:e2b + gpt-oss:20b; pico 27.8 GB)* Durante la corrida, anota la memoria pico con `ollama ps` y el Monitor de Actividad (meta: ≤ 40 GB con gemma4:e2b y gpt-oss:20b cargados).
 - [ ] **Validar al juez:** abre `evaluacion/resultados/muestra_revision_manual.csv` y llena `nota_autor_fidelidad` y `nota_autor_relevancia` (0–5) de los 15 casos **antes** de ver la nota del juez si puedes.
-- [ ] Embeddings, fragmentos y caché:
+- [x] *(2026-11-13)* Embeddings, fragmentos y caché:
   ```bash
   for e in embeddings fragmentos cache; do
     python -m experimentos.experimento_$e --salida evaluacion/resultados/
@@ -201,7 +201,7 @@ Los umbrales del informe son valores iniciales para bge-m3:
 | E4 fuera de dominio 0.30 | `guardrails.umbral_fuera_dominio` | En `tabla19_casos.csv`, que ninguna pregunta normal quede fuera y que las 3 fuera de dominio sí |
 | Caché semántica 0.92 | `cache.umbral_semantico` | En `tabla22_cache.csv` y `tabla22_casos.csv`, el umbral con precisión 1.0 o casi, aunque baje el recall |
 
-- [ ] Si cambias un umbral, vuelve a correr la fase 8 y anótalo en el ADR correspondiente (ADR-03, ADR-05 o ADR-06).
+- [x] *(2026-11-13: E4 0.30 → 0.40; fase 8 repetida; anotado en ADR-05)* Si cambias un umbral, vuelve a correr la fase 8 y anótalo en el ADR correspondiente (ADR-03, ADR-05 o ADR-06).
 - [ ] Si elegiste otro modelo de embeddings (ADR-02), reindexa antes de seguir:
   ```bash
   python -m servicio.ingestar corpus/ --reindexar
@@ -209,15 +209,15 @@ Los umbrales del informe son valores iniciales para bge-m3:
 
 ## Fase 8 · Evaluación completa (tablas 16, 19, 20, 21 y 23, fallas, privacidad y retroalimentación)
 
-- [ ] Con el servicio de la fase 4 **detenido**: la evaluación levanta su propia instancia, y así no compiten por los modelos:
+- [x] *(2026-11-13: con `--juez --datos data/`)* Con el servicio de la fase 4 **detenido**: la evaluación levanta su propia instancia, y así no compiten por los modelos:
   ```bash
   python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
   ```
-- [ ] **Fallas con Ollama real:** F3 y F4 configuran un alias hacia una etiqueta que no existe. Revisa en `fallas.csv` que respondieron 404 de Ollama, terminaron con el respaldo y no hubo errores 500.
+- [x] *(2026-11-13: 0 errores 500, 5 de 5)* **Fallas con Ollama real:** F3 y F4 configuran un alias hacia una etiqueta que no existe. Revisa en `fallas.csv` que respondieron 404 de Ollama, terminaron con el respaldo y no hubo errores 500.
 - [ ] **Punto único de falla:** con el servicio levantado, cierra Ollama y audita una malla con hallazgos → debe responder 503 (no 500).
-- [ ] **Privacidad:** `privacidad.csv` todo en 0.
-- [ ] **Retroalimentación:** la tabla sale de `data/`. Si quieres contar las calificaciones de la fase 4, pasa `--datos data/`.
-- [ ] Revisa `tabla16_casos.csv`: cada hallazgo no detectado o falso tiene que poder explicarse (o es un error del analizador, o de la línea base).
+- [x] **Privacidad:** `privacidad.csv` todo en 0.
+- [x] *(2026-11-13: las 2 calificaciones son de prueba)* **Retroalimentación:** la tabla sale de `data/`. Si quieres contar las calificaciones de la fase 4, pasa `--datos data/`.
+- [x] *(2026-11-13: V10 en P07, efecto de M2; ver ACTUALIZACION_INFORME.md)* Revisa `tabla16_casos.csv`: cada hallazgo no detectado o falso tiene que poder explicarse (o es un error del analizador, o de la línea base).
 
 ## Fase 9 · Pruebas con personas
 
@@ -233,7 +233,7 @@ Los umbrales del informe son valores iniciales para bge-m3:
 
 ## Fase 10 · Llenar el informe
 
-- [ ] Generar el texto y las tablas con los datos reales:
+- [x] *(2026-11-13: ver docs/ACTUALIZACION_INFORME.md)* Generar el texto y las tablas con los datos reales:
   ```bash
   python -m evaluacion.insumos_informe --resultados evaluacion/resultados/ --corpus corpus/
   ```
@@ -263,7 +263,7 @@ Anota aquí lo que no funcione, para corregirlo después:
 | 3 | V3, V5, V7, V8 y V11 recuperan por debajo del umbral de 0.55 con el corpus actual (mejor top-1 entre 0.45 y 0.55) | — | Pendiente: agregar la guía y la rúbrica, y calibrar en la fase 7 |
 | 4 | E1: un `.obj` con basura responde **415** («no es una malla válida en el formato indicado»), no 422 como dice esta lista. El código lo hace a propósito en `guardrails/entrada.py` (firma y lectura de prueba); 422 queda para contenido leído pero inválido | `649ec1ce2e6d466caad5ec751acbbe72` | Pendiente: decidir si se corrige la lista o el código |
 | 4 | S2 se activó en 3 de 7 preguntas: gemma4:e2b citó ids que no existen. Las respuestas corregidas no se guardan en caché, por eso la paráfrasis (similitud 0.957 ≥ 0.92) no salió de la caché semántica | `cfc0ac98…`, `8a2d13ac…` | Pendiente: revisar el prompt de preguntas o el formato de ids |
-| 4 | E4 no se activó con «¿quién ganó el mundial?»: top-1 0.386 > 0.30, así que pasó al agente (respondió «Sin norma aplicable», pero sí llamó al modelo) | `47b50e1e…` | Pendiente: calibrar `umbral_fuera_dominio` en la fase 7 |
+| 4 | E4 no se activó con «¿quién ganó el mundial?»: top-1 0.386 > 0.30, así que pasó al agente (respondió «Sin norma aplicable», pero sí llamó al modelo) | `47b50e1e…` | Fase 7: `umbral_fuera_dominio` = 0.40 (ver ADR-05) |
 | 4 | En V4 la cita recuperada fue «Limpiar» y no «Non Manifold», que es la sección esperada | — | Revisar en la evaluación (acierto@5) |
 | 4 | No se pudo probar el 503 con Ollama cerrado: al cerrarlo, la app de Ollama canceló la salida | — | Pendiente: cerrarlo a mano y repetir |
 | 5 | `mutar_blender.py`: M1 fallaba aunque la mutación sí se hacía, porque en modo `-b` `obj.dimensions` no se actualiza tras escalar ×1000 (Blender 5.2.2) | `desk: la mutación M1 no produjo el defecto esperado` | `bpy.context.view_layer.update()` en `con_bmesh` |
@@ -272,3 +272,8 @@ Anota aquí lo que no funcione, para corregirlo después:
 | 5 | Línea base de base1: V4 (4 aristas no manifold) y V5 (abierta) aparecen al fusionar vértices coincidentes; sin fusionar, Blender la ve cerrada y manifold | — | Confirmar en la revisión manual |
 | 5 | `plantillas.py` reescribe `casos_recuperacion.json` y `casos_agente.json` con punteros fijos en su lista `SECCIONES`, así que deshacía el ajuste de la fase 3 | — | `SECCIONES` y `PERFIL_DE_DOC` actualizados a los doc_id y secciones reales; generan lo mismo que los JSON |
 | 5 | Con las mallas reales falla `tests/test_evaluacion.py::test_run_eval_modo_falso`: G21 («¿Por qué el informe salió en rojo?») activa E4 con los embeddings falsos (similitud léxica) porque el informe de `base1_M1` ya no es el sintético. La prueba lee `evaluacion/mallas_generadas` y `casos_producto.json` del repositorio | `tabla19_casos.csv`: G21 falso_positivo | La prueba pasa `--mallas` con un directorio temporal: genera sus propias mallas sintéticas y ya no lee ni escribe `evaluacion/mallas_generadas` |
+| 6 | Recuperación muy baja con el corpus real: acierto@5 de bge-m3 = 0.23 (sin umbral). 12 de las 30 consultas relevantes apuntan a `guia_entrega` y `rubrica_animacion`, que no están en el corpus (techo 0.60). De las 18 alcanzables acierta 7: fallan sobre todo las coloquiales («se ve negra», «se ve gigante») y las que caen en subsecciones genéricas «Opciones» del manual de Blender | `tabla09_embeddings.csv` | Pendiente: agregar los documentos propios; mejora: heredar el título padre en subsecciones genéricas |
+| 7 | E4: con 0.30, 2 de 3 preguntas fuera de dominio pasaban (máx. 0.35); las normales quedan ≥ 0.48 | `tabla19_casos.csv` | `umbral_fuera_dominio: 0.40`; los embeddings falsos conservan 0.30 (`umbral_fuera_dominio_falso`) |
+| 8 | E2: el clasificador (gemma4:e2b) marcaba como inyección las notas con correo y con CURP (G08, G10 → 422) | `tabla19_casos.csv` | El clasificador recibe el texto enmascarado por E3 y tiene un ejemplo negativo con datos de contacto (ADR-05) |
+| 8 | Recall 0.945: V6 no detectado en `base2_M2.obj` (animación, móvil y web). La mutación M2 borraba las UV, pero en modo `-b` el exportador leía la malla evaluada anterior y las volvía a escribir (21 `vt`) | `tabla16_casos.csv` P05, P06, P08 | `obj.data.update()` y `view_layer.update()` en `m2`; mallas regeneradas y evaluación repetida |
+| 8 | Enrutador etiquetado por calidad: con la regla del juez (mín. de fidelidad y relevancia ≥ 4 para que baste la rápida), gemma4:e2b casi nunca alcanza 4, así que la mayoría de los casos quedan como «completa» y la ruta rápida sale «inadecuada» | `tabla21_casos.csv` | Evidencia para ADR-01/ADR-04 (decisión del autor) |

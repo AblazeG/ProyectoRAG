@@ -15,3 +15,6 @@ node_modules/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+
+# App para Mac generada por app_mac/crear_app.sh
+app_mac/MeshAudit.app/

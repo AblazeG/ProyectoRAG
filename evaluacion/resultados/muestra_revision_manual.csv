@@ -1,0 +1,206 @@
+modelo,caso,hallazgo,explicacion,fragmento,fidelidad,relevancia,espanol,nota_autor_fidelidad,nota_autor_relevancia
+gemma4:e2b,P13,h2,"Aristas no manifold (compartidas por más de dos caras)
+Seleccionar la geometría no manifold.
+[blender_manual_seleccion:non-manifold#1]",These operators can automatically clean up certain types of messy geometry.,0,0,5,,
+gemma4:e2b,P02,h1,"Se detectaron aristas no manifold (compartidas por más de dos caras). Esto es relevante porque la geometría no manifold puede causar problemas en la representación o renderizado de la malla [blender_manual_seleccion:non-manifold#1].
+Dividir caras no planas. Splits any selected faces that are bent beyond a given limit. Faces that are bent by more than this angle will be split. Faces that are bent by more than this angle will be split. [blender_manual_limpieza:dividir-caras-no-planas#1]",These operators can automatically clean up certain types of messy geometry.,2,3,5,,
+gemma4:e2b,P01,h1,"Las caras con más de cuatro lados (n-gons) deben evitarse en la animación de personajes porque los cuadrados son los preferidos para «ser deformados» y por lo tanto, son los preferidos para la animación y el modelado orgánico por subdivisión de geometría [blender_manual_estructura:caras#1]. Las caras se utilizan para construir la superficie real del objeto [blender_manual_estructura:caras#1]. Los triángulos son siempre planos y, por lo tanto, fáciles de calcular [blender_manual_estructura:caras#1]. Los cuadrados son apropiados para «ser deformados» y, por lo tanto, son los preferidos para la animación y el modelado orgánico por subdivisión de geometría [blender_manual_estructura:caras#1].
+Evitar caras con más de cuatro lados (n-gons) para la animación de personajes.","por subdivisión de geometría.
+
+Ver también
+
+¿Por qué se deben evitar los triángulos para la animación de personajes?
+
+¿Por qué se deben evitar los triángulos para la animación de personajes?
+
+¿Cuándo se deben usar enégonos y cuándo no?
+
+¿Cuándo se deben usar enégonos y cuándo no?",3,3,5,,
+gemma4:e2b,P16,h2,"Se detectaron aristas no manifold (compartidas por más de dos caras). Esto es importante para la limpieza de la malla [blender_manual_seleccion:non-manifold#1].
+Seleccionar la geometría no manifold [blender_manual_seleccion:non-manifold#1].",These operators can automatically clean up certain types of messy geometry.,2,3,5,,
+gemma4:e2b,P05,h1,"La malla no tiene coordenadas UV por vértice
+Se debe verificar que cada cara de la malla tenga asignadas cuatro coordenadas UV, ya que estas definirán la forma en que se asignará una imagen o textura a la cara [blender_manual_uv_intro:acerca-de-las-uv#2], [blender_manual_uv_intro:acerca-de-las-uv#4].","de la malla 3D. Es posible pensar en un mapa UV como si se proyectara la superficie del modelo 3D sobre una imagen 2D.
+
+Cada cara de una malla podrá tener varias texturas UV. Cada textura UV podrá tener asignada una imagen individual. Cuando se despliegue una cara para usar una textura UV en el Editor de UV, a cada cara de la malla se le asignarán automáticamente cuatro coordenadas UV: estas coordenadas definirán la forma en que se asignará una imagen o textura de cualquier tipo a la cara. Para distinguir estas coordenadas de las coordenadas XYZ del entorno 3D, se utilizarán ejes con nombres U y V , para determinar las coordenadas de cada punto. De ahí el nombre de despliegue UV .",5,5,5,,
+qwen3:8b,P06,h2,"Las caras degeneradas (área casi nula) pueden causar problemas en la renderización, especialmente en juegos móviles donde la eficiencia es clave. Estas caras no contribuyen a la superficie visible del modelo y pueden generar artefactos visuales o incluso errores en el renderizado. Según la especificación glTF, los algoritmos deben evitar las caras degeneradas, ya que pueden causar problemas en el cálculo de normales y tangentes [gltf_spec:3-7-geometry#14].
+Eliminar las caras degeneradas de la malla. Esto se puede hacer revisando la estructura de la malla y asegurando que cada cara esté definida correctamente entre vértices únicos [blender_manual_estructura:caras#1].
+Verificar que las caras no tengan vértices repetidos o que formen líneas o triángulos degenerados, ya que esto puede causar problemas en el cálculo de normales y tangentes [gltf_spec:3-7-geometry#14].
+Utilizar herramientas de limpieza de malla en Blender para detectar y eliminar caras con área casi nula, asegurando que la geometría sea válida y eficiente [blender_manual_estructura:caras#2].","Las caras se utilizan para construir la superficie real del objeto. Es lo que ve cuando de procesa una imagen final de la malla. Si esta área no contuviera una cara, simplemente será transparente o no existirá en la imagen procesada.
+
+Una cara se define como un área entre varios vértices: tres (triángulos), cuatro (cuadriláteros) o más (enégonos), con un borde en cada lado. Los tipos de caras a menudo se abrevian como: tris, quads y enégonos .
+
+Los triángulos son siempre planos y, por lo tanto, fáciles de calcular. Por otro lado, los cuadrados son apropiados para «ser deformados» y, por lo tanto, son los preferidos para la animación y el modelado orgánico por subdivisión de geometría.
+
+Ver también
+
+¿Por qué se deben evitar los triángulos para la animación de personajes?",3,5,5,,
+qwen3:8b,P06,h1,"La malla no tiene coordenadas UV por vértice, lo cual es crítico para la asignación de texturas en el desarrollo de juegos móviles. Las coordenadas UV son necesarias para mapear imágenes 2D sobre la superficie de la malla 3D, y su ausencia impide la visualización correcta de texturas. Según el manual de Blender, cada cara de la malla debe tener asignadas cuatro coordenadas UV para definir cómo se asignará una imagen a la cara [blender_manual_uv_intro:acerca-de-las-uv#2]. Además, en la exportación a glTF, se requiere la conexión de un nodo Mapa UV y un nodo Mapeo para la textura, y se deben usar ajustes como posición, rotación y escala [blender_manual_gltf:materiales-exportados#42].
+Asignar coordenadas UV a cada cara de la malla. Esto se puede hacer en el Editor de UV de Blender, donde cada cara se le asignarán automáticamente cuatro coordenadas UV [blender_manual_uv_intro:acerca-de-las-uv#2].
+Verificar que el material de la malla tenga un nodo Image Texture en el Shader Editor, ya que es necesario para el procesamiento de texturas [blender_manual_uv:opciones-6#7].
+Asegurar que los nodos Mapa UV y Mapeo estén conectados correctamente para la textura, y que el tipo de mapeo sea 'Punto' para la exportación a glTF [blender_manual_gltf:materiales-exportados#42].","de la malla 3D. Es posible pensar en un mapa UV como si se proyectara la superficie del modelo 3D sobre una imagen 2D.
+
+Cada cara de una malla podrá tener varias texturas UV. Cada textura UV podrá tener asignada una imagen individual. Cuando se despliegue una cara para usar una textura UV en el Editor de UV, a cada cara de la malla se le asignarán automáticamente cuatro coordenadas UV: estas coordenadas definirán la forma en que se asignará una imagen o textura de cualquier tipo a la cara. Para distinguir estas coordenadas de las coordenadas XYZ del entorno 3D, se utilizarán ejes con nombres U y V , para determinar las coordenadas de cada punto. De ahí el nombre de despliegue UV .",3,5,5,,
+qwen3:8b,P03,h3,"Caras degeneradas (área casi nula) son un problema en la impresión 3D porque pueden causar fallos en la impresión y reducir la calidad de la superficie final. Estas caras pueden surgir por subdivisión de geometría o por caras cóncavas que se dividen [blender_manual_limpieza:dividir-caras-concavas#1].
+Usar la herramienta Dividir caras cóncavas para asegurar que solo queden caras convexas [blender_manual_limpieza:dividir-caras-concavas#1].
+Reducir la cantidad de caras usando la herramienta Diezmar geometría, ajustando la proporción de caras triangulares [blender_manual_limpieza:diezmar-geometria#1].
+Verificar que las caras no tengan un área casi nula, ya que esto puede indicar caras degeneradas [blender_manual_estructura:caras#2].","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Maya ‣ Limpiar ‣ Dividir caras cóncavas
+
+Maya ‣ Limpiar ‣ Dividir caras cóncavas
+
+Splits any selected concave faces so that only convex ones remain.
+
+Malla original.
+
+Malla original.
+
+Resultado de dividir caras cóncavas.
+
+Resultado de dividir caras cóncavas.",3,4,5,,
+qwen3:8b,P02,h3,"Caras degeneradas (área casi nula) pueden causar problemas en la renderización y la calidad visual en juegos móviles. Estas caras son definidas como triángulos o polígonos que usan el mismo vértice más de una vez [gltf_spec:3-7-geometry#14]. (sin norma verificada)
+Eliminar caras degeneradas usando herramientas de limpieza en Blender.
+Revisar la topología del modelo para asegurar que no haya caras que usen el mismo vértice más de una vez [gltf_spec:3-7-geometry#14].
+Usar herramientas de subdivisión para mejorar la calidad de las caras y evitar caras degeneradas [blender_manual_estructura:caras#2].","primitives are defined around a shared common vertex, according to the equation:
+
+p i = {v i+1 , v i+2 , v 0 }
+
+p i = {v i+1 , v i+2 , v 0 }
+
+Mesh geometry SHOULD NOT contain degenerate lines or triangles, i.e., lines or triangles that use the same vertex more than once per topology primitive.
+
+When positions are not specified, client implementations SHOULD skip primitive’s rendering unless its positions are provided by other means (e.g., by an extension). This applies to both indexed and non-indexed geometry.
+
+When tangents are not specified, client implementations SHOULD calculate tangents using default MikkTSpace algorithms with the specified vertex positions, normals, and texture coordinates associated with the normal texture.",5,5,5,,
+qwen3:8b,P19,h4,"Los vértices duplicados pueden causar problemas en la impresión 3D, ya que pueden generar geometrías no precisas o mal conectadas. La fusión de vértices por distancia permite unir vértices cercanos, lo que puede ayudar a eliminar duplicados [blender_manual_limpieza:fusionar-por-distancia#1]. Además, la opción de fusionar vértices en el modo edición puede permitir fusionar vértices seleccionados con los no seleccionados [blender_manual_fusionar:opciones#1].
+Fusionar vértices por distancia para unir vértices cercanos [blender_manual_limpieza:fusionar-por-distancia#1].
+Fusionar vértices seleccionados en un solo vértice ubicado en el Cursor 3D [blender_manual_fusionar:fusionar-o-mezclar#1].
+Fusionar vértices en grupos de vértices conectados para reducir la cantidad de vértices duplicados [blender_manual_fusionar:fusionar-o-mezclar#3].","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Malla ‣ Limpiar ‣ Fusionar por distancia
+
+Malla ‣ Limpiar ‣ Fusionar por distancia
+
+Merges the selected vertices that are closer to each other than a certain distance.
+
+Los vértices cuya distancia sea menor que este umbral serán fusionados.
+
+Los vértices cuya distancia sea menor que este umbral serán fusionados.
+
+Permitirá fusionar los vértices seleccionados con los no seleccionados.
+
+Permitirá fusionar los vértices seleccionados con los no seleccionados.
+
+If the mesh uses smooth shading and has custom split normals , this option will add edge marks where needed so that sharp edges will remain sharp after merging.",3,3,5,,
+gpt-oss:20b,P20,h2,"Las normales inconsistentes o invertidas provocan que la iluminación se calcule incorrectamente, generando sombras falsas, superficies con iluminación invertida o artefactos de sombreado. En Web/AR, donde la interacción con la luz ambiental es crítica, las normales mal orientadas pueden hacer que un modelo se vea poco realista o que se perciba como una superficie rota. Blender ofrece herramientas específicas para recalcular, invertir y restablecer normales, garantizando que todas las caras apunten hacia el exterior y que los valores de normal sean coherentes.
+Usar la herramienta de recalcular normales hacia afuera para que todas las caras apunten en la dirección correcta, asegurando que la malla no sea un volumen abierto si no es necesario [blender_manual_normales:recalcular#1].
+Aplicar la función de invertir normales cuando sea necesario para corregir caras que apunten hacia adentro, cambiando el lado frontal y trasero de la cara sin afectar las normales personalizadas [blender_manual_normales:invertir#1].
+Restablecer los vectores de normales personalizados a sus valores por defecto cuando se haya modificado la topología, garantizando que las normales coincidan con la geometría actual [blender_manual_normales:restablecer-vectores#1].
+Utilizar la herramienta de apuntar a objetivo para alinear las normales hacia un punto de referencia, interpolando entre la orientación original y la nueva según sea necesario [blender_manual_normales:apuntar-a-objetivo#3].
+Aplicar el promedio de normales por área o por ángulo de esquina para suavizar la transición entre caras y evitar discontinuidades en la iluminación, eligiendo el método que mejor se adapte al tipo de superficie [blender_manual_normales:promedio#2].","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Malla ‣ Normales ‣ Recalcular hacia afuera y Malla ‣ Normales ‣ Recalcular hacia adentro
+
+Malla ‣ Normales ‣ Recalcular hacia afuera y Malla ‣ Normales ‣ Recalcular hacia adentro
+
+Mayús - N y Mayús - Ctrl - N
+
+Mayús - N y Mayús - Ctrl - N
+
+Flips the orientation of the selected faces where necessary, making them all point outward (or inward). The mesh does not need to be a closed volume for this.
+
+As with Flip , this operation does not affect custom split normals.",3,5,5,,
+gpt-oss:20b,P14,h2,"Las aristas que están compartidas por más de dos caras son consideradas no manifold. En un juego móvil, la presencia de geometría no manifold puede provocar problemas de renderizado, colisiones inesperadas y errores en la física, ya que los motores de juego suelen requerir mallas manifold para un comportamiento correcto. Según el manual de Blender, las aristas no manifold se seleccionan con la opción *Select All by Trait ‣ Non Manifold* y se describen como ""Selects the non-manifold geometry of a mesh"" [blender_manual_seleccion:non-manifold#1]. Además, la sección de opciones indica que se seleccionan ""edges that belong to three or more faces"" [blender_manual_seleccion:opciones#1].
+En modo Edición, usar el operador *Malla ‣ Limpiar ‣ Dividir caras no planas* para separar caras que estén dobladas más allá del ángulo permitido, lo que puede reducir la incidencia de aristas no manifold [blender_manual_limpieza:dividir-caras-no-planas#1].
+Aplicar la herramienta *Select All by Trait ‣ Non Manifold* para identificar todas las aristas no manifold [blender_manual_seleccion:non-manifold#1].
+Revisar y eliminar manualmente las aristas que pertenezcan a tres o más caras, ya que son la causa directa de la no manifoldidad [blender_manual_seleccion:opciones#1].
+Utilizar la opción *Select All by Trait ‣ Non Manifold* en modo Vertex o Edge para asegurar que se seleccionen todas las aristas problemáticas, ya que la herramienta solo está disponible en esos modos [blender_manual_seleccion:non-manifold#1].
+Una vez identificadas, dividir o reconfigurar la geometría para que cada arista esté conectada a no más de dos caras, garantizando que la malla sea manifold y adecuada para el rendimiento en dispositivos móviles.","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Select ‣ Select All by Trait ‣ Non Manifold
+
+Select ‣ Select All by Trait ‣ Non Manifold
+
+Selects the non-manifold geometry of a mesh. This entry is only available in the Vertex and Edge selection modes .",5,5,5,,
+gpt-oss:20b,P02,h1,"Las aristas que están compartidas por más de dos caras son no manifold y pueden provocar errores de renderizado, colisiones y problemas de rigging en un juego móvil. El manual de Blender indica que el operador de limpieza puede seleccionar y dividir dichas aristas, y que la selección de geometría no manifold está disponible solo en modos de vértice y borde, lo que permite identificar y corregir estos problemas.
+Seleccionar la geometría en modo Edición y usar *Select → Select All by Trait → Non Manifold* para marcar todas las aristas no manifold [blender_manual_seleccion:non-manifold#1].
+Añadir a la selección las aristas que pertenecen a tres o más caras con *Select → Select All by Trait → Non Manifold* y la opción *Adds to the current selection instead of replacing it* [blender_manual_seleccion:opciones#1].
+Aplicar el operador *Mesh → Clean → Split Non-Planar Faces* para dividir las caras que están dobladas más allá del ángulo permitido, lo que también puede separar aristas no manifold [blender_manual_limpieza:dividir-caras-no-planas#1].
+Revisar que la selección incluya vértices aislados o que pertenezcan a un borde que sea un Wire o tenga Multiple Faces, y corregirlos según sea necesario [blender_manual_seleccion:opciones#2].","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Select ‣ Select All by Trait ‣ Non Manifold
+
+Select ‣ Select All by Trait ‣ Non Manifold
+
+Selects the non-manifold geometry of a mesh. This entry is only available in the Vertex and Edge selection modes .",3,4,5,,
+gpt-oss:20b,P16,h3,"Un tamaño de archivo excesivo dificulta la carga rápida y la experiencia de usuario en la Web/AR. La compresión de mallas y la elección del formato binario (.glb) reducen el ancho de banda y aceleran la descarga.
+Al exportar a glTF 2.0, habilitar la compresión de mallas usando Google Draco para reducir el tamaño de los datos de vértices y caras [blender_manual_gltf:exportar-2#20].
+Seleccionar la extensión de compresión Meshoptimizer (EXT_meshopt_compression o KHR_meshopt_compression) para una mayor eficiencia en la codificación y decodificación [blender_manual_gltf:exportar-2#21].
+Exportar el modelo en formato binario .glb, que empaqueta todos los datos en un solo archivo compacto y facilita su distribución [blender_manual_gltf:gltf-binario-glb#1].
+Revisar la configuración de compresión (valor de compresión) y ajustar a un nivel que ofrezca la mejor relación entre calidad y tamaño, ya que valores mayores producen mejores tasas de compresión [blender_manual_gltf:exportar-2#20][blender_manual_gltf:exportar-2#21].","are not available Raw (Deprecated): Blender lighting strengths with no conversion
+
+Comprime mallas usando Google Draco.
+
+Mayor compresión produce menor codificación y decodificación.
+
+Mayor compresión produce menor codificación y decodificación.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.
+
+Los valores mayores producen mejores tasas de compresión.",5,5,5,,
+gpt-oss:20b,P10,h2,"Las normales inconsistentes o invertidas provocan que la iluminación se calcule incorrectamente, generando sombras y reflejos erróneos que degradan la apariencia visual del juego. En Blender, las normales pueden recalcularse, apuntarse a un objetivo, invertirse o restablecerse, y cada operación afecta la orientación de las caras. Mantener una orientación coherente de las normales es esencial para que los motores de juego interpreten correctamente la superficie del modelo.
+Recalcular las normales hacia afuera (o hacia adentro según sea necesario) para asegurar que todas las caras apunten en la misma dirección. [blender_manual_normales:recalcular#1]
+Usar la herramienta de apuntar a objetivo para alinear las normales con un punto de referencia, garantizando coherencia en la orientación. [blender_manual_normales:apuntar-a-objetivo#3]
+Invertir las normales de las caras que estén orientadas incorrectamente. [blender_manual_normales:invertir#1]
+Restablecer los vectores de normales personalizados a sus valores por defecto si se requiere una base limpia. [blender_manual_normales:restablecer-vectores#1]
+Aplicar un promedio ponderado de las normales de las esquinas para suavizar la transición entre caras y evitar discontinuidades. [blender_manual_normales:promedio#2]","Referencia
+
+Modo Edición
+
+Modo Edición
+
+Malla ‣ Normales ‣ Recalcular hacia afuera y Malla ‣ Normales ‣ Recalcular hacia adentro
+
+Malla ‣ Normales ‣ Recalcular hacia afuera y Malla ‣ Normales ‣ Recalcular hacia adentro
+
+Mayús - N y Mayús - Ctrl - N
+
+Mayús - N y Mayús - Ctrl - N
+
+Flips the orientation of the selected faces where necessary, making them all point outward (or inward). The mesh does not need to be a closed volume for this.
+
+As with Flip , this operation does not affect custom split normals.",3,5,5,,

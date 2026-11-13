@@ -53,7 +53,8 @@ guardrails:
   tam_max_malla_mb: 50
   tam_max_documento_mb: 20
   max_caras: 2000000
-  umbral_fuera_dominio: 0.30
+  umbral_fuera_dominio: 0.40   # calibrado con bge-m3 (2026-11-13): fuera de dominio ≤ 0.35, normales ≥ 0.48
+  umbral_fuera_dominio_falso: 0.30   # el de los embeddings falsos (pruebas y modo sin Ollama)
   licencias_permitidas:
     - CC-BY-4.0
     - CC-BY-SA-4.0

@@ -1,0 +1,4 @@
+modelo,fragmentos,acierto_1,acierto_5,mrr,acierto_5_con_umbral,rechazos_correctos,rechazos_de,indexado_s
+bge-m3,852,0.1,0.233,0.136,0.133,7,10,19.07
+embeddinggemma,852,0.133,0.167,0.15,0.1,8,10,14.47
+nomic-embed-text,852,0.033,0.1,0.056,0.1,0,10,11.03

@@ -1,0 +1,7 @@
+entrada,casos,correctos,falsos_positivos
+Inyección (E2),4,4,–
+Fuera de dominio (E4),3,3,–
+Datos personales (E3),3,2,–
+Documentos (E5),3,3,–
+Normales,10,–,0
+Total,23,92.3 %,0.0 %

@@ -112,6 +112,19 @@ python evaluacion/run_eval.py --juez --salida evaluacion/resultados/
 La web solo habla con la API (nunca con Ollama ni ChromaDB). Si la API está en otra dirección:
 `http://localhost:5173/?api=http://127.0.0.1:8001`.
 
+### App para Mac
+
+`app_mac/MeshAudit.app` arranca Ollama, la API y la web con un doble clic, abre el navegador
+en `http://localhost:5173` y, al salir de la app, detiene la API y la web (Ollama se queda abierto).
+Usa el `.venv` del repositorio, así que la app debe quedarse dentro de `app_mac/`.
+
+```bash
+zsh app_mac/crear_app.sh            # genera (o regenera) MeshAudit.app
+zsh app_mac/meshaudit.sh estado     # iniciar | detener | estado, también desde la terminal
+```
+
+Registros: `~/Library/Logs/MeshAudit/api.log` y `web.log`.
+
 ### Sin Ollama (proveedor falso)
 
 Para pruebas y demostraciones sin modelos, con dobles deterministas (`ChatFalso`, `EmbeddingsFalsos`):

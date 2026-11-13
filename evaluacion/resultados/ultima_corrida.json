@@ -1,0 +1,7 @@
+{
+  "proveedor": "ollama",
+  "juez": true,
+  "corridas": 5,
+  "corpus": "corpus",
+  "mallas": "evaluacion/mallas_generadas"
+}

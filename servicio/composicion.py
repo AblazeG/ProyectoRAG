@@ -73,6 +73,10 @@ def cargar_config(ruta: Path | str | None = None) -> dict:
         config["ollama"]["url"] = entorno["MESHAUDIT_OLLAMA_URL"]
     if config["proveedor"] not in ("ollama", "falso"):
         raise ValueError("MESHAUDIT_PROVEEDOR debe ser 'ollama' o 'falso'")
+    # E4 se calibra por modelo de embeddings (ADR-02): los embeddings falsos tienen otra escala.
+    g = config["guardrails"]
+    if config["proveedor"] == "falso" and "umbral_fuera_dominio_falso" in g:
+        g["umbral_fuera_dominio"] = g["umbral_fuera_dominio_falso"]
     return config
 
 

@@ -1,0 +1,4 @@
+modelo,informes,calidad,fidelidad,relevancia,espanol,latencia_p50_s,latencia_p95_s,tok_s,memoria_gb,carga_en_frio_s,cuantizacion,contexto,parametros
+gemma4:e2b,20,2.85,2.63,3.07,4.8,2.41,5.22,201.0,7.95,3.86,nvfp4,131072,5.2B
+qwen3:8b,20,3.48,3.02,3.93,5,16.97,24.48,71.8,5.8,3.73,Q4_K_M,40960,8.2B
+gpt-oss:20b,20,4.14,3.58,4.69,5,14.32,23.22,91.1,12.86,7.8,MXFP4,131072,20.9B
