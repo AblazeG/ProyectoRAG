@@ -31,8 +31,10 @@ def test_conjuntos_de_la_tabla_15():
 
 
 def test_run_eval_modo_falso(tmp_path):
+    # Mallas sintéticas propias en un directorio temporal: la prueba no debe depender de las
+    # mallas de Blender que haya en evaluacion/mallas_generadas ni escribir ahí.
     assert run_eval.main(["--proveedor", "falso", "--tablas", "19,fallas,privacidad",
-                          "--salida", str(tmp_path)]) == 0
+                          "--mallas", str(tmp_path / "mallas"), "--salida", str(tmp_path)]) == 0
     resumen = list(csv.DictReader(open(tmp_path / "tabla19_guardrails.csv")))
     assert resumen[-1]["correctos"] == "100.0 %" and resumen[-1]["falsos_positivos"] == "0.0 %"
     fallas = list(csv.DictReader(open(tmp_path / "fallas.csv")))

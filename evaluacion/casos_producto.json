@@ -6,25 +6,44 @@
     "mutaciones": "Introducir n-gons y escalar ×1000",
     "perfil": "animacion",
     "malla": "base1_M1.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V2": "menor",
+      "V4": "menor",
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V1": "grave",
       "V7": "menor"
     },
     "verificaciones_esperadas": {
+      "V2": "menor",
+      "V4": "menor",
+      "V8": "menor",
       "V1": "grave",
       "V7": "menor"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V2": {
+        "documento": "rubrica_animacion",
+        "seccion": "Topología para deformación"
+      },
+      "V4": {
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
+      },
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V1": {
         "documento": "rubrica_animacion",
         "seccion": "Topología para deformación"
       },
       "V7": {
         "documento": "gltf_spec",
-        "seccion": "Unidades y escala"
+        "seccion": "3.4. Coordinate System and Units"
       }
     }
   },
@@ -35,19 +54,32 @@
     "mutaciones": "Introducir n-gons y escalar ×1000",
     "perfil": "juego_movil",
     "malla": "base1_M1.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V4": "menor",
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V7": "menor"
     },
     "verificaciones_esperadas": {
+      "V4": "menor",
+      "V8": "menor",
       "V7": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V4": {
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
+      },
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V7": {
         "documento": "gltf_spec",
-        "seccion": "Unidades y escala"
+        "seccion": "3.4. Coordinate System and Units"
       }
     }
   },
@@ -58,16 +90,35 @@
     "mutaciones": "Introducir n-gons y escalar ×1000",
     "perfil": "impresion_3d",
     "malla": "base1_M1.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V4": "grave",
+      "V5": "grave",
+      "V8": "grave"
+    },
     "efecto_mutaciones": {
       "V7": "menor"
     },
     "verificaciones_esperadas": {
+      "V4": "grave",
+      "V5": "grave",
+      "V8": "grave",
       "V7": "menor"
     },
-    "semaforo_esperado": "amarillo",
-    "ruta_esperada_regla": "rapida",
+    "semaforo_esperado": "rojo",
+    "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V4": {
+        "documento": "guia_entrega",
+        "seccion": "Geometría no manifold"
+      },
+      "V5": {
+        "documento": "guia_entrega",
+        "seccion": "Mallas cerradas"
+      },
+      "V8": {
+        "documento": "guia_entrega",
+        "seccion": "Caras degeneradas"
+      },
       "V7": {
         "documento": "guia_entrega",
         "seccion": "Escala y volumen de impresión"
@@ -81,19 +132,32 @@
     "mutaciones": "Introducir n-gons y escalar ×1000",
     "perfil": "web_ar",
     "malla": "base1_M1.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V4": "menor",
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V7": "grave"
     },
     "verificaciones_esperadas": {
+      "V4": "menor",
+      "V8": "menor",
       "V7": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V4": {
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
+      },
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V7": {
         "documento": "gltf_spec",
-        "seccion": "Unidades y escala"
+        "seccion": "3.4. Coordinate System and Units"
       }
     }
   },
@@ -104,19 +168,32 @@
     "mutaciones": "Borrar caras para abrir la malla y eliminar las UV",
     "perfil": "animacion",
     "malla": "base2_M2.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V2": "menor",
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V6": "grave"
     },
     "verificaciones_esperadas": {
+      "V2": "menor",
+      "V8": "menor",
       "V6": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V2": {
+        "documento": "rubrica_animacion",
+        "seccion": "Topología para deformación"
+      },
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V6": {
-        "documento": "blender_manual",
-        "seccion": "Desenvolvimiento UV"
+        "documento": "blender_manual_uv",
+        "seccion": "Desplegar"
       }
     }
   },
@@ -127,19 +204,26 @@
     "mutaciones": "Borrar caras para abrir la malla y eliminar las UV",
     "perfil": "juego_movil",
     "malla": "base2_M2.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V6": "grave"
     },
     "verificaciones_esperadas": {
+      "V8": "menor",
       "V6": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V6": {
         "documento": "gltf_spec",
-        "seccion": "Coordenadas de textura"
+        "seccion": "3.7. Geometry"
       }
     }
   },
@@ -151,18 +235,24 @@
     "perfil": "impresion_3d",
     "malla": "base2_M2.obj",
     "linea_base": {
+      "V8": "grave",
       "V7": "menor"
     },
     "efecto_mutaciones": {
       "V5": "grave"
     },
     "verificaciones_esperadas": {
+      "V8": "grave",
       "V7": "menor",
       "V5": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "guia_entrega",
+        "seccion": "Caras degeneradas"
+      },
       "V7": {
         "documento": "guia_entrega",
         "seccion": "Escala y volumen de impresión"
@@ -180,19 +270,26 @@
     "mutaciones": "Borrar caras para abrir la malla y eliminar las UV",
     "perfil": "web_ar",
     "malla": "base2_M2.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V6": "grave"
     },
     "verificaciones_esperadas": {
+      "V8": "menor",
       "V6": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V6": {
         "documento": "gltf_spec",
-        "seccion": "Coordenadas de textura"
+        "seccion": "3.7. Geometry"
       }
     }
   },
@@ -204,13 +301,15 @@
     "perfil": "animacion",
     "malla": "base3_M3.obj",
     "linea_base": {
-      "V2": "menor"
+      "V2": "menor",
+      "V8": "menor"
     },
     "efecto_mutaciones": {
       "V9": "menor"
     },
     "verificaciones_esperadas": {
       "V2": "menor",
+      "V8": "menor",
       "V9": "menor"
     },
     "semaforo_esperado": "amarillo",
@@ -220,9 +319,13 @@
         "documento": "rubrica_animacion",
         "seccion": "Topología para deformación"
       },
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V9": {
-        "documento": "blender_manual",
-        "seccion": "Orientación de normales"
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
       }
     }
   },
@@ -233,19 +336,26 @@
     "mutaciones": "Invertir las normales de una región y duplicar vértices",
     "perfil": "juego_movil",
     "malla": "base3_M3.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V9": "menor"
     },
     "verificaciones_esperadas": {
+      "V8": "menor",
       "V9": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V9": {
-        "documento": "blender_manual",
-        "seccion": "Orientación de normales"
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
       }
     }
   },
@@ -256,25 +366,32 @@
     "mutaciones": "Invertir las normales de una región y duplicar vértices",
     "perfil": "impresion_3d",
     "malla": "base3_M3.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V8": "grave"
+    },
     "efecto_mutaciones": {
       "V9": "grave",
       "V10": "menor"
     },
     "verificaciones_esperadas": {
+      "V8": "grave",
       "V9": "grave",
       "V10": "menor"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "guia_entrega",
+        "seccion": "Caras degeneradas"
+      },
       "V9": {
         "documento": "guia_entrega",
         "seccion": "Normales invertidas"
       },
       "V10": {
-        "documento": "blender_manual",
-        "seccion": "Fusionar vértices por distancia"
+        "documento": "blender_manual_limpieza",
+        "seccion": "Fusionar por distancia"
       }
     }
   },
@@ -285,19 +402,26 @@
     "mutaciones": "Invertir las normales de una región y duplicar vértices",
     "perfil": "web_ar",
     "malla": "base3_M3.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V8": "menor"
+    },
     "efecto_mutaciones": {
       "V9": "menor"
     },
     "verificaciones_esperadas": {
+      "V8": "menor",
       "V9": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V8": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
+      },
       "V9": {
-        "documento": "blender_manual",
-        "seccion": "Orientación de normales"
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
       }
     }
   },
@@ -308,19 +432,26 @@
     "mutaciones": "Subdividir hasta superar 100 000 triángulos y crear una arista no manifold",
     "perfil": "animacion",
     "malla": "base4_M4.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V2": "menor"
+    },
     "efecto_mutaciones": {
       "V4": "menor"
     },
     "verificaciones_esperadas": {
+      "V2": "menor",
       "V4": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V2": {
+        "documento": "rubrica_animacion",
+        "seccion": "Topología para deformación"
+      },
       "V4": {
-        "documento": "blender_manual",
-        "seccion": "Limpieza de geometría no manifold"
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
       }
     }
   },
@@ -331,9 +462,7 @@
     "mutaciones": "Subdividir hasta superar 100 000 triángulos y crear una arista no manifold",
     "perfil": "juego_movil",
     "malla": "base4_M4.obj",
-    "linea_base": {
-      "V3": "grave"
-    },
+    "linea_base": {},
     "efecto_mutaciones": {
       "V3": "grave",
       "V4": "menor"
@@ -346,12 +475,12 @@
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
       "V3": {
-        "documento": "godot_docs",
-        "seccion": "Presupuesto de polígonos"
+        "documento": "godot_docs_rendimiento",
+        "seccion": "Nivel de detalle (LOD)"
       },
       "V4": {
-        "documento": "blender_manual",
-        "seccion": "Limpieza de geometría no manifold"
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
       }
     }
   },
@@ -406,12 +535,12 @@
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
       "V3": {
-        "documento": "godot_docs",
-        "seccion": "Presupuesto de polígonos"
+        "documento": "godot_docs_rendimiento",
+        "seccion": "Nivel de detalle (LOD)"
       },
       "V4": {
-        "documento": "blender_manual",
-        "seccion": "Limpieza de geometría no manifold"
+        "documento": "blender_manual_seleccion",
+        "seccion": "Non Manifold"
       },
       "V11": {
         "documento": "guia_entrega",
@@ -426,13 +555,17 @@
     "mutaciones": "Triangular una zona amplia y crear caras degeneradas",
     "perfil": "animacion",
     "malla": "base5_M5.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V2": "menor",
+      "V9": "menor"
+    },
     "efecto_mutaciones": {
       "V2": "menor",
       "V8": "menor"
     },
     "verificaciones_esperadas": {
       "V2": "menor",
+      "V9": "menor",
       "V8": "menor"
     },
     "semaforo_esperado": "amarillo",
@@ -442,9 +575,13 @@
         "documento": "rubrica_animacion",
         "seccion": "Topología para deformación"
       },
+      "V9": {
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
+      },
       "V8": {
-        "documento": "blender_manual",
-        "seccion": "Disolver geometría degenerada"
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
       }
     }
   },
@@ -455,19 +592,26 @@
     "mutaciones": "Triangular una zona amplia y crear caras degeneradas",
     "perfil": "juego_movil",
     "malla": "base5_M5.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V9": "menor"
+    },
     "efecto_mutaciones": {
       "V8": "menor"
     },
     "verificaciones_esperadas": {
+      "V9": "menor",
       "V8": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V9": {
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
+      },
       "V8": {
-        "documento": "blender_manual",
-        "seccion": "Disolver geometría degenerada"
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
       }
     }
   },
@@ -478,16 +622,35 @@
     "mutaciones": "Triangular una zona amplia y crear caras degeneradas",
     "perfil": "impresion_3d",
     "malla": "base5_M5.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V5": "grave",
+      "V9": "grave",
+      "V10": "menor"
+    },
     "efecto_mutaciones": {
       "V8": "grave"
     },
     "verificaciones_esperadas": {
+      "V5": "grave",
+      "V9": "grave",
+      "V10": "menor",
       "V8": "grave"
     },
     "semaforo_esperado": "rojo",
     "ruta_esperada_regla": "completa",
     "fuentes_esperadas": {
+      "V5": {
+        "documento": "guia_entrega",
+        "seccion": "Mallas cerradas"
+      },
+      "V9": {
+        "documento": "guia_entrega",
+        "seccion": "Normales invertidas"
+      },
+      "V10": {
+        "documento": "blender_manual_limpieza",
+        "seccion": "Fusionar por distancia"
+      },
       "V8": {
         "documento": "guia_entrega",
         "seccion": "Caras degeneradas"
@@ -501,19 +664,26 @@
     "mutaciones": "Triangular una zona amplia y crear caras degeneradas",
     "perfil": "web_ar",
     "malla": "base5_M5.obj",
-    "linea_base": {},
+    "linea_base": {
+      "V9": "menor"
+    },
     "efecto_mutaciones": {
       "V8": "menor"
     },
     "verificaciones_esperadas": {
+      "V9": "menor",
       "V8": "menor"
     },
     "semaforo_esperado": "amarillo",
     "ruta_esperada_regla": "rapida",
     "fuentes_esperadas": {
+      "V9": {
+        "documento": "blender_manual_normales",
+        "seccion": "Recalcular"
+      },
       "V8": {
-        "documento": "blender_manual",
-        "seccion": "Disolver geometría degenerada"
+        "documento": "blender_manual_limpieza",
+        "seccion": "Disolver malformaciones"
       }
     }
   }

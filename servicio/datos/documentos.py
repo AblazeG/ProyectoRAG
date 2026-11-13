@@ -39,7 +39,8 @@ SELECTORES_RUIDO = ("nav", "header", "footer", "aside", "script", "style", "nosc
 CLASES_RUIDO = re.compile(
     r"^(?:nav|navbar|navigation|menu|menubar|sidebar|side-bar|sidenav|sphinxsidebar|wy-nav-side|"
     r"footer|site-footer|header|site-header|page-header|breadcrumbs?|toc|cookies?|cookie-banner|"
-    r"related|skip-link|headerlink)$", re.I)   # headerlink: ancla «¶» de Sphinx en los títulos
+    r"related|skip-link|headerlink|latest-notice)$", re.I)
+# headerlink: ancla «¶» de Sphinx en los títulos; latest-notice: aviso de versión inestable de Godot.
 CONTENEDORES = ("html", "body", "main", "article")
 
 

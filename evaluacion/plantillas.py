@@ -112,21 +112,21 @@ def producto(directorio: Path, bases: list[str]) -> tuple[list[dict], list[dict]
 SECCIONES = [  # (doc_id, sección, consulta directa, consulta coloquial) — 15 × 2 = 30
     ("rubrica_animacion", "Topología para deformación", "¿Por qué evitar n-gons en una malla que se deforma?",
      "mi personaje se pellizca en el codo al doblarlo, ¿qué hago con esas caras raras?"),
-    ("blender_manual", "Limpieza de geometría no manifold", "¿Cómo selecciono la geometría non-manifold en Blender?",
+    ("blender_manual_seleccion", "Non Manifold", "¿Cómo selecciono la geometría non-manifold en Blender?",
      "tengo una cara pegada como aleta en una arista, ¿cómo la limpio?"),
-    ("blender_manual", "Desenvolvimiento UV", "¿Cómo marco costuras y desenvuelvo el mapa UV?",
+    ("blender_manual_uv", "Desplegar", "¿Cómo marco costuras y desenvuelvo el mapa UV?",
      "no puedo ponerle textura a mi modelo, ¿qué me falta?"),
-    ("blender_manual", "Disolver geometría degenerada", "¿Qué hace Degenerate Dissolve?",
+    ("blender_manual_limpieza", "Disolver malformaciones", "¿Qué hace Degenerate Dissolve?",
      "hay triangulitos aplastados sin área, ¿cómo los quito?"),
-    ("blender_manual", "Orientación de normales", "¿Cómo recalculo las normales hacia fuera?",
+    ("blender_manual_normales", "Recalcular", "¿Cómo recalculo las normales hacia fuera?",
      "una parte de mi modelo se ve negra o desaparece en el juego"),
-    ("blender_manual", "Fusionar vértices por distancia", "¿Cómo uso Merge by Distance?",
+    ("blender_manual_limpieza", "Fusionar por distancia", "¿Cómo uso Merge by Distance?",
      "tengo puntos repetidos en el mismo lugar y la malla se abre en piezas"),
-    ("gltf_spec", "Unidades y escala", "¿Qué unidad de longitud usa glTF?",
+    ("gltf_spec", "3.4. Coordinate System and Units", "¿Qué unidad de longitud usa glTF?",
      "mi silla se ve gigante en el visor de realidad aumentada"),
-    ("gltf_spec", "Coordenadas de textura", "¿Qué es TEXCOORD_0 en glTF?",
+    ("gltf_spec", "3.7. Geometry", "¿Qué es TEXCOORD_0 en glTF?",
      "el visor web muestra mi modelo de un solo color plano"),
-    ("godot_docs", "Presupuesto de polígonos", "¿Cuántos triángulos puede tener un personaje de juego móvil?",
+    ("godot_docs_rendimiento", "Nivel de detalle (LOD)", "¿Cuántos triángulos puede tener un personaje de juego móvil?",
      "mi juego va lento en el teléfono con este modelo tan detallado"),
     ("guia_entrega", "Tamaño de archivo para web", "¿Cuál es el tamaño máximo recomendado de un GLB para web?",
      "el modelo tarda mucho en cargar en la página"),
@@ -153,7 +153,7 @@ SIN_RESPALDO = [
     "¿Cómo exporto una animación de esqueleto a FBX?",
     "¿Qué resolución de render conviene para un portafolio?",
 ]
-PERFIL_DE_DOC = {"guia_entrega": "impresion_3d", "godot_docs": "juego_movil", "gltf_spec": "web_ar"}
+PERFIL_DE_DOC = {"guia_entrega": "impresion_3d", "godot_docs_rendimiento": "juego_movil", "gltf_spec": "web_ar"}
 
 
 def recuperacion() -> list[dict]:

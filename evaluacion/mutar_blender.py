@@ -1,12 +1,14 @@
 """Mutaciones M1–M5 de las mallas base con Blender (bpy), tabla 3 del informe.
 
 Uso (Blender 4.2 o posterior):
-    blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas
+    blender -b -P evaluacion/mutar_blender.py -- evaluacion/mallas_base evaluacion/mallas_generadas [--todas]
 
 Para cada ``<nombre>.obj`` de ``mallas_base/`` (cinco mallas CC0 de Kenney,
-Poly Haven o propias; sección 2.4) escribe ``<nombre>_base.obj`` y
-``<nombre>_M1.obj`` … ``<nombre>_M5.obj``; cuando el defecto sobrevive al
-formato, exporta también GLB, STL y PLY. Después, ``evaluacion/plantillas.py
+Poly Haven o propias; sección 2.4) escribe ``<nombre>_base.obj`` y la variante que
+le toca en orden alfabético (la primera base, M1; la segunda, M2…), que es la
+misma asignación de ``plantillas.py``. Con ``--todas`` aplica M1–M5 a cada base
+(cada base debe admitir entonces todas las mutaciones). Cuando el defecto
+sobrevive al formato, exporta también GLB, STL y PLY. Después, ``evaluacion/plantillas.py
 --bases b1,…,b5`` asigna a cada variante su base (M1 necesita una base cuya
 dimensión máxima supere 0.3 unidades) y calcula la línea base:
 
@@ -41,6 +43,7 @@ FORMATOS = {"base": ("obj",), "M1": ("obj",), "M2": ("obj", "glb", "stl", "ply")
 
 def argumentos() -> tuple[Path, Path]:
     extra = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    extra = [a for a in extra if a != "--todas"]
     entrada = Path(extra[0]) if extra else DIR / "mallas_base"
     salida = Path(extra[1]) if len(extra) > 1 else DIR / "mallas_generadas"
     salida.mkdir(parents=True, exist_ok=True)
@@ -98,6 +101,7 @@ def con_bmesh(obj, funcion) -> None:
     bm.to_mesh(obj.data)
     bm.free()
     obj.data.update()
+    bpy.context.view_layer.update()  # sin esto, obj.dimensions conserva la caja anterior (modo -b)
 
 
 def triangulos(bm) -> int:
@@ -265,10 +269,15 @@ def main() -> None:
     bases = sorted(entrada.glob("*.obj"))
     if not bases:
         raise SystemExit(f"No hay mallas .obj en {entrada}")
-    for ruta in bases:
+    todas = "--todas" in sys.argv
+    if not todas and len(bases) != len(MUTACIONES):
+        raise SystemExit(f"Se esperaban {len(MUTACIONES)} mallas base (una por variante) y hay "
+                         f"{len(bases)}; usa --todas para aplicar M1–M5 a cada una.")
+    for indice, ruta in enumerate(bases):
         escena_vacia()
         exportar(importar(ruta), salida / f"{ruta.stem}_base", FORMATOS["base"])
-        for nombre, mutacion in MUTACIONES.items():
+        asignadas = MUTACIONES if todas else dict([list(MUTACIONES.items())[indice]])
+        for nombre, mutacion in asignadas.items():
             escena_vacia()
             obj = importar(ruta)
             mutacion(obj, random.Random(f"{SEMILLA}-{ruta.stem}-{nombre}"))
