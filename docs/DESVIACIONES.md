@@ -140,7 +140,8 @@ Lo que no aparece aquí se implementó tal como lo describe el informe.
 - El README añade a los comandos del Código 7 el archivo de restricciones y ordena los experimentos antes de `run_eval.py`.
 - `docs/` contiene los PDF del encargo, la rúbrica y el informe, pero no las fuentes editables de los diagramas (figuras 1–7). El código sigue los diagramas del PDF.
 - Pillow está en `requirements.txt`: lo usa `evaluacion/sinteticas.py` para la textura del GLB de V11.
-- `<model-viewer>` 4.1.0 está en `web/vendor/` (Apache-2.0).
+- `<model-viewer>` 4.1.0 está en `web/vendor/` (Apache-2.0). Desde el 2026-11-14 la web ya no lo usa: la vista 3D es three.js r160 (`web/vendor/three/`, MIT), que muestra .obj, .glb, .stl y .ply y no solo GLB, como pedía RF8. Sigue sin red.
+- La interfaz web imita la distribución de un programa de modelado 3D: barra de menús, estante de herramientas, Outliner con los hallazgos, vista 3D con HUD y ayudas visuales (caras traseras, bordes abiertos, aristas no manifold), panel de canales y atributos, y línea de comandos para las preguntas. Las ayudas visuales se calculan en el navegador y son aproximadas; las cifras del informe siguen siendo las del analizador.
 
 ## C. Pendientes del informe y dónde se obtienen
 
