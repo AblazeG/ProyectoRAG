@@ -114,16 +114,26 @@ La web solo habla con la API (nunca con Ollama ni ChromaDB). Si la API está en 
 
 ### App para Mac
 
-`app_mac/MeshAudit.app` arranca Ollama, la API y la web con un doble clic, abre el navegador
-en `http://localhost:5173` y, al salir de la app, detiene la API y la web (Ollama se queda abierto).
-Usa el `.venv` del repositorio, así que la app debe quedarse dentro de `app_mac/`.
+Dos formas de abrir MeshAudit con un doble clic. Ambas arrancan Ollama, la API y la web, abren
+`http://localhost:5173` y, al cerrarlas, detienen la API y la web (Ollama se queda abierto):
+
+- **`MeshAudit.command`** (raíz del repositorio): abre Terminal con una guía breve de uso.
+  Pulsa Enter o cierra la ventana para detenerlo.
+- **`app_mac/MeshAudit.app`**: se queda en el Dock; al salir de la app se detiene. Usa el `.venv` del
+  repositorio, así que debe quedarse dentro de `app_mac/`.
+
+Las dos usan `reiniciar`, así que la API y la web cargan siempre el código actual tras un `git pull`,
+y la web se sirve con `Cache-Control: no-cache` (`app_mac/servidor_web.py`) para que el navegador no
+muestre una versión anterior de la interfaz. La primera vez, macOS puede pedir confirmación: clic
+derecho > Abrir.
 
 ```bash
 zsh app_mac/crear_app.sh            # genera (o regenera) MeshAudit.app
-zsh app_mac/meshaudit.sh estado     # iniciar | detener | estado, también desde la terminal
+zsh app_mac/meshaudit.sh estado     # iniciar | reiniciar | detener | estado, también desde la terminal
 ```
 
-Registros: `~/Library/Logs/MeshAudit/api.log` y `web.log`.
+Registros: `~/Library/Logs/MeshAudit/api.log` y `web.log`. Mallas de ejemplo para la demostración:
+`ejemplos/` (ver su README).
 
 ### Sin Ollama (proveedor falso)
 

@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Arranca y detiene MeshAudit en este Mac: Ollama, la API (uvicorn :8000) y la web (:5173).
 # Lo usa MeshAudit.app; también sirve desde la terminal:
-#   app_mac/meshaudit.sh iniciar | detener | estado
+#   app_mac/meshaudit.sh iniciar | reiniciar | detener | estado
 set -u
 
 RAIZ="${0:A:h:h}"                                  # raíz del repositorio
@@ -43,7 +43,7 @@ iniciar() {
 
   # 3. Web estática
   if ! escuchando $WEB; then
-    nohup "$PY" -m http.server $WEB --bind 127.0.0.1 -d "$RAIZ/web" \
+    nohup "$PY" "$RAIZ/app_mac/servidor_web.py" $WEB "$RAIZ/web" \
       >> "$REGISTROS/web.log" 2>&1 &
     print $! > "$SOPORTE/web.pid"
   fi
@@ -71,7 +71,8 @@ estado() {
 
 case "${1:-iniciar}" in
   iniciar) iniciar ;;
+  reiniciar) detener; sleep 1; iniciar ;;   # carga el código actual de la API y la web
   detener) detener ;;
   estado)  estado ;;
-  *) fallar "Uso: $0 iniciar|detener|estado" ;;
+  *) fallar "Uso: $0 iniciar|reiniciar|detener|estado" ;;
 esac
