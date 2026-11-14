@@ -50,9 +50,11 @@ def test_hallazgo_guarda_sin_mediciones():
     exacta, _, _ = nuevas()
     k = CacheExacta.clave_hallazgo("V4", "animacion", "menor", 1, "v1", "gemma4:e2b")
     assert k != CacheExacta.clave_hallazgo("V4", "animacion", "menor", 1, "v1", "gpt-oss:20b")
+    refs = [{"id": "d:s#1", "documento": "d", "seccion": "s"}]
     exacta.guardar_hallazgo(k, {"explicacion": "e", "correccion": ["p"], "fuente": {"d": 1},
-                                "medido": 3, "limite": "0"}, 1, validada=True)
-    assert exacta.obtener_hallazgo(k) == {"explicacion": "e", "correccion": ["p"], "fuente": {"d": 1}}
+                                "referencias": refs, "medido": 3, "limite": "0"}, 1, validada=True)
+    assert exacta.obtener_hallazgo(k) == {"explicacion": "e", "correccion": ["p"], "fuente": {"d": 1},
+                                          "referencias": refs}
 
 
 def test_pregunta_exacta_normaliza_texto():

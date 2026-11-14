@@ -14,6 +14,7 @@ Flujo (sección 5 y figura 7 del informe):
 """
 from __future__ import annotations
 
+import re
 import time
 import uuid
 
@@ -37,6 +38,7 @@ from servicio.dominio import (
     RespuestaExplicaciones,
     Veredicto,
 )
+from servicio.guardrails import patrones
 from servicio.guardrails.entrada import GuardrailsEntrada
 from servicio.guardrails.salida import MENSAJE_SEGURO_FORMATO, GuardrailsSalida
 from servicio.modelos.enrutador import SIN_MODELO, Enrutador, Ruta
@@ -121,6 +123,13 @@ def fuente_de(recuperado: Recuperado | None) -> dict | None:
             "fragmento": f.texto, "id": f.id, "titulo": f.titulo, "pagina": f.pagina}
 
 
+def referencia_de(recuperado: Recuperado) -> dict:
+    """Datos para mostrar una cita del texto como referencia numerada."""
+    f = recuperado.fragmento
+    return {"id": f.id, "documento": f.doc_id, "seccion": f.seccion, "titulo": f.titulo,
+            "puntaje": round(recuperado.puntaje, 4)}
+
+
 def cuerpo_de_error(salida: GuardrailsSalida, traza: Traza, error: ErrorDominio,
                     tipo: str) -> dict:
     """Todo rechazo o error responde con mensaje seguro, traza_id y S4."""
@@ -172,7 +181,21 @@ class OrquestadorAuditoria:
         informe = self.informes.obtener(auditoria_id)
         if informe is None:
             raise NoEncontrado("Auditoría no encontrada.")
-        return {k: v for k, v in informe.items() if not k.startswith("_")}
+        return self._con_referencias({k: v for k, v in informe.items() if not k.startswith("_")})
+
+    def _titulos(self) -> dict[str, str]:
+        return {d["doc_id"]: d.get("titulo") for d in self.indice.listar() if d.get("doc_id")}
+
+    def _con_referencias(self, informe: dict) -> dict:
+        """Añade «referencias» a los hallazgos de informes guardados antes de que existiera."""
+        faltan = [h for h in informe.get("hallazgos", [])
+                  if h.get("explicacion") and not h.get("referencias")]
+        if faltan:
+            titulos = self._titulos()
+            informe["hallazgos"] = [
+                {**h, "referencias": completar_referencias(h, titulos)} if h in faltan else h
+                for h in informe["hallazgos"]]
+        return informe
 
     def exportar_markdown(self, auditoria_id: str) -> str:
         return informe_a_markdown(self.obtener(auditoria_id))
@@ -256,7 +279,7 @@ class OrquestadorAuditoria:
 
     def _desde_cache(self, traza: Traza, guardado: dict, archivo_sha: str, inicio: float,
                      nombre_archivo: str) -> dict:
-        informe = dict(guardado)
+        informe = self._con_referencias(dict(guardado))
         informe.update(auditoria_id=uuid.uuid4().hex, traza_id=traza.traza_id, cache="exacta",
                        iteraciones_agente=0, guardrails=traza.guardrails, uso_respaldo=False,
                        archivo=nombre_archivo,
@@ -288,6 +311,8 @@ class OrquestadorAuditoria:
                 h.explicacion = guardado["explicacion"]
                 h.correccion = list(guardado.get("correccion") or [])
                 h.fuente = guardado.get("fuente")
+                h.referencias = list(guardado.get("referencias") or []) or \
+                    completar_referencias(guardado, self._titulos())
                 aciertos += 1
         traza.sumar("hallazgos_cache", aciertos)
 
@@ -353,6 +378,7 @@ class OrquestadorAuditoria:
                 if item["removidas"]:   # S2 (tabla 13): se quitó una cita inventada
                     h.explicacion = f"{h.explicacion} ({SIN_NORMA_VERIFICADA})"
                 h.fuente = fuente_de(por_id.get(item["citas"][0]))
+                h.referencias = [referencia_de(por_id[c]) for c in item["citas"] if c in por_id]
                 # La clave de la caché de hallazgos lleva el modelo de la ruta: lo que
                 # respondió el respaldo no se guarda bajo ella.
                 validos[h.id] = (veredicto.aprobado and not item["removidas"]
@@ -395,6 +421,7 @@ class OrquestadorAuditoria:
                 "explicacion": None if informativo else h.explicacion,
                 "correccion": [] if informativo else list(h.correccion),
                 "fuente": None if informativo else h.fuente,
+                "referencias": [] if informativo else list(h.referencias),
                 "descripcion": h.descripcion, "valor": h.valor, "norma_esperada": h.norma,
             })
         # El modelo que explicó en esta ejecución (no el que reformuló ni el clasificador).
@@ -429,6 +456,89 @@ class OrquestadorAuditoria:
         }
 
 
+_NUMEROS_JUNTOS = re.compile(r"\[(\d+(?:, \d+)*)\]\s*,?\s*\[(\d+(?:, \d+)*)\]")
+
+
+def _seccion_de_id(resto: str) -> str:
+    """«fusionar-por-distancia#1» → «Fusionar por distancia» (sin acentos: el id no los guarda)."""
+    texto = resto.split("#")[0].replace("-", " ")
+    return texto[:1].upper() + texto[1:]
+
+
+def etiqueta_referencia(ref: dict) -> str:
+    """«Título › Sección» de una cita; sin datos, se deduce del propio id."""
+    titulo = ref.get("titulo") or ref.get("documento")
+    seccion = ref.get("seccion")
+    if not titulo or not seccion:
+        doc, _, resto = ref["id"].partition(":")
+        titulo = titulo or doc
+        seccion = seccion or _seccion_de_id(resto)
+    return f"{titulo} › {seccion}"
+
+
+def numerar_citas(textos: list[str], referencias: list[dict]) -> tuple[list[str], list[dict]]:
+    """Cambia «[doc:seccion#n]» por «[1]» en el orden en que aparecen.
+
+    Solo es presentación: S2 ya validó los ids y el JSON del informe los conserva.
+    Varios fragmentos de la misma sección comparten número. Devuelve los textos
+    numerados y una referencia por número, con los ids que agrupa en «ids».
+    """
+    datos = {r["id"]: r for r in referencias}
+    orden: list[dict] = []
+    por_seccion: dict[str, int] = {}
+
+    def numero(cid: str) -> int:
+        seccion = cid.split("#")[0]                   # «doc:seccion», común a sus fragmentos
+        if seccion not in por_seccion:
+            orden.append({"id": cid, "ids": []})
+            por_seccion[seccion] = len(orden)
+        n = por_seccion[seccion]
+        ref = orden[n - 1]
+        if cid in datos and not ref.get("seccion"):  # el primero con datos da la etiqueta
+            ref.update({k: v for k, v in datos[cid].items() if k != "id"})
+        if cid not in ref["ids"]:
+            ref["ids"].append(cid)
+        return n
+
+    def grupo(m: re.Match) -> str:
+        ids = re.findall(patrones.ID_FRAGMENTO, m.group(1))
+        return "[" + ", ".join(str(n) for n in dict.fromkeys(numero(c) for c in ids)) + "]"
+
+    salida = []
+    for texto in textos:
+        texto = patrones.GRUPO_CITAS.sub(grupo, texto or "")
+        texto = patrones.ID_SUELTO.sub(lambda m: f"[{numero(m.group(1))}]", texto)
+        while _NUMEROS_JUNTOS.search(texto):          # «[1][2]» o «[1], [2]» → «[1, 2]»
+            texto = _NUMEROS_JUNTOS.sub(_juntar, texto, count=1)
+        salida.append(texto)
+    return salida, orden
+
+
+def _juntar(m: re.Match) -> str:
+    numeros = dict.fromkeys(m.group(1).split(", ") + m.group(2).split(", "))
+    return "[" + ", ".join(numeros) + "]"
+
+
+def completar_referencias(hallazgo: dict, titulos: dict[str, str]) -> list[dict]:
+    """Referencias de un hallazgo guardado antes de que existiera el campo.
+
+    Se deducen de los ids citados en el texto; el título sale del registro de documentos
+    y la sección, de la fuente o del propio id.
+    """
+    if hallazgo.get("referencias"):
+        return hallazgo["referencias"]
+    textos = [hallazgo.get("explicacion") or ""] + list(hallazgo.get("correccion") or [])
+    fuente = hallazgo.get("fuente") or {}
+    refs = []
+    for cid in dict.fromkeys(c for t in textos for c in re.findall(patrones.ID_FRAGMENTO, t)):
+        doc, _, resto = cid.partition(":")
+        mismo = fuente.get("id", "").split("#")[0] == cid.split("#")[0]
+        seccion = fuente.get("seccion") if mismo else None
+        refs.append({"id": cid, "documento": doc, "titulo": titulos.get(doc),
+                     "seccion": seccion or _seccion_de_id(resto)})
+    return refs
+
+
 def informe_a_markdown(informe: dict) -> str:
     """Exportación del informe a Markdown (``GET /auditorias/{id}/markdown``, RF7)."""
     m = informe["metricas_malla"]
@@ -446,11 +556,19 @@ def informe_a_markdown(informe: dict) -> str:
         lineas += [f"### {h['id']} · {h['verificacion']} · {h.get('descripcion', h['tipo'])} "
                    f"({h['gravedad']})", "",
                    f"- Medido: `{h['medido']}` · Límite: `{h['limite']}`"]
-        if h.get("explicacion"):
-            lineas += ["", h["explicacion"]]
-        if h.get("correccion"):
-            lineas += ["", "**Pasos de corrección:**"]
-            lineas += [f"{i}. {paso}" for i, paso in enumerate(h["correccion"], start=1)]
+        textos, refs = numerar_citas([h.get("explicacion") or ""] + list(h.get("correccion") or []),
+                                     h.get("referencias") or [])
+        explicacion, pasos = textos[0], textos[1:]
+        if explicacion:
+            lineas += ["", explicacion]
+        if pasos:
+            lineas += ["", "**Pasos de corrección:**", ""]
+            lineas += [f"{i}. {paso}" for i, paso in enumerate(pasos, start=1)]
+        if refs:
+            lineas += ["", "**Referencias:**", ""]
+            lineas += [f"- [{i}] {etiqueta_referencia(r)} ("
+                       + ", ".join(f"`{c}`" for c in r["ids"]) + ")"
+                       for i, r in enumerate(refs, start=1)]
         if h.get("fuente"):
             f = h["fuente"]
             lineas += ["", f"> **Fuente:** {f['documento']} — {f['seccion']} "

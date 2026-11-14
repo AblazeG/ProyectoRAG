@@ -61,6 +61,7 @@ class Hallazgo:
     explicacion: str | None = None
     correccion: list[str] = field(default_factory=list)
     fuente: dict | None = None
+    referencias: list[dict] = field(default_factory=list)  # una por cita válida
     valor: Any = None            # valor numérico o lógico sin formato
 
     @property

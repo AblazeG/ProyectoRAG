@@ -21,6 +21,14 @@ class Fuente(Abierto):
     id: str | None = None
 
 
+class Referencia(Abierto):
+    id: str                   # id del fragmento citado en el texto, p. ej. "doc:seccion#3"
+    documento: str
+    seccion: str
+    titulo: str | None = None
+    puntaje: float | None = None
+
+
 class Guardrails(Abierto):
     entrada: str              # "aprobada" | "enmascarada" | "rechazada"
     salida: str               # "aprobada" | "corregida"
@@ -37,6 +45,7 @@ class HallazgoSalida(Abierto):
     explicacion: str | None = None
     correccion: list[str] = Field(default_factory=list)
     fuente: Fuente | None = None
+    referencias: list[Referencia] = Field(default_factory=list)
 
 
 class MetricasMalla(Abierto):

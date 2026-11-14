@@ -359,3 +359,29 @@ def test_informe_sobrevive_a_la_purga_de_cache(tmp_path):
     c.cache.purgar(10_000)
     assert c.auditor.informes.obtener(inf["auditoria_id"])["semaforo"] == "rojo"
     assert c.preguntas.preguntar(inf["auditoria_id"], "¿Cómo encuentro las aristas no manifold?")["respuesta"]
+
+
+def test_numerar_citas_y_markdown():
+    from servicio.orquestacion.auditor import etiqueta_referencia, numerar_citas
+    refs = [{"id": "blender_manual_limpieza:fusionar-por-distancia#1", "documento": "blender_manual_limpieza",
+             "seccion": "Fusionar por distancia", "titulo": "Blender Manual — Limpieza"}]
+    textos, orden = numerar_citas(
+        ["Fusionar [blender_manual_limpieza:fusionar-por-distancia#1][blender_manual_fusionar:fusionar-o-mezclar#3].",
+         "Ver (blender_manual_limpieza:fusionar-por-distancia#1; gltf_spec:geometry#2)."], refs)
+    assert textos == ["Fusionar [1, 2].", "Ver [1, 3]."]
+    assert [r["id"] for r in orden] == ["blender_manual_limpieza:fusionar-por-distancia#1",
+                                        "blender_manual_fusionar:fusionar-o-mezclar#3", "gltf_spec:geometry#2"]
+    assert etiqueta_referencia(orden[0]) == "Blender Manual — Limpieza › Fusionar por distancia"
+    assert etiqueta_referencia(orden[1]) == "blender_manual_fusionar › Fusionar o mezclar"
+
+
+def test_completar_referencias_de_caches_viejas():
+    from servicio.api.esquemas import Referencia
+    from servicio.orquestacion.auditor import completar_referencias
+    h = {"explicacion": "Ver [d:fusionar-por-distancia#1] y [d:opciones#2].", "correccion": [],
+         "fuente": {"id": "d:fusionar-por-distancia#3", "seccion": "Fusionar por distancia"}}
+    refs = completar_referencias(h, {"d": "Manual"})
+    assert [r["seccion"] for r in refs] == ["Fusionar por distancia", "Opciones"]
+    assert all(r["titulo"] == "Manual" for r in refs)
+    for r in refs:
+        Referencia(**r)                       # la respuesta de la API las valida

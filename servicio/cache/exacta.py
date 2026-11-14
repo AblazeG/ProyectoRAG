@@ -95,7 +95,8 @@ class CacheExacta:
     def guardar_hallazgo(self, clave: str, explicacion: dict, version_corpus: int,
                          validada: bool) -> bool:
         """Guarda la explicación sin mediciones (explicación, pasos y fuente)."""
-        sin_mediciones = {k: explicacion.get(k) for k in ("explicacion", "correccion", "fuente")}
+        sin_mediciones = {k: explicacion.get(k) for k in ("explicacion", "correccion", "fuente",
+                                                              "referencias")}
         return self.guardar("hallazgo", clave, sin_mediciones, version_corpus, validada)
 
     def obtener_pregunta(self, clave: str) -> dict | None:
